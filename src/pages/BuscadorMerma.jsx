@@ -5,11 +5,13 @@ import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import ProductCard from "../components/ProductCard";
 import AddProductModal from "../components/AddProductModal";
+import ImportExportModal from "../components/ImportExportModal";
 
 export default function BuscadorMerma({ user, rol, onBack }) {
   const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [showImportExport, setShowImportExport] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -42,7 +44,17 @@ export default function BuscadorMerma({ user, rol, onBack }) {
           ← Volver al inicio
         </button>
 
-        <h2 className="text-white text-2xl font-bold mb-6">🔍 Buscador de Merma</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-white text-2xl font-bold">🔍 Buscador de Merma</h2>
+          {rol === "admin" && (
+            <button
+              onClick={() => setShowImportExport(true)}
+              className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+            >
+              📂 Importar / Exportar
+            </button>
+          )}
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
           <SearchBar value={search} onChange={setSearch} />
@@ -76,6 +88,10 @@ export default function BuscadorMerma({ user, rol, onBack }) {
           onClose={() => setShowModal(false)}
           onAdded={() => setShowModal(false)}
         />
+      )}
+
+      {showImportExport && (
+        <ImportExportModal onClose={() => setShowImportExport(false)} />
       )}
     </div>
   );
