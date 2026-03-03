@@ -1,13 +1,25 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 
 export default function DashboardPage({ user, rol }) {
-  const [modulo, setModulo] = useState(null);
+  const modulo = window.location.hash.replace("#", "") || null;
 
-  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => setModulo(null)} />;
-  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => setModulo(null)} />;
+  const setModulo = (m) => {
+    window.location.hash = m || "";
+  };
+
+  useEffect(() => {
+    const handleHash = () => {
+      // fuerza re-render al cambiar hash
+    };
+    window.addEventListener("hashchange", handleHash);
+    return () => window.removeEventListener("hashchange", handleHash);
+  }, []);
+
+  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => setModulo("")} />;
+  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => setModulo("")} />;
 
   return (
     <div className="min-h-screen bg-gray-900">
