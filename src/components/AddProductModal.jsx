@@ -18,7 +18,8 @@ export default function AddProductModal({ onClose, onAdded }) {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
       const extras = snap.docs.map((d) => d.data().nombre);
-      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extras])];
+      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extras])].filter(c => c !== "Otros");
+      todas.push("Otros");
       setCategorias(todas);
     });
     return () => unsub();
