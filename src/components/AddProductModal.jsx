@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase/config";
-import { collection, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 
 const CATEGORIAS_DEFAULT = ["Carnes", "Abarrotes", "Acompañamientos", "Bollería", "Cafetería"];
 
@@ -10,6 +10,7 @@ export default function AddProductModal({ onClose, onAdded }) {
   const [categoria, setCategoria] = useState("");
   const [unidadMedida, setUnidadMedida] = useState("");
   const [categorias, setCategorias] = useState(CATEGORIAS_DEFAULT);
+  const [categoriasDocs, setCategoriasDocs] = useState([]);
   const [nuevaCategoria, setNuevaCategoria] = useState("");
   const [agregandoCategoria, setAgregandoCategoria] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -17,10 +18,12 @@ export default function AddProductModal({ onClose, onAdded }) {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
-      const extras = snap.docs.map((d) => d.data().nombre);
-      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extras])].filter(c => c !== "Otros");
+      const extras = snap.docs.map((d) => ({ id: d.id, nombre: d.data().nombre }));
+      const extrasNombres = extras.map((e) => e.nombre);
+      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extrasNombres])].filter(c => c !== "Otros");
       todas.push("Otros");
       setCategorias(todas);
+      setCategoriasDocs(extras);
     });
     return () => unsub();
   }, []);
@@ -30,7 +33,10 @@ export default function AddProductModal({ onClose, onAdded }) {
     await addDoc(collection(db, "categorias"), { nombre: nuevaCategoria.trim() });
     setCategoria(nuevaCategoria.trim());
     setNuevaCategoria("");
-    setAgregandoCategoria(false);
+  };
+
+  const handleEliminarCategoria = async (id) => {
+    await deleteDoc(doc(db, "categorias", id));
   };
 
   const handleSubmit = async () => {
@@ -86,6 +92,7 @@ export default function AddProductModal({ onClose, onAdded }) {
                 setAgregandoCategoria(true);
               } else {
                 setCategoria(e.target.value);
+                setAgregandoCategoria(false);
               }
             }}
             className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
@@ -98,26 +105,44 @@ export default function AddProductModal({ onClose, onAdded }) {
           </select>
 
           {agregandoCategoria && (
-            <div className="flex gap-2 mt-2">
-              <input
-                type="text"
-                placeholder="Nueva categoría"
-                value={nuevaCategoria}
-                onChange={(e) => setNuevaCategoria(e.target.value)}
-                className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
-              <button
-                onClick={handleAgregarCategoria}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition"
-              >
-                Agregar
-              </button>
-              <button
-                onClick={() => setAgregandoCategoria(false)}
-                className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-lg transition"
-              >
-                ✕
-              </button>
+            <div className="mt-2">
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="Nueva categoría"
+                  value={nuevaCategoria}
+                  onChange={(e) => setNuevaCategoria(e.target.value)}
+                  className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button
+                  onClick={handleAgregarCategoria}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition"
+                >
+                  Agregar
+                </button>
+                <button
+                  onClick={() => setAgregandoCategoria(false)}
+                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-lg transition"
+                >
+                  ✕
+                </button>
+              </div>
+              {categoriasDocs.length > 0 && (
+                <div className="bg-gray-700 rounded-lg p-2">
+                  <p className="text-gray-400 text-xs mb-2">Categorías personalizadas:</p>
+                  {categoriasDocs.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between py-1">
+                      <span className="text-white text-sm">{c.nombre}</span>
+                      <button
+                        onClick={() => handleEliminarCategoria(c.id)}
+                        className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded transition"
+                      >
+                        ✕ Eliminar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
