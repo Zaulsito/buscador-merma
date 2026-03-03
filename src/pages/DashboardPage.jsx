@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
+import PerfilPage from "./PerfilPage";
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
@@ -25,12 +26,13 @@ export default function DashboardPage({ user, rol }) {
 
   if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "perfil") return <PerfilPage user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Navbar user={user} rol={rol} />
+      <Navbar user={user} rol={rol} onPerfil={() => navegarA("perfil")} />
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <h2 className="text-white text-2xl font-bold mb-2">Bienvenido 👋</h2>
+        <h2 className="text-white text-2xl font-bold mb-2">Bienvenido, {user?.displayName?.split(" ")[0] || "👋"}</h2>
         <p className="text-gray-400 mb-8">Selecciona un módulo para comenzar</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
