@@ -1,20 +1,9 @@
-import { useState, useEffect } from "react";
-import { auth } from "./firebase/config";
-import { onAuthStateChanged } from "firebase/auth";
+import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 
 export default function App() {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
+  const { user, rol, loading } = useAuth();
 
   if (loading) {
     return (
@@ -24,5 +13,5 @@ export default function App() {
     );
   }
 
-  return user ? <DashboardPage user={user} /> : <LoginPage />;
+  return user ? <DashboardPage user={user} rol={rol} /> : <LoginPage />;
 }

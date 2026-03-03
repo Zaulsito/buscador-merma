@@ -1,15 +1,17 @@
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
+import GestionUsuarios from "./GestionUsuarios";
 
-export default function DashboardPage({ user }) {
+export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(null);
 
-  if (modulo === "merma") return <BuscadorMerma user={user} onBack={() => setModulo(null)} />;
+  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => setModulo(null)} />;
+  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => setModulo(null)} />;
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <Navbar user={user} />
+      <Navbar user={user} rol={rol} />
       <div className="max-w-4xl mx-auto px-4 py-10">
         <h2 className="text-white text-2xl font-bold mb-2">Bienvenido 👋</h2>
         <p className="text-gray-400 mb-8">Selecciona un módulo para comenzar</p>
@@ -29,6 +31,17 @@ export default function DashboardPage({ user }) {
             <h3 className="text-white font-bold text-lg mt-3">Fichas Técnicas</h3>
             <p className="text-gray-400 text-sm mt-1">Próximamente...</p>
           </div>
+
+          {rol === "admin" && (
+            <button
+              onClick={() => setModulo("usuarios")}
+              className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-purple-500/20"
+            >
+              <span className="text-4xl">👥</span>
+              <h3 className="text-white font-bold text-lg mt-3">Gestión de Usuarios</h3>
+              <p className="text-gray-400 text-sm mt-1">Administra roles y accesos</p>
+            </button>
+          )}
         </div>
       </div>
     </div>
