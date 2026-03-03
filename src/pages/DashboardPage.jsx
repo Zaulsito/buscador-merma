@@ -1,25 +1,30 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 
 export default function DashboardPage({ user, rol }) {
-  const modulo = window.location.hash.replace("#", "") || null;
-
-  const setModulo = (m) => {
-    window.location.hash = m || "";
-  };
+  const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
 
   useEffect(() => {
     const handleHash = () => {
-      // fuerza re-render al cambiar hash
+      setModulo(window.location.hash.replace("#", "") || null);
     };
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
 
-  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => setModulo("")} />;
-  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => setModulo("")} />;
+  const navegarA = (m) => {
+    if (m) {
+      window.location.hash = m;
+    } else {
+      history.pushState("", document.title, window.location.pathname);
+      setModulo(null);
+    }
+  };
+
+  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -30,7 +35,7 @@ export default function DashboardPage({ user, rol }) {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={() => setModulo("merma")}
+            onClick={() => navegarA("merma")}
             className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-blue-500/20"
           >
             <span className="text-4xl">🔍</span>
@@ -46,7 +51,7 @@ export default function DashboardPage({ user, rol }) {
 
           {rol === "admin" && (
             <button
-              onClick={() => setModulo("usuarios")}
+              onClick={() => navegarA("usuarios")}
               className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-purple-500/20"
             >
               <span className="text-4xl">👥</span>
