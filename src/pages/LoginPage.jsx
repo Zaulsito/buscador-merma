@@ -31,7 +31,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
       <div className="bg-gray-800 p-8 rounded-2xl shadow-xl w-full max-w-md">
-        <h1 className="text-3xl font-bold text-white text-center mb-2">Buscador de Merma</h1>
+        <h1 className="text-3xl font-bold text-white text-center mb-2">Rincón Informaciones</h1>
         <p className="text-gray-400 text-center mb-8">Inicia sesión para continuar</p>
 
         {error && <p className="text-red-400 text-sm text-center mb-4">{error}</p>}

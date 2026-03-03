@@ -1,71 +1,36 @@
-import { useState, useEffect } from "react";
-import { db } from "../firebase/config";
-import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
+import { useState } from "react";
 import Navbar from "../components/Navbar";
-import SearchBar from "../components/SearchBar";
-import ProductCard from "../components/ProductCard";
-import AddProductModal from "../components/AddProductModal";
+import BuscadorMerma from "./BuscadorMerma";
 
 export default function DashboardPage({ user }) {
-  const [products, setProducts] = useState([]);
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [modulo, setModulo] = useState(null);
 
-  useEffect(() => {
-    const q = query(collection(db, "merma"), orderBy("fechaCreacion", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setProducts(data);
-      setLoading(false);
-    });
-    return () => unsub();
-  }, []);
-
-  const filtered = products.filter((p) => {
-    const term = search.toLowerCase();
-    return (
-      p.codigo?.toLowerCase().includes(term) ||
-      p.nombre?.toLowerCase().includes(term) ||
-      p.categoria?.toLowerCase().includes(term)
-    );
-  });
+  if (modulo === "merma") return <BuscadorMerma user={user} onBack={() => setModulo(null)} />;
 
   return (
     <div className="min-h-screen bg-gray-900">
       <Navbar user={user} />
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
-          <SearchBar value={search} onChange={setSearch} />
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        <h2 className="text-white text-2xl font-bold mb-2">Bienvenido 👋</h2>
+        <p className="text-gray-400 mb-8">Selecciona un módulo para comenzar</p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            onClick={() => setShowModal(true)}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition whitespace-nowrap"
+            onClick={() => setModulo("merma")}
+            className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-blue-500/20"
           >
-            + Agregar producto
+            <span className="text-4xl">🔍</span>
+            <h3 className="text-white font-bold text-lg mt-3">Buscador de Merma</h3>
+            <p className="text-gray-400 text-sm mt-1">Busca productos por código, nombre o categoría</p>
           </button>
-        </div>
 
-        {loading ? (
-          <p className="text-gray-400 text-center">Cargando productos...</p>
-        ) : filtered.length === 0 ? (
-          <p className="text-gray-400 text-center">
-            {search ? "No se encontraron productos" : "Aún no hay productos agregados"}
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filtered.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+          <div className="bg-gray-800/50 rounded-2xl p-6 text-left opacity-50 cursor-not-allowed">
+            <span className="text-4xl">📋</span>
+            <h3 className="text-white font-bold text-lg mt-3">Fichas Técnicas</h3>
+            <p className="text-gray-400 text-sm mt-1">Próximamente...</p>
           </div>
-        )}
+        </div>
       </div>
-
-      {showModal && (
-        <AddProductModal
-          onClose={() => setShowModal(false)}
-          onAdded={() => setShowModal(false)}
-        />
-      )}
     </div>
   );
 }
