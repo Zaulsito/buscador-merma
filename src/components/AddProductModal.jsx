@@ -1,14 +1,36 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db, auth } from "../firebase/config";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot } from "firebase/firestore";
+
+const CATEGORIAS_DEFAULT = ["Carnes", "Abarrotes", "Acompañamientos", "Bollería", "Cafetería"];
 
 export default function AddProductModal({ onClose, onAdded }) {
   const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [sap, setSap] = useState("");
+  const [unidadMedida, setUnidadMedida] = useState("");
+  const [categorias, setCategorias] = useState(CATEGORIAS_DEFAULT);
+  const [nuevaCategoria, setNuevaCategoria] = useState("");
+  const [agregandoCategoria, setAgregandoCategoria] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
+      const extras = snap.docs.map((d) => d.data().nombre);
+      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extras])];
+      setCategorias(todas);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleAgregarCategoria = async () => {
+    if (!nuevaCategoria.trim()) return;
+    await addDoc(collection(db, "categorias"), { nombre: nuevaCategoria.trim() });
+    setCategoria(nuevaCategoria.trim());
+    setNuevaCategoria("");
+    setAgregandoCategoria(false);
+  };
 
   const handleSubmit = async () => {
     if (!codigo || !nombre) {
@@ -21,7 +43,7 @@ export default function AddProductModal({ onClose, onAdded }) {
         codigo,
         nombre,
         categoria,
-        sap,
+        unidadMedida,
         creadoPor: auth.currentUser?.uid,
         fechaCreacion: serverTimestamp(),
       });
@@ -54,18 +76,56 @@ export default function AddProductModal({ onClose, onAdded }) {
           onChange={(e) => setNombre(e.target.value)}
           className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
         />
+
+        <div className="mb-3">
+          <select
+            value={categoria}
+            onChange={(e) => {
+              if (e.target.value === "__nueva__") {
+                setAgregandoCategoria(true);
+              } else {
+                setCategoria(e.target.value);
+              }
+            }}
+            className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar categoría</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+            <option value="__nueva__">+ Agregar nueva categoría</option>
+          </select>
+
+          {agregandoCategoria && (
+            <div className="flex gap-2 mt-2">
+              <input
+                type="text"
+                placeholder="Nueva categoría"
+                value={nuevaCategoria}
+                onChange={(e) => setNuevaCategoria(e.target.value)}
+                className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <button
+                onClick={handleAgregarCategoria}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition"
+              >
+                Agregar
+              </button>
+              <button
+                onClick={() => setAgregandoCategoria(false)}
+                className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-lg transition"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
         <input
           type="text"
-          placeholder="Categoría"
-          value={categoria}
-          onChange={(e) => setCategoria(e.target.value)}
-          className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <input
-          type="text"
-          placeholder="SAP (opcional)"
-          value={sap}
-          onChange={(e) => setSap(e.target.value)}
+          placeholder="Unidad de medida (opcional)"
+          value={unidadMedida}
+          onChange={(e) => setUnidadMedida(e.target.value)}
           className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-6 outline-none focus:ring-2 focus:ring-blue-500"
         />
 

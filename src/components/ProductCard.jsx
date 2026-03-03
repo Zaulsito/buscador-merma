@@ -1,22 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, collection, onSnapshot, addDoc } from "firebase/firestore";
+
+const CATEGORIAS_DEFAULT = ["Carnes", "Abarrotes", "Acompañamientos", "Bollería", "Cafetería"];
 
 export default function ProductCard({ product, rol }) {
   const [editing, setEditing] = useState(false);
   const [nombre, setNombre] = useState(product.nombre);
   const [categoria, setCategoria] = useState(product.categoria || "");
-  const [sap, setSap] = useState(product.sap || "");
+  const [unidadMedida, setUnidadMedida] = useState(product.unidadMedida || product.sap || "");
+  const [categorias, setCategorias] = useState(CATEGORIAS_DEFAULT);
+  const [nuevaCategoria, setNuevaCategoria] = useState("");
+  const [agregandoCategoria, setAgregandoCategoria] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
+      const extras = snap.docs.map((d) => d.data().nombre);
+      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extras])];
+      setCategorias(todas);
+    });
+    return () => unsub();
+  }, []);
 
   const handleDelete = async () => {
     if (!confirm("¿Eliminar este producto?")) return;
     await deleteDoc(doc(db, "merma", product.id));
   };
 
+  const handleAgregarCategoria = async () => {
+    if (!nuevaCategoria.trim()) return;
+    await addDoc(collection(db, "categorias"), { nombre: nuevaCategoria.trim() });
+    setCategoria(nuevaCategoria.trim());
+    setNuevaCategoria("");
+    setAgregandoCategoria(false);
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    await updateDoc(doc(db, "merma", product.id), { nombre, categoria, sap });
+    await updateDoc(doc(db, "merma", product.id), { nombre, categoria, unidadMedida });
     setSaving(false);
     setEditing(false);
   };
@@ -30,18 +52,52 @@ export default function ProductCard({ product, rol }) {
           className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
           placeholder="Nombre"
         />
+
+        <div className="mb-2">
+          <select
+            value={categoria}
+            onChange={(e) => {
+              if (e.target.value === "__nueva__") {
+                setAgregandoCategoria(true);
+              } else {
+                setCategoria(e.target.value);
+              }
+            }}
+            className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          >
+            <option value="">Seleccionar categoría</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+            <option value="__nueva__">+ Agregar nueva categoría</option>
+          </select>
+
+          {agregandoCategoria && (
+            <div className="flex gap-2 mt-2">
+              <input
+                type="text"
+                placeholder="Nueva categoría"
+                value={nuevaCategoria}
+                onChange={(e) => setNuevaCategoria(e.target.value)}
+                className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <button onClick={handleAgregarCategoria} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition">
+                Agregar
+              </button>
+              <button onClick={() => setAgregandoCategoria(false)} className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-lg transition">
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+
         <input
-          value={categoria}
-          onChange={(e) => setCategoria(e.target.value)}
-          className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mb-2 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          placeholder="Categoría"
-        />
-        <input
-          value={sap}
-          onChange={(e) => setSap(e.target.value)}
+          value={unidadMedida}
+          onChange={(e) => setUnidadMedida(e.target.value)}
           className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          placeholder="SAP (opcional)"
+          placeholder="Unidad de medida (opcional)"
         />
+
         <div className="flex gap-2">
           <button
             onClick={() => setEditing(false)}
@@ -74,8 +130,8 @@ export default function ProductCard({ product, rol }) {
           #{product.codigo}
         </span>
       </div>
-      {product.sap && (
-        <p className="text-gray-400 text-sm mt-2">SAP: {product.sap}</p>
+      {(product.unidadMedida || product.sap) && (
+        <p className="text-gray-400 text-sm mt-2">Unidad: {product.unidadMedida || product.sap}</p>
       )}
       {rol === "admin" && (
         <div className="flex gap-2 mt-3">
