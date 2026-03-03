@@ -26,7 +26,7 @@ export default function ImportExportModal({ onClose }) {
       for (const row of rows) {
         const codigo = row["codigo"]?.toString().trim() || row["Codigo"]?.toString().trim();
         const nombre = row["nombre"]?.toString().trim() || row["Nombre"]?.toString().trim();
-        const categoria = row["categoria"]?.toString().trim() || row["Categoria"]?.toString().trim() || "Sin categoría";
+        const categoria = row["categoria"]?.toString().trim() || row["Categoria"]?.toString().trim() || "Producto";
         const sap = row["sap"]?.toString().trim() || row["SAP"]?.toString().trim() || "";
 
         if (!codigo || !nombre) {
