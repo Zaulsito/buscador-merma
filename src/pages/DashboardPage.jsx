@@ -3,9 +3,11 @@ import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 import PerfilPage from "./PerfilPage";
+import { useTheme } from "../context/ThemeContext";
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
+  const { t } = useTheme();
 
   useEffect(() => {
     const handleHash = () => {
@@ -29,36 +31,38 @@ export default function DashboardPage({ user, rol }) {
   if (modulo === "perfil") return <PerfilPage user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className={`min-h-screen ${t.bg}`}>
       <Navbar user={user} rol={rol} onPerfil={() => navegarA("perfil")} />
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <h2 className="text-white text-2xl font-bold mb-2">Bienvenido, {user?.displayName?.split(" ")[0] || "👋"}</h2>
-        <p className="text-gray-400 mb-8">Selecciona un módulo para comenzar</p>
+        <h2 className={`${t.text} text-2xl font-bold mb-2`}>
+          Bienvenido, {user?.displayName?.split(" ")[0] || "👋"}
+        </h2>
+        <p className={`${t.textSecondary} mb-8`}>Selecciona un módulo para comenzar</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             onClick={() => navegarA("merma")}
-            className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-blue-500/20"
+            className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
           >
             <span className="text-4xl">🔍</span>
-            <h3 className="text-white font-bold text-lg mt-3">Buscador de Merma</h3>
-            <p className="text-gray-400 text-sm mt-1">Busca productos por código, nombre o categoría</p>
+            <h3 className={`${t.text} font-bold text-lg mt-3`}>Buscador de Merma</h3>
+            <p className={`${t.textSecondary} text-sm mt-1`}>Busca productos por código, nombre o categoría</p>
           </button>
 
-          <div className="bg-gray-800/50 rounded-2xl p-6 text-left opacity-50 cursor-not-allowed">
+          <div className={`${t.bgCard} rounded-2xl p-6 text-left opacity-50 cursor-not-allowed`}>
             <span className="text-4xl">📋</span>
-            <h3 className="text-white font-bold text-lg mt-3">Fichas Técnicas</h3>
-            <p className="text-gray-400 text-sm mt-1">Próximamente...</p>
+            <h3 className={`${t.text} font-bold text-lg mt-3`}>Fichas Técnicas</h3>
+            <p className={`${t.textSecondary} text-sm mt-1`}>Próximamente...</p>
           </div>
 
           {rol === "admin" && (
             <button
               onClick={() => navegarA("usuarios")}
-              className="bg-gray-800 hover:bg-gray-700 rounded-2xl p-6 text-left transition shadow hover:shadow-purple-500/20"
+              className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
             >
               <span className="text-4xl">👥</span>
-              <h3 className="text-white font-bold text-lg mt-3">Gestión de Usuarios</h3>
-              <p className="text-gray-400 text-sm mt-1">Administra roles y accesos</p>
+              <h3 className={`${t.text} font-bold text-lg mt-3`}>Gestión de Usuarios</h3>
+              <p className={`${t.textSecondary} text-sm mt-1`}>Administra roles y accesos</p>
             </button>
           )}
         </div>

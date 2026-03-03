@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { auth, db } from "../firebase/config";
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, getDoc } from "firebase/firestore";
 import Navbar from "../components/Navbar";
+import { useTheme } from "../context/ThemeContext";
+
+const DIAS_LIMITE = 14;
 
 export default function PerfilPage({ user, rol, onBack }) {
   const [nombre, setNombre] = useState(user.displayName || "");
@@ -13,14 +16,36 @@ export default function PerfilPage({ user, rol, onBack }) {
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [mensajePerfil, setMensajePerfil] = useState(null);
   const [mensajePassword, setMensajePassword] = useState(null);
+  const { t } = useTheme();
 
   const handleActualizarPerfil = async () => {
     if (!nombre.trim()) return;
     setLoadingPerfil(true);
     setMensajePerfil(null);
     try {
+      const ref = doc(db, "usuarios", user.uid);
+      const snap = await getDoc(ref);
+      const data = snap.data();
+
+      if (data?.ultimoCambioNombre) {
+        const ultimoCambio = data.ultimoCambioNombre.toDate();
+        const diasPasados = (new Date() - ultimoCambio) / (1000 * 60 * 60 * 24);
+        if (diasPasados < DIAS_LIMITE) {
+          const diasRestantes = Math.ceil(DIAS_LIMITE - diasPasados);
+          setMensajePerfil({
+            tipo: "error",
+            texto: `⏳ Puedes cambiar tu nombre en ${diasRestantes} día${diasRestantes !== 1 ? "s" : ""}`
+          });
+          setLoadingPerfil(false);
+          return;
+        }
+      }
+
       await updateProfile(auth.currentUser, { displayName: nombre });
-      await updateDoc(doc(db, "usuarios", user.uid), { nombre });
+      await updateDoc(ref, {
+        nombre,
+        ultimoCambioNombre: new Date(),
+      });
       setMensajePerfil({ tipo: "ok", texto: "✅ Perfil actualizado correctamente" });
     } catch (err) {
       setMensajePerfil({ tipo: "error", texto: "Error al actualizar el perfil" });
@@ -64,37 +89,37 @@ export default function PerfilPage({ user, rol, onBack }) {
   const esGoogleUser = user.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className={`min-h-screen ${t.bg}`}>
       <Navbar user={user} rol={rol} />
       <div className="max-w-lg mx-auto px-4 py-8">
         <button
           onClick={onBack}
-          className="text-gray-400 hover:text-white text-sm mb-6 flex items-center gap-2 transition"
+          className={`${t.textSecondary} text-sm mb-6 flex items-center gap-2 transition`}
         >
           ← Volver al inicio
         </button>
 
-        <h2 className="text-white text-2xl font-bold mb-8">👤 Mi Perfil</h2>
+        <h2 className={`${t.text} text-2xl font-bold mb-8`}>👤 Mi Perfil</h2>
 
-        {/* Datos personales */}
-        <div className="bg-gray-800 rounded-2xl p-6 mb-6">
-          <h3 className="text-white font-semibold text-lg mb-4">Datos personales</h3>
+        <div className={`${t.bgCard} rounded-2xl p-6 mb-6`}>
+          <h3 className={`${t.text} font-semibold text-lg mb-4`}>Datos personales</h3>
 
-          <label className="text-gray-400 text-sm mb-1 block">Nombre completo</label>
+          <label className={`${t.textSecondary} text-sm mb-1 block`}>Nombre completo</label>
           <input
             type="text"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full ${t.bgInput} ${t.text} px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500`}
           />
 
-          <label className="text-gray-400 text-sm mb-1 block">Correo electrónico</label>
+          <label className={`${t.textSecondary} text-sm mb-1 block`}>Correo electrónico</label>
           <input
             type="email"
             value={user.email}
             disabled
-            className="w-full bg-gray-700/50 text-gray-400 px-4 py-3 rounded-lg mb-4 outline-none cursor-not-allowed"
+            className={`w-full ${t.bgInput} ${t.textSecondary} px-4 py-3 rounded-lg mb-1 outline-none cursor-not-allowed`}
           />
+          <p className={`${t.textSecondary} text-xs mb-4`}>⏳ Solo puedes cambiar tu nombre una vez cada {DIAS_LIMITE} días</p>
 
           {mensajePerfil && (
             <p className={`text-sm mb-3 ${mensajePerfil.tipo === "ok" ? "text-green-400" : "text-red-400"}`}>
@@ -111,31 +136,30 @@ export default function PerfilPage({ user, rol, onBack }) {
           </button>
         </div>
 
-        {/* Cambiar contraseña */}
         {!esGoogleUser && (
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <h3 className="text-white font-semibold text-lg mb-4">Cambiar contraseña</h3>
+          <div className={`${t.bgCard} rounded-2xl p-6`}>
+            <h3 className={`${t.text} font-semibold text-lg mb-4`}>Cambiar contraseña</h3>
 
             <input
               type="password"
               placeholder="Contraseña actual"
               value={passwordActual}
               onChange={(e) => setPasswordActual(e.target.value)}
-              className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full ${t.bgInput} ${t.text} px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500`}
             />
             <input
               type="password"
               placeholder="Nueva contraseña"
               value={passwordNueva}
               onChange={(e) => setPasswordNueva(e.target.value)}
-              className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full ${t.bgInput} ${t.text} px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500`}
             />
             <input
               type="password"
               placeholder="Confirmar nueva contraseña"
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
-              className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full ${t.bgInput} ${t.text} px-4 py-3 rounded-lg mb-4 outline-none focus:ring-2 focus:ring-blue-500`}
             />
 
             {mensajePassword && (
@@ -155,8 +179,8 @@ export default function PerfilPage({ user, rol, onBack }) {
         )}
 
         {esGoogleUser && (
-          <div className="bg-gray-800 rounded-2xl p-6">
-            <p className="text-gray-400 text-sm text-center">
+          <div className={`${t.bgCard} rounded-2xl p-6`}>
+            <p className={`${t.textSecondary} text-sm text-center`}>
               Tu cuenta está vinculada con Google, no puedes cambiar la contraseña desde aquí.
             </p>
           </div>

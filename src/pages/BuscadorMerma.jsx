@@ -6,8 +6,10 @@ import SearchBar from "../components/SearchBar";
 import ProductCard from "../components/ProductCard";
 import AddProductModal from "../components/AddProductModal";
 import ImportExportModal from "../components/ImportExportModal";
+import { useTheme } from "../context/ThemeContext";
 
 const POR_PAGINA = 50;
+const MAX_BOTONES = 5;
 
 export default function BuscadorMerma({ user, rol, onBack }) {
   const [products, setProducts] = useState([]);
@@ -16,6 +18,7 @@ export default function BuscadorMerma({ user, rol, onBack }) {
   const [showImportExport, setShowImportExport] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pagina, setPagina] = useState(1);
+  const { t } = useTheme();
 
   useEffect(() => {
     const q = query(collection(db, "merma"), orderBy("fechaCreacion", "desc"));
@@ -43,23 +46,42 @@ export default function BuscadorMerma({ user, rol, onBack }) {
   const totalPaginas = Math.ceil(filtered.length / POR_PAGINA);
   const paginados = filtered.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
+  const cambiarPagina = (nueva) => {
+    setPagina(nueva);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Calcular botones de paginación (máx 5)
+  const getBotones = () => {
+    if (totalPaginas <= MAX_BOTONES) {
+      return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+    }
+    let inicio = Math.max(1, pagina - 2);
+    let fin = inicio + MAX_BOTONES - 1;
+    if (fin > totalPaginas) {
+      fin = totalPaginas;
+      inicio = fin - MAX_BOTONES + 1;
+    }
+    return Array.from({ length: fin - inicio + 1 }, (_, i) => inicio + i);
+  };
+
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className={`min-h-screen ${t.bg}`}>
       <Navbar user={user} />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <button
           onClick={onBack}
-          className="text-gray-400 hover:text-white text-sm mb-6 flex items-center gap-2 transition"
+          className={`${t.textSecondary} hover:${t.text} text-sm mb-6 flex items-center gap-2 transition`}
         >
           ← Volver al inicio
         </button>
 
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-white text-2xl font-bold">🔍 Buscador de Merma</h2>
+          <h2 className={`${t.text} text-2xl font-bold`}>🔍 Buscador de Merma</h2>
           {rol === "admin" && (
             <button
               onClick={() => setShowImportExport(true)}
-              className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              className={`${t.bgCard} ${t.hover} ${t.text} text-sm font-semibold px-4 py-2 rounded-lg transition`}
             >
               📂 Importar / Exportar
             </button>
@@ -79,14 +101,14 @@ export default function BuscadorMerma({ user, rol, onBack }) {
         </div>
 
         {loading ? (
-          <p className="text-gray-400 text-center">Cargando productos...</p>
+          <p className={`${t.textSecondary} text-center`}>Cargando productos...</p>
         ) : filtered.length === 0 ? (
-          <p className="text-gray-400 text-center">
+          <p className={`${t.textSecondary} text-center`}>
             {search ? "No se encontraron productos" : "Aún no hay productos agregados"}
           </p>
         ) : (
           <>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className={`${t.textSecondary} text-sm mb-4`}>
               {filtered.length} productos encontrados · Página {pagina} de {totalPaginas}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -96,21 +118,49 @@ export default function BuscadorMerma({ user, rol, onBack }) {
             </div>
 
             {totalPaginas > 1 && (
-              <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center justify-center gap-2 flex-wrap">
                 <button
-                  onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                  onClick={() => cambiarPagina(1)}
                   disabled={pagina === 1}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-40"
+                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
                 >
-                  ← Anterior
+                  «
                 </button>
-                <span className="text-gray-400 text-sm">{pagina} / {totalPaginas}</span>
                 <button
-                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                  disabled={pagina === totalPaginas}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition disabled:opacity-40"
+                  onClick={() => cambiarPagina(pagina - 1)}
+                  disabled={pagina === 1}
+                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
                 >
-                  Siguiente →
+                  ‹
+                </button>
+
+                {getBotones().map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => cambiarPagina(n)}
+                    className={`px-4 py-2 rounded-lg transition text-sm font-semibold ${
+                      n === pagina
+                        ? "bg-blue-600 text-white"
+                        : `${t.bgCard} ${t.hover} ${t.text}`
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => cambiarPagina(pagina + 1)}
+                  disabled={pagina === totalPaginas}
+                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
+                >
+                  ›
+                </button>
+                <button
+                  onClick={() => cambiarPagina(totalPaginas)}
+                  disabled={pagina === totalPaginas}
+                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
+                >
+                  »
                 </button>
               </div>
             )}
@@ -119,12 +169,8 @@ export default function BuscadorMerma({ user, rol, onBack }) {
       </div>
 
       {showModal && (
-        <AddProductModal
-          onClose={() => setShowModal(false)}
-          onAdded={() => setShowModal(false)}
-        />
+        <AddProductModal onClose={() => setShowModal(false)} onAdded={() => setShowModal(false)} />
       )}
-
       {showImportExport && (
         <ImportExportModal onClose={() => setShowImportExport(false)} />
       )}
