@@ -8,9 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Buscador de Merma',
-        short_name: 'Merma',
-        description: 'Buscador de productos de merma',
+        name: 'RInfo - Rincón Informaciones',
+        short_name: 'R.Info',
+        description: 'Informaciones de Rincón',
         theme_color: '#111827',
         background_color: '#111827',
         display: 'standalone',
