@@ -8,7 +8,7 @@ export default function Navbar({ user }) {
 
   return (
     <nav className="bg-gray-800 px-6 py-4 flex items-center justify-between shadow-lg">
-      <h1 className="text-white font-bold text-xl">🔍 Buscador de Merma</h1>
+      <h1 className="text-white font-bold text-xl">🔍 Rincon Informaciones</h1>
       <div className="flex items-center gap-4">
         <span className="text-gray-400 text-sm hidden sm:block">
           {user?.email}
