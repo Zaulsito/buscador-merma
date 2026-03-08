@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 import PerfilPage from "./PerfilPage";
+import FichasTecnicas from "./FichasTecnicas";
 import { useTheme } from "../context/ThemeContext";
 
 export default function DashboardPage({ user, rol }) {
@@ -29,6 +30,7 @@ export default function DashboardPage({ user, rol }) {
   if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "perfil") return <PerfilPage user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "fichas") return <FichasTecnicas user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   return (
     <div className={`min-h-screen ${t.bg}`}>
@@ -49,11 +51,14 @@ export default function DashboardPage({ user, rol }) {
             <p className={`${t.textSecondary} text-sm mt-1`}>Busca productos por código, nombre o categoría</p>
           </button>
 
-          <div className={`${t.bgCard} rounded-2xl p-6 text-left opacity-50 cursor-not-allowed`}>
+          <button
+            onClick={() => navegarA("fichas")}
+            className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
+          >
             <span className="text-4xl">📋</span>
             <h3 className={`${t.text} font-bold text-lg mt-3`}>Fichas Técnicas</h3>
-            <p className={`${t.textSecondary} text-sm mt-1`}>Próximamente...</p>
-          </div>
+            <p className={`${t.textSecondary} text-sm mt-1`}>Consulta las fichas técnicas por sección</p>
+          </button>
 
           {rol === "admin" && (
             <button
