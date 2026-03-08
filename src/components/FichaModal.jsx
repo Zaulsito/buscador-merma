@@ -1,38 +1,41 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { db } from "../firebase/config";
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
+import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
+import { useCodigos } from "../hooks/useIngredientes";
 
 const SECCIONES = ["Snack y Desayuno", "Acompañamientos", "Carnes", "Cuarto Frío", "Postres", "Sizzling"];
-const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos"];
+const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
 
 export default function FichaModal({ ficha, seccionInicial, onClose }) {
   const { t } = useTheme();
   const [loading, setLoading] = useState(false);
   const [tabActiva, setTabActiva] = useState(0);
-
+  const codigos = useCodigos();
+  const [sugerenciasCodigo, setSugerenciasCodigo] = useState([]);
   const [form, setForm] = useState({
     nombre: ficha?.nombre || "",
     codigo: ficha?.codigo || "",
     seccion: ficha?.seccion || seccionInicial,
-    version: ficha?.version || "1",
-    fecha: ficha?.fecha || "",
     porciones: ficha?.porciones || "",
     tiempoPreparacion: ficha?.tiempoPreparacion || "",
     foto: ficha?.foto || "",
     descripcionProceso: ficha?.descripcionProceso || "",
-    tempCoccion: ficha?.tempCoccion || "",
-    tempEmpanizado: ficha?.tempEmpanizado || "",
-    tempAlmacenamiento: ficha?.tempAlmacenamiento || "",
-    vidaUtilGrado: ficha?.vidaUtilGrado || "",
-    vidaUtilVacio: ficha?.vidaUtilVacio || "",
-    vidaUtilAnaquel: ficha?.vidaUtilAnaquel || "",
-    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", cantidadBruta: "", cantidadNeta: "" }],
+    tempCoccion: ficha?.tempCoccion || "NA",
+    tempEnfriado: ficha?.tempEnfriado || "NA",
+    tempAlmacenamiento: ficha?.tempAlmacenamiento || "NA",
+    vidaUtilGrado: ficha?.vidaUtilGrado || "NA",
+    vidaUtilVacio: ficha?.vidaUtilVacio || "NA",
+    vidaUtilAnaquel: ficha?.vidaUtilAnaquel || "NA",
+    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "", cantidadBruta: "", cantidadNeta: "" }],
     elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "", cantidadNeta: "" }],
-    envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "" }],
+    envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" }],
+    formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
+    revisiones: ficha?.revisiones || [{ numero: "000", fecha: "", descripcion: "Versión inicial" }],
   });
 
   const update = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
@@ -75,7 +78,57 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className={`${t.text} text-xl font-bold`}>{ficha ? "Editar ficha" : "Nueva ficha técnica"}</h2>
-          <button onClick={onClose} className={`${t.textSecondary} hover:${t.text} text-xl`}>✕</button>
+          <div className="flex items-center gap-2 hidden">
+            <button
+              onClick={() => {
+                exportarFichaExcel({
+                  nombre: "FICHA TECNICA EJEMPLO",
+                  codigo: "2012-01-67-000",
+                  seccion: "Postres",
+                  porciones: "4 porciones",
+                  tiempoPreparacion: "30 min",
+                  foto: "https://...",
+                  descripcionProceso: "1- Paso uno\n2- Paso dos\n3- Paso tres",
+                  tempCoccion: "180°C",
+                  tempEnfriado: "NA",
+                  tempAlmacenamiento: "65°C",
+                  vidaUtilGrado: "el día",
+                  vidaUtilVacio: "NA",
+                  vidaUtilAnaquel: "NA",
+                  materiasPrimas: [{ nombre: "Ingrediente 1", cantidadBruta: "0.500", cantidadNeta: "0.450", unidad: "KG" }],
+                  elementosDecorativos: [{ nombre: "Elemento 1", cantidadBruta: "0.010", cantidadNeta: "0.010" }],
+                  envases: [{ descripcion: "Envase ejemplo", codigoSap: "10000000", cantidad: "1", pesoEnvase: "0.050" }],
+                  formatosVenta: [{ codSap: "2000000", descripcion: "Producto Ejemplo UN", numEnvase: "1", pesoProducto: "0.500", codBarra: "NA" }],
+                  revisiones: [{ numero: "000", fecha: "2025-01-01", descripcion: "Versión inicial" }],
+                  fotosExtra: [],
+                });
+              }}
+              className="text-teal-400 text-xs underline whitespace-nowrap"
+            >
+              📄 Descargar ejemplo
+            </button>
+            <label className={`cursor-pointer ${t.bgInput} ${t.hover} ${t.text} text-xs font-semibold px-3 py-2 rounded-lg transition`}>
+              📤 Importar Excel
+              <input
+                type="file"
+                accept=".xlsx"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  try {
+                    const data = await importarFichaExcel(file);
+                    setForm((f) => ({ ...f, ...data }));
+                    toast.success("Excel importado ✅ Revisa los datos");
+                  } catch (err) {
+                    toast.error("Error al importar Excel");
+                  }
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <button onClick={onClose} className={`${t.textSecondary} hover:${t.text} text-xl`}>✕</button>
+          </div>
         </div>
 
         {/* Tabs */}
@@ -98,25 +151,48 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <div className="col-span-2 sm:col-span-3">
               <label className={labelClass}>Nombre del plato *</label>
-              <input value={form.nombre} onChange={(e) => update("nombre", e.target.value)} className={inputClass} placeholder="Ej: Müesli Avena" />
+              <input value={form.nombre} onChange={(e) => update("nombre", e.target.value)} className={inputClass} placeholder="Ej: FICHA TECNICA QUICHE MINI VARIEDAD" />
             </div>
             <div>
               <label className={labelClass}>Código</label>
-              <input value={form.codigo} onChange={(e) => update("codigo", e.target.value)} className={inputClass} placeholder="Ej: 2012-01-67-213" />
+              <div className="relative">
+                <input
+                  value={form.codigo}
+                  onChange={(e) => {
+                    update("codigo", e.target.value);
+                    if (e.target.value.trim().length >= 1) {
+                      const filtrados = codigos.filter((c) =>
+                        c.toLowerCase().includes(e.target.value.toLowerCase()) && c !== e.target.value
+                      );
+                      setSugerenciasCodigo(filtrados.slice(0, 5));
+                    } else {
+                      setSugerenciasCodigo([]);
+                    }
+                  }}
+                  onBlur={() => setTimeout(() => setSugerenciasCodigo([]), 150)}
+                  className={inputClass}
+                  placeholder="Ej: 2012-01-67-213"
+                />
+                {sugerenciasCodigo.length > 0 && (
+                  <div className={`absolute z-10 w-full mt-1 ${t.bgCard} border ${t.border} rounded-lg shadow-lg overflow-hidden`}>
+                    {sugerenciasCodigo.map((c, i) => (
+                      <button
+                        key={i}
+                        onMouseDown={() => { update("codigo", c); setSugerenciasCodigo([]); }}
+                        className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className={labelClass}>Sección</label>
               <select value={form.seccion} onChange={(e) => update("seccion", e.target.value)} className={inputClass}>
                 {SECCIONES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-            </div>
-            <div>
-              <label className={labelClass}>Versión</label>
-              <input value={form.version} onChange={(e) => update("version", e.target.value)} className={inputClass} placeholder="Ej: 1" />
-            </div>
-            <div>
-              <label className={labelClass}>Fecha</label>
-              <input type="date" value={form.fecha} onChange={(e) => update("fecha", e.target.value)} className={inputClass} />
             </div>
             <div>
               <label className={labelClass}>Porciones</label>
@@ -129,6 +205,33 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
             <div className="col-span-2 sm:col-span-3">
               <label className={labelClass}>URL foto principal</label>
               <input value={form.foto} onChange={(e) => update("foto", e.target.value)} className={inputClass} placeholder="https://..." />
+            </div>
+
+            {/* Formatos de Venta */}
+            <div className="col-span-2 sm:col-span-3 mt-2">
+              <h3 className={`${t.text} font-semibold mb-3`}>🏷️ Formatos de Venta</h3>
+              <div className="grid grid-cols-5 gap-2 mb-2">
+                <span className={`${t.textSecondary} text-xs`}>Cod. SAP</span>
+                <span className={`${t.textSecondary} text-xs`}>Descripción</span>
+                <span className={`${t.textSecondary} text-xs`}>N° Envase</span>
+                <span className={`${t.textSecondary} text-xs`}>Peso (kg)</span>
+                <span className={`${t.textSecondary} text-xs`}>Cod. Barra / Marcación</span>
+              </div>
+              {form.formatosVenta.map((fv, i) => (
+                <div key={i} className="grid grid-cols-5 gap-2 mb-2 items-center">
+                  <input value={fv.codSap} onChange={(ev) => updateLista("formatosVenta", i, "codSap", ev.target.value)} className={inputClass} placeholder="SAP" />
+                  <input value={fv.descripcion} onChange={(ev) => updateLista("formatosVenta", i, "descripcion", ev.target.value)} className={inputClass} placeholder="Descripción" />
+                  <input value={fv.numEnvase} onChange={(ev) => updateLista("formatosVenta", i, "numEnvase", ev.target.value)} className={inputClass} placeholder="1" />
+                  <input value={fv.pesoProducto} onChange={(ev) => updateLista("formatosVenta", i, "pesoProducto", ev.target.value)} className={inputClass} placeholder="0.000" />
+                  <div className="flex gap-1">
+                    <input value={fv.codBarra} onChange={(ev) => updateLista("formatosVenta", i, "codBarra", ev.target.value)} className={inputClass} placeholder="Barra/Marcación" />
+                    <button onClick={() => eliminarFila("formatosVenta", i)} className="text-red-400 text-xs px-2">✕</button>
+                  </div>
+                </div>
+              ))}
+              <button onClick={() => agregarFila("formatosVenta", { codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" })} className="text-teal-400 text-sm hover:underline">
+                + Agregar formato
+              </button>
             </div>
           </div>
         )}
@@ -144,6 +247,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
               onAgregar={agregarFila}
               onEliminar={eliminarFila}
               placeholder="Ingrediente"
+              conUnidad={true}
             />
             <TablaIngredientes
               titulo="🎨 Elementos Decorativos"
@@ -173,16 +277,27 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
               <h3 className={`${t.text} font-semibold mb-3`}>🌡️ Datos de Proceso</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
-                  ["tempCoccion", "Temp. Cocción"],
-                  ["tempEmpanizado", "Temp. Empanizado"],
-                  ["tempAlmacenamiento", "Temp. Almacenamiento"],
-                  ["vidaUtilGrado", "Vida Útil (°)"],
-                  ["vidaUtilVacio", "Vida Útil Vacío"],
-                  ["vidaUtilAnaquel", "Vida Útil Anaquel"],
-                ].map(([campo, label]) => (
+                  ["tempCoccion", "Temp. Cocción", true],
+                  ["tempEnfriado", "Temp. Enfriado", true],
+                  ["tempAlmacenamiento", "Temp. Almacenamiento", true],
+                  ["vidaUtilGrado", "Vida Útil Granel", false],
+                  ["vidaUtilVacio", "Vida Útil Vacío", false],
+                  ["vidaUtilAnaquel", "Vida Útil Anaquel", false],
+                ].map(([campo, label, esCelsius]) => (
                   <div key={campo}>
                     <label className={labelClass}>{label}</label>
-                    <input value={form[campo]} onChange={(e) => update(campo, e.target.value)} className={inputClass} placeholder="NA" />
+                    <div className="flex items-center gap-1">
+                      <input
+                        value={form[campo]}
+                        onChange={(e) => update(campo, e.target.value)}
+                        onFocus={() => { if (!form[campo]) update(campo, "NA"); }}
+                        className={inputClass}
+                        placeholder="NA"
+                      />
+                      {esCelsius && (
+                        <span className={`${t.textSecondary} text-xs whitespace-nowrap`}>°C</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -193,23 +308,27 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
         {/* Tab 3 - Envases */}
         {tabActiva === 3 && (
           <div>
-            <h3 className={`${t.text} font-semibold mb-3`}>📦 Envases y Material de Embalaje</h3>
-            <div className="grid grid-cols-3 gap-2 mb-2">
+            <h3 className={`${t.text} font-semibold mb-3`}>📦 Envases, Material de Embalaje y Etiquetas</h3>
+            <div className="grid grid-cols-4 gap-2 mb-2">
               <span className={`${t.textSecondary} text-xs`}>Descripción</span>
               <span className={`${t.textSecondary} text-xs`}>Código SAP</span>
-              <span className={`${t.textSecondary} text-xs`}>Cantidad</span>
+              <span className={`${t.textSecondary} text-xs`}>Cant. Batch/UN</span>
+              <span className={`${t.textSecondary} text-xs`}>Peso Envase (kg)</span>
             </div>
             {form.envases.map((e, i) => (
-              <div key={i} className="grid grid-cols-3 gap-2 mb-2 items-center">
+              <div key={i} className="grid grid-cols-4 gap-2 mb-2 items-center">
                 <input value={e.descripcion} onChange={(ev) => updateLista("envases", i, "descripcion", ev.target.value)} className={inputClass} placeholder="Descripción" />
                 <input value={e.codigoSap} onChange={(ev) => updateLista("envases", i, "codigoSap", ev.target.value)} className={inputClass} placeholder="SAP" />
+                <input value={e.cantidad} onChange={(ev) => updateLista("envases", i, "cantidad", ev.target.value)} className={inputClass} placeholder="0" />
                 <div className="flex gap-1">
-                  <input value={e.cantidad} onChange={(ev) => updateLista("envases", i, "cantidad", ev.target.value)} className={inputClass} placeholder="0" />
+                  <input value={e.pesoEnvase || ""} onChange={(ev) => updateLista("envases", i, "pesoEnvase", ev.target.value)} className={inputClass} placeholder="0.000" />
                   <button onClick={() => eliminarFila("envases", i)} className="text-red-400 text-xs px-2">✕</button>
                 </div>
               </div>
             ))}
-            <button onClick={() => agregarFila("envases", { descripcion: "", codigoSap: "", cantidad: "" })} className="text-teal-400 text-sm hover:underline">+ Agregar envase</button>
+            <button onClick={() => agregarFila("envases", { descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" })} className="text-teal-400 text-sm hover:underline">
+              + Agregar envase
+            </button>
           </div>
         )}
 
@@ -223,7 +342,52 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                 <button onClick={() => update("fotosExtra", form.fotosExtra.filter((_, j) => j !== i))} className="text-red-400 text-xs px-2">✕</button>
               </div>
             ))}
-            <button onClick={() => update("fotosExtra", [...form.fotosExtra, ""])} className="text-teal-400 text-sm hover:underline">+ Agregar foto</button>
+            <button onClick={() => update("fotosExtra", [...form.fotosExtra, ""])} className="text-teal-400 text-sm hover:underline">
+              + Agregar foto
+            </button>
+          </div>
+        )}
+
+        {/* Tab 5 - Revisiones */}
+        {tabActiva === 5 && (
+          <div>
+            <h3 className={`${t.text} font-semibold mb-3`}>🔄 Tabla de Revisiones</h3>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <span className={`${t.textSecondary} text-xs`}>N° Revisión</span>
+              <span className={`${t.textSecondary} text-xs`}>Fecha</span>
+              <span className={`${t.textSecondary} text-xs`}>Descripción del cambio</span>
+            </div>
+            {form.revisiones.map((r, i) => (
+              <div key={i} className="grid grid-cols-3 gap-2 mb-2 items-center">
+                <input
+                  value={r.numero}
+                  onChange={(e) => { const rev = [...form.revisiones]; rev[i].numero = e.target.value; update("revisiones", rev); }}
+                  className={inputClass}
+                  placeholder="000"
+                />
+                <input
+                  type="date"
+                  value={r.fecha}
+                  onChange={(e) => { const rev = [...form.revisiones]; rev[i].fecha = e.target.value; update("revisiones", rev); }}
+                  className={inputClass}
+                />
+                <div className="flex gap-1">
+                  <input
+                    value={r.descripcion}
+                    onChange={(e) => { const rev = [...form.revisiones]; rev[i].descripcion = e.target.value; update("revisiones", rev); }}
+                    className={inputClass}
+                    placeholder="Descripción del cambio"
+                  />
+                  <button onClick={() => update("revisiones", form.revisiones.filter((_, j) => j !== i))} className="text-red-400 text-xs px-2">✕</button>
+                </div>
+              </div>
+            ))}
+            <button
+              onClick={() => update("revisiones", [...form.revisiones, { numero: String(form.revisiones.length).padStart(3, "0"), fecha: "", descripcion: "" }])}
+              className="text-teal-400 text-sm hover:underline"
+            >
+              + Agregar revisión
+            </button>
           </div>
         )}
 
