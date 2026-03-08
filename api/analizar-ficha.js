@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   "vidaUtilAnaquel": "",
   "materiasPrimas": [{"nombre": "", "cantidadBruta": "", "cantidadNeta": ""}],
   "elementosDecorativos": [{"nombre": "", "cantidadBruta": "", "cantidadNeta": ""}],
-  "envases": [{"descripcion": "", "codigoSap": "", "cantidad": ""}]
+  "envases": [{"descripcion": "", "codigoSap", "cantidad": ""}]
 }`
               }
             ]
@@ -55,6 +55,12 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
+    console.log("Gemini response:", JSON.stringify(data));
+
+    if (!data.candidates || !data.candidates[0]) {
+      return res.status(500).json({ error: "Gemini no devolvió candidatos", raw: data });
+    }
+
     const texto = data.candidates[0].content.parts[0].text;
     const clean = texto.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
