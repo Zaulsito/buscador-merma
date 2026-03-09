@@ -4,6 +4,7 @@ import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 import PerfilPage from "./PerfilPage";
 import FichasTecnicas from "./FichasTecnicas";
+import Planificador from "./Planificador";
 import { useTheme } from "../context/ThemeContext";
 
 export default function DashboardPage({ user, rol }) {
@@ -31,6 +32,7 @@ export default function DashboardPage({ user, rol }) {
   if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "perfil") return <PerfilPage user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "fichas") return <FichasTecnicas user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "planificador") return <Planificador user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   return (
     <div className={`min-h-screen ${t.bg}`}>
@@ -40,7 +42,6 @@ export default function DashboardPage({ user, rol }) {
           Bienvenido, {user?.displayName?.split(" ")[0] || "👋"}
         </h2>
         <p className={`${t.textSecondary} mb-8`}>Selecciona un módulo para comenzar</p>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             onClick={() => navegarA("merma")}
@@ -58,6 +59,14 @@ export default function DashboardPage({ user, rol }) {
             <span className="text-4xl">📋</span>
             <h3 className={`${t.text} font-bold text-lg mt-3`}>Fichas Técnicas</h3>
             <p className={`${t.textSecondary} text-sm mt-1`}>Consulta las fichas técnicas por sección</p>
+          </button>
+          <button
+            onClick={() => navegarA("planificador")}
+            className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
+          >
+            <span className="text-4xl">📊</span>
+            <h3 className={`${t.text} font-bold text-lg mt-3`}>Planificador</h3>
+            <p className={`${t.textSecondary} text-sm mt-1`}>Genera listas de ingredientes por producción</p>
           </button>
 
           {rol === "admin" && (

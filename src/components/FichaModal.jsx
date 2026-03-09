@@ -6,6 +6,7 @@ import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
 import { useCodigos } from "../hooks/useIngredientes";
+import { useSubcategorias } from "../hooks/useIngredientes";
 
 const SECCIONES = ["Snack y Desayuno", "Acompañamientos", "Carnes", "Cuarto Frío", "Postres", "Sizzling"];
 const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
@@ -15,12 +16,15 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
   const [loading, setLoading] = useState(false);
   const [tabActiva, setTabActiva] = useState(0);
   const codigos = useCodigos();
+  const subcategorias = useSubcategorias();
+  const [sugerenciasSubcat, setSugerenciasSubcat] = useState([]);
   const [sugerenciasCodigo, setSugerenciasCodigo] = useState([]);
   const [form, setForm] = useState({
     nombre: ficha?.nombre || "",
     codigo: ficha?.codigo || "",
     seccion: ficha?.seccion || seccionInicial,
     porciones: ficha?.porciones || "",
+    subcategoria: ficha?.subcategoria || "",
     tiempoPreparacion: ficha?.tiempoPreparacion || "",
     foto: ficha?.foto || "",
     descripcionProceso: ficha?.descripcionProceso || "",
@@ -31,7 +35,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
     vidaUtilVacio: ficha?.vidaUtilVacio || "NA",
     vidaUtilAnaquel: ficha?.vidaUtilAnaquel || "NA",
     materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "", cantidadBruta: "", cantidadNeta: "" }],
-    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "", cantidadNeta: "" }],
+    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "", cantidadNeta: "", unidad: "" }],
     envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" }],
     formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
@@ -195,6 +199,41 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
               </select>
             </div>
             <div>
+              <label className={labelClass}>Subcategoría</label>
+              <div className="relative">
+                <input
+                  value={form.subcategoria}
+                  onChange={(e) => {
+                    update("subcategoria", e.target.value);
+                    if (e.target.value.trim().length >= 1) {
+                      const filtradas = subcategorias.filter((s) =>
+                        s.toLowerCase().includes(e.target.value.toLowerCase()) && s !== e.target.value
+                      );
+                      setSugerenciasSubcat(filtradas.slice(0, 5));
+                    } else {
+                      setSugerenciasSubcat([]);
+                    }
+                  }}
+                  onBlur={() => setTimeout(() => setSugerenciasSubcat([]), 150)}
+                  className={inputClass}
+                  placeholder="Ej: Desayunos, Postres..."
+                />
+                {sugerenciasSubcat.length > 0 && (
+                  <div className={`absolute z-10 w-full mt-1 ${t.bgCard} border ${t.border} rounded-lg shadow-lg overflow-hidden`}>
+                    {sugerenciasSubcat.map((s, i) => (
+                      <button
+                        key={i}
+                        onMouseDown={() => { update("subcategoria", s); setSugerenciasSubcat([]); }}
+                        className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
               <label className={labelClass}>Porciones</label>
               <input value={form.porciones} onChange={(e) => update("porciones", e.target.value)} className={inputClass} placeholder="Ej: 4 porciones" />
             </div>
@@ -250,13 +289,14 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
               conUnidad={true}
             />
             <TablaIngredientes
-              titulo="🎨 Elementos Decorativos"
+              titulo="🎨 Elementos Decorativos / Montaje"
               lista={form.elementosDecorativos}
               campo="elementosDecorativos"
               onUpdate={updateLista}
               onAgregar={agregarFila}
               onEliminar={eliminarFila}
               placeholder="Elemento"
+              conUnidad={true}
             />
           </>
         )}

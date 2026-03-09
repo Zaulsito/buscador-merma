@@ -61,15 +61,20 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
           </div>
           <input
             value={item.cantidadBruta}
-            onChange={(e) => onUpdate(campo, i, "cantidadBruta", e.target.value)}
+            onChange={(e) => {
+              const nuevo = e.target.value;
+              onUpdate(campo, i, "cantidadBruta", nuevo);
+              onUpdate(campo, i, "cantidadNeta", nuevo);
+            }}
             className={inputClass}
             placeholder="0.000"
           />
           <input
             value={item.cantidadNeta}
             onChange={(e) => onUpdate(campo, i, "cantidadNeta", e.target.value)}
+            onFocus={(e) => { if (!item.cantidadNeta) onUpdate(campo, i, "cantidadNeta", item.cantidadBruta); }}
             className={inputClass}
-            placeholder="0.000"
+            placeholder="= Bruta"
           />
           {conUnidad && (
             <div className="flex gap-1 items-center">

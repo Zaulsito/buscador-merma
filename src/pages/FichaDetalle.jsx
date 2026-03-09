@@ -53,7 +53,9 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
 
         {/* Título */}
         <div className="mb-6">
-          <span className="text-teal-400 text-sm font-semibold uppercase">{ficha.seccion}</span>
+          <span className="text-teal-400 text-sm font-semibold uppercase">
+            {ficha.seccion}{ficha.subcategoria ? ` › ${ficha.subcategoria}` : ""}
+          </span>
           <h1 className={`${t.text} text-3xl font-bold mt-1`}>{ficha.nombre}</h1>
           <div className="flex gap-4 mt-2 flex-wrap">
             {ficha.codigo && <span className={`${t.textSecondary} text-sm`}>Código: {ficha.codigo}</span>}

@@ -42,3 +42,20 @@ export function useCodigos() {
 
   return codigos;
 }
+export function useSubcategorias() {
+  const [subcategorias, setSubcategorias] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "fichas"), (snap) => {
+      const todos = new Set();
+      snap.docs.forEach((doc) => {
+        const data = doc.data();
+        if (data.subcategoria?.trim()) todos.add(data.subcategoria.trim());
+      });
+      setSubcategorias([...todos].sort());
+    });
+    return () => unsub();
+  }, []);
+
+  return subcategorias;
+}
