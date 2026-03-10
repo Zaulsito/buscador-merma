@@ -1,30 +1,32 @@
 import { useState } from "react";
 import { db } from "../firebase/config";
-import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
-import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
-import { useCodigos } from "../hooks/useIngredientes";
-import { useSubcategorias } from "../hooks/useIngredientes";
+import { useCodigos, useSubcategorias } from "../hooks/useIngredientes";
+import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 
 const SECCIONES = ["Snack y Desayuno", "Acompañamientos", "Carnes", "Cuarto Frío", "Postres", "Sizzling"];
 const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
 
-export default function FichaModal({ ficha, seccionInicial, onClose }) {
+export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const { t } = useTheme();
   const [loading, setLoading] = useState(false);
   const [tabActiva, setTabActiva] = useState(0);
+  const [productosFaltantes, setProductosFaltantes] = useState([]);
+  const [showMermaModal, setShowMermaModal] = useState(false);
   const codigos = useCodigos();
   const subcategorias = useSubcategorias();
-  const [sugerenciasSubcat, setSugerenciasSubcat] = useState([]);
   const [sugerenciasCodigo, setSugerenciasCodigo] = useState([]);
+  const [sugerenciasSubcat, setSugerenciasSubcat] = useState([]);
+
   const [form, setForm] = useState({
     nombre: ficha?.nombre || "",
-    codigo: ficha?.codigo || "",
+    codigo: ficha?.codigo || "J502-D-RJ-",
+    subcategoria: ficha?.subcategoria || "",
     seccion: ficha?.seccion || seccionInicial,
     porciones: ficha?.porciones || "",
-    subcategoria: ficha?.subcategoria || "",
     tiempoPreparacion: ficha?.tiempoPreparacion || "",
     foto: ficha?.foto || "",
     descripcionProceso: ficha?.descripcionProceso || "",
@@ -34,8 +36,8 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
     vidaUtilGrado: ficha?.vidaUtilGrado || "NA",
     vidaUtilVacio: ficha?.vidaUtilVacio || "NA",
     vidaUtilAnaquel: ficha?.vidaUtilAnaquel || "NA",
-    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "", cantidadBruta: "", cantidadNeta: "" }],
-    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "", cantidadNeta: "", unidad: "" }],
+    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "KG", cantidadBruta: "0.000", cantidadNeta: "0.000" }],
+elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "0.000", cantidadNeta: "0.000", unidad: "KG" }],
     envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" }],
     formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
@@ -53,6 +55,28 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
   const agregarFila = (lista, modelo) => update(lista, [...form[lista], { ...modelo }]);
   const eliminarFila = (lista, idx) => update(lista, form[lista].filter((_, i) => i !== idx));
 
+  const handleAgregarAMerma = async (producto) => {
+    try {
+      await addDoc(collection(db, "merma"), {
+        codigo: producto.codSap,
+        nombre: producto.descripcion,
+        categoria: form.seccion,
+        unidadMedida: "",
+        creadoPor: user?.email || "",
+        fechaCreacion: serverTimestamp(),
+      });
+      toast.success(`${producto.descripcion} agregado a Merma ✅`);
+      const restantes = productosFaltantes.filter(p => p.codSap !== producto.codSap);
+      setProductosFaltantes(restantes);
+      if (restantes.length === 0) {
+        setShowMermaModal(false);
+        setTimeout(() => onClose(), 500);
+      }
+    } catch (err) {
+      toast.error("Error al agregar a Merma");
+    }
+  };
+
   const handleGuardar = async () => {
     if (!form.nombre) { toast.error("El nombre es obligatorio"); return; }
     setLoading(true);
@@ -64,13 +88,33 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
         await addDoc(collection(db, "fichas"), { ...form, fechaCreacion: serverTimestamp() });
         toast.success("Ficha creada ✅");
       }
+
+      const formatosConSap = (form.formatosVenta || []).filter(f => f.codSap?.trim());
+      if (formatosConSap.length > 0) {
+        const mermaSnap = await getDocs(collection(db, "merma"));
+        const codigosEnMerma = new Set(mermaSnap.docs.map(d => d.data().codigo?.trim()));
+        const faltantes = formatosConSap.filter(f => !codigosEnMerma.has(f.codSap.trim()));
+        if (faltantes.length > 0) {
+          setProductosFaltantes(faltantes);
+          setShowMermaModal(true);
+          setLoading(false);
+          return;
+        }
+      }
+
       setTimeout(() => onClose(), 1000);
     } catch (err) {
       toast.error("Error al guardar");
     }
     setLoading(false);
   };
-
+  const formatearCantidad = (valor) => {
+    const soloNumeros = valor.replace(/\D/g, "").slice(0, 6);
+    if (!soloNumeros) return "0.000";
+    const padded = soloNumeros.padStart(4, "0");
+    const resultado = padded.slice(0, -3) + "." + padded.slice(-3);
+    return parseFloat(resultado).toFixed(3).toString();
+  };
   const inputClass = `w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`;
   const labelClass = `${t.textSecondary} text-xs mb-1 block`;
 
@@ -84,29 +128,27 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
           <h2 className={`${t.text} text-xl font-bold`}>{ficha ? "Editar ficha" : "Nueva ficha técnica"}</h2>
           <div className="flex items-center gap-2 hidden">
             <button
-              onClick={() => {
-                exportarFichaExcel({
-                  nombre: "FICHA TECNICA EJEMPLO",
-                  codigo: "2012-01-67-000",
-                  seccion: "Postres",
-                  porciones: "4 porciones",
-                  tiempoPreparacion: "30 min",
-                  foto: "https://...",
-                  descripcionProceso: "1- Paso uno\n2- Paso dos\n3- Paso tres",
-                  tempCoccion: "180°C",
-                  tempEnfriado: "NA",
-                  tempAlmacenamiento: "65°C",
-                  vidaUtilGrado: "el día",
-                  vidaUtilVacio: "NA",
-                  vidaUtilAnaquel: "NA",
-                  materiasPrimas: [{ nombre: "Ingrediente 1", cantidadBruta: "0.500", cantidadNeta: "0.450", unidad: "KG" }],
-                  elementosDecorativos: [{ nombre: "Elemento 1", cantidadBruta: "0.010", cantidadNeta: "0.010" }],
-                  envases: [{ descripcion: "Envase ejemplo", codigoSap: "10000000", cantidad: "1", pesoEnvase: "0.050" }],
-                  formatosVenta: [{ codSap: "2000000", descripcion: "Producto Ejemplo UN", numEnvase: "1", pesoProducto: "0.500", codBarra: "NA" }],
-                  revisiones: [{ numero: "000", fecha: "2025-01-01", descripcion: "Versión inicial" }],
-                  fotosExtra: [],
-                });
-              }}
+              onClick={() => exportarFichaExcel({
+                nombre: "FICHA TECNICA EJEMPLO",
+                codigo: "2012-01-67-000",
+                seccion: "Postres",
+                porciones: "4 porciones",
+                tiempoPreparacion: "30 min",
+                foto: "https://...",
+                descripcionProceso: "1- Paso uno\n2- Paso dos\n3- Paso tres",
+                tempCoccion: "180",
+                tempEnfriado: "NA",
+                tempAlmacenamiento: "65",
+                vidaUtilGrado: "el día",
+                vidaUtilVacio: "NA",
+                vidaUtilAnaquel: "NA",
+                materiasPrimas: [{ nombre: "Ingrediente 1", cantidadBruta: "0.500", cantidadNeta: "0.450", unidad: "KG" }],
+                elementosDecorativos: [{ nombre: "Elemento 1", cantidadBruta: "0.010", cantidadNeta: "0.010", unidad: "UN" }],
+                envases: [{ descripcion: "Envase ejemplo", codigoSap: "10000000", cantidad: "1", pesoEnvase: "0.050" }],
+                formatosVenta: [{ codSap: "2000000", descripcion: "Producto Ejemplo UN", numEnvase: "1", pesoProducto: "0.500", codBarra: "NA" }],
+                revisiones: [{ numero: "000", fecha: "2025-01-01", descripcion: "Versión inicial" }],
+                fotosExtra: [],
+              })}
               className="text-teal-400 text-xs underline whitespace-nowrap"
             >
               📄 Descargar ejemplo
@@ -131,8 +173,8 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                 }}
               />
             </label>
-            <button onClick={onClose} className={`${t.textSecondary} hover:${t.text} text-xl`}>✕</button>
           </div>
+          <button onClick={onClose} className={`${t.textSecondary} hover:${t.text} text-xl`}>✕</button>
         </div>
 
         {/* Tabs */}
@@ -165,9 +207,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                   onChange={(e) => {
                     update("codigo", e.target.value);
                     if (e.target.value.trim().length >= 1) {
-                      const filtrados = codigos.filter((c) =>
-                        c.toLowerCase().includes(e.target.value.toLowerCase()) && c !== e.target.value
-                      );
+                      const filtrados = codigos.filter((c) => c.toLowerCase().includes(e.target.value.toLowerCase()) && c !== e.target.value);
                       setSugerenciasCodigo(filtrados.slice(0, 5));
                     } else {
                       setSugerenciasCodigo([]);
@@ -180,13 +220,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                 {sugerenciasCodigo.length > 0 && (
                   <div className={`absolute z-10 w-full mt-1 ${t.bgCard} border ${t.border} rounded-lg shadow-lg overflow-hidden`}>
                     {sugerenciasCodigo.map((c, i) => (
-                      <button
-                        key={i}
-                        onMouseDown={() => { update("codigo", c); setSugerenciasCodigo([]); }}
-                        className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}
-                      >
-                        {c}
-                      </button>
+                      <button key={i} onMouseDown={() => { update("codigo", c); setSugerenciasCodigo([]); }} className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}>{c}</button>
                     ))}
                   </div>
                 )}
@@ -206,9 +240,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                   onChange={(e) => {
                     update("subcategoria", e.target.value);
                     if (e.target.value.trim().length >= 1) {
-                      const filtradas = subcategorias.filter((s) =>
-                        s.toLowerCase().includes(e.target.value.toLowerCase()) && s !== e.target.value
-                      );
+                      const filtradas = subcategorias.filter((s) => s.toLowerCase().includes(e.target.value.toLowerCase()) && s !== e.target.value);
                       setSugerenciasSubcat(filtradas.slice(0, 5));
                     } else {
                       setSugerenciasSubcat([]);
@@ -216,18 +248,12 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                   }}
                   onBlur={() => setTimeout(() => setSugerenciasSubcat([]), 150)}
                   className={inputClass}
-                  placeholder="Ej: Desayunos, Postres..."
+                  placeholder="Ej: Calientes, Fríos..."
                 />
                 {sugerenciasSubcat.length > 0 && (
                   <div className={`absolute z-10 w-full mt-1 ${t.bgCard} border ${t.border} rounded-lg shadow-lg overflow-hidden`}>
                     {sugerenciasSubcat.map((s, i) => (
-                      <button
-                        key={i}
-                        onMouseDown={() => { update("subcategoria", s); setSugerenciasSubcat([]); }}
-                        className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}
-                      >
-                        {s}
-                      </button>
+                      <button key={i} onMouseDown={() => { update("subcategoria", s); setSugerenciasSubcat([]); }} className={`w-full text-left px-3 py-2 text-sm ${t.text} ${t.hover} transition`}>{s}</button>
                     ))}
                   </div>
                 )}
@@ -261,7 +287,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                   <input value={fv.codSap} onChange={(ev) => updateLista("formatosVenta", i, "codSap", ev.target.value)} className={inputClass} placeholder="SAP" />
                   <input value={fv.descripcion} onChange={(ev) => updateLista("formatosVenta", i, "descripcion", ev.target.value)} className={inputClass} placeholder="Descripción" />
                   <input value={fv.numEnvase} onChange={(ev) => updateLista("formatosVenta", i, "numEnvase", ev.target.value)} className={inputClass} placeholder="1" />
-                  <input value={fv.pesoProducto} onChange={(ev) => updateLista("formatosVenta", i, "pesoProducto", ev.target.value)} className={inputClass} placeholder="0.000" />
+                  <input value={fv.pesoProducto} onChange={(ev) => updateLista("formatosVenta", i, "pesoProducto", formatearCantidad(ev.target.value))} onFocus={(e) => setTimeout(() => e.target.select(), 0)} className={inputClass} placeholder="0.000" />
                   <div className="flex gap-1">
                     <input value={fv.codBarra} onChange={(ev) => updateLista("formatosVenta", i, "codBarra", ev.target.value)} className={inputClass} placeholder="Barra/Marcación" />
                     <button onClick={() => eliminarFila("formatosVenta", i)} className="text-red-400 text-xs px-2">✕</button>
@@ -327,16 +353,8 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
                   <div key={campo}>
                     <label className={labelClass}>{label}</label>
                     <div className="flex items-center gap-1">
-                      <input
-                        value={form[campo]}
-                        onChange={(e) => update(campo, e.target.value)}
-                        onFocus={() => { if (!form[campo]) update(campo, "NA"); }}
-                        className={inputClass}
-                        placeholder="NA"
-                      />
-                      {esCelsius && (
-                        <span className={`${t.textSecondary} text-xs whitespace-nowrap`}>°C</span>
-                      )}
+                      <input value={form[campo]} onChange={(e) => update(campo, e.target.value)} className={inputClass} placeholder="NA" />
+                      {esCelsius && <span className={`${t.textSecondary} text-xs whitespace-nowrap`}>°C</span>}
                     </div>
                   </div>
                 ))}
@@ -399,33 +417,15 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
             </div>
             {form.revisiones.map((r, i) => (
               <div key={i} className="grid grid-cols-3 gap-2 mb-2 items-center">
-                <input
-                  value={r.numero}
-                  onChange={(e) => { const rev = [...form.revisiones]; rev[i].numero = e.target.value; update("revisiones", rev); }}
-                  className={inputClass}
-                  placeholder="000"
-                />
-                <input
-                  type="date"
-                  value={r.fecha}
-                  onChange={(e) => { const rev = [...form.revisiones]; rev[i].fecha = e.target.value; update("revisiones", rev); }}
-                  className={inputClass}
-                />
+                <input value={r.numero} onChange={(e) => { const rev = [...form.revisiones]; rev[i].numero = e.target.value; update("revisiones", rev); }} className={inputClass} placeholder="000" />
+                <input type="date" value={r.fecha} onChange={(e) => { const rev = [...form.revisiones]; rev[i].fecha = e.target.value; update("revisiones", rev); }} className={inputClass} />
                 <div className="flex gap-1">
-                  <input
-                    value={r.descripcion}
-                    onChange={(e) => { const rev = [...form.revisiones]; rev[i].descripcion = e.target.value; update("revisiones", rev); }}
-                    className={inputClass}
-                    placeholder="Descripción del cambio"
-                  />
+                  <input value={r.descripcion} onChange={(e) => { const rev = [...form.revisiones]; rev[i].descripcion = e.target.value; update("revisiones", rev); }} className={inputClass} placeholder="Descripción del cambio" />
                   <button onClick={() => update("revisiones", form.revisiones.filter((_, j) => j !== i))} className="text-red-400 text-xs px-2">✕</button>
                 </div>
               </div>
             ))}
-            <button
-              onClick={() => update("revisiones", [...form.revisiones, { numero: String(form.revisiones.length).padStart(3, "0"), fecha: "", descripcion: "" }])}
-              className="text-teal-400 text-sm hover:underline"
-            >
+            <button onClick={() => update("revisiones", [...form.revisiones, { numero: String(form.revisiones.length).padStart(3, "0"), fecha: "", descripcion: "" }])} className="text-teal-400 text-sm hover:underline">
               + Agregar revisión
             </button>
           </div>
@@ -441,6 +441,38 @@ export default function FichaModal({ ficha, seccionInicial, onClose }) {
           </button>
         </div>
       </div>
+
+      {/* Modal productos faltantes en Merma */}
+      {showMermaModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
+            <h3 className={`${t.text} font-bold text-lg mb-2`}>⚠️ Productos no encontrados en Merma</h3>
+            <p className={`${t.textSecondary} text-sm mb-4`}>Los siguientes productos no están en el Buscador de Merma. ¿Quieres agregarlos?</p>
+            <div className="flex flex-col gap-3 mb-6">
+              {productosFaltantes.map((p, i) => (
+                <div key={i} className={`${t.bgInput} rounded-xl p-3 flex items-center justify-between`}>
+                  <div>
+                    <p className={`${t.text} text-sm font-semibold`}>{p.descripcion || "Sin nombre"}</p>
+                    <p className={`${t.textSecondary} text-xs`}>COD. SAP: {p.codSap}</p>
+                  </div>
+                  <button
+                    onClick={() => handleAgregarAMerma(p)}
+                    className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => { setShowMermaModal(false); setTimeout(() => onClose(), 300); }}
+              className={`w-full ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
+            >
+              Omitir y cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

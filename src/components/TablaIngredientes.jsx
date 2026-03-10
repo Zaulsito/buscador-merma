@@ -26,6 +26,13 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
     setSugerencias((s) => ({ ...s, [i]: [] }));
   };
 
+  const formatearCantidad = (valor) => {
+    const soloNumeros = valor.replace(/\D/g, "").slice(0, 6);
+    if (!soloNumeros) return "0.000";
+    const padded = soloNumeros.padStart(4, "0");
+    const resultado = padded.slice(0, -3) + "." + padded.slice(-3);
+    return parseFloat(resultado).toFixed(3).toString();
+  };
   return (
     <div className="mb-6">
       <h3 className={`${t.text} font-semibold mb-3`}>{titulo}</h3>
@@ -62,19 +69,20 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
           <input
             value={item.cantidadBruta}
             onChange={(e) => {
-              const nuevo = e.target.value;
+              const nuevo = formatearCantidad(e.target.value);
               onUpdate(campo, i, "cantidadBruta", nuevo);
               onUpdate(campo, i, "cantidadNeta", nuevo);
             }}
+            onFocus={(e) => e.target.select()}
             className={inputClass}
             placeholder="0.000"
           />
           <input
             value={item.cantidadNeta}
-            onChange={(e) => onUpdate(campo, i, "cantidadNeta", e.target.value)}
-            onFocus={(e) => { if (!item.cantidadNeta) onUpdate(campo, i, "cantidadNeta", item.cantidadBruta); }}
+            onChange={(e) => onUpdate(campo, i, "cantidadNeta", formatearCantidad(e.target.value))}
+            onFocus={(e) => e.target.select()}
             className={inputClass}
-            placeholder="= Bruta"
+            placeholder="0.000"
           />
           {conUnidad && (
             <div className="flex gap-1 items-center">
@@ -86,6 +94,7 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
                 <option value="">—</option>
                 <option value="UN">UN</option>
                 <option value="KG">KG</option>
+                <option value="L">L</option>
                 <option value="UN/KG">UN/KG</option>
               </select>
               <button onClick={() => onEliminar(campo, i)} className="text-red-400 text-xs px-2">✕</button>
@@ -99,7 +108,7 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
           )}
         </div>
       ))}
-      <button onClick={() => onAgregar(campo, { nombre: "", unidad: "", cantidadBruta: "", cantidadNeta: "" })} className="text-teal-400 text-sm hover:underline">
+      <button onClick={() => onAgregar(campo, { nombre: "", unidad: "KG", cantidadBruta: "0.000", cantidadNeta: "0.000" })} className="text-teal-400 text-sm hover:underline">
         + Agregar {placeholder.toLowerCase()}
       </button>
     </div>

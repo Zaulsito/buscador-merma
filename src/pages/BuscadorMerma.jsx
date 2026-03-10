@@ -78,7 +78,7 @@ export default function BuscadorMerma({ user, rol, onBack }) {
 
         <div className="flex items-center justify-between mb-6">
           <h2 className={`${t.text} text-2xl font-bold`}>🔍 Buscador de Merma</h2>
-          {rol === "admin" && (
+          {(rol === "admin" || rol === "unico") && (
             <button
               onClick={() => setShowImportExport(true)}
               className={`${t.bgCard} ${t.hover} ${t.text} text-sm font-semibold px-4 py-2 rounded-lg transition`}
@@ -90,7 +90,7 @@ export default function BuscadorMerma({ user, rol, onBack }) {
 
         <div className="flex flex-col sm:flex-row items-center gap-4 mb-8">
           <SearchBar value={search} onChange={setSearch} />
-          {rol === "admin" && (
+          {(rol === "admin" || rol === "unico") && (
             <button
               onClick={() => setShowModal(true)}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition whitespace-nowrap"

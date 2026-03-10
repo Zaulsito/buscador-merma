@@ -86,7 +86,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
 
         <div className="flex items-center justify-between mb-6">
           <h2 className={`${t.text} text-2xl font-bold`}>📋 Fichas Técnicas</h2>
-          {rol === "admin" && (
+          {(rol === "admin" || rol === "unico") && (
             <button
               onClick={() => { setFichaEditar(null); setShowModal(true); }}
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl transition"
@@ -177,7 +177,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
                     </span>
                     <h3 className={`${t.text} font-bold text-sm mt-1`}>{f.nombre}</h3>
                     <p className={`${t.textSecondary} text-xs mt-1`}>COD. SAP: {f.formatosVenta?.[0]?.codSap || "—"}</p>
-                    {rol === "admin" && (
+                    {(rol === "admin" || rol === "unico") && (
                       <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => exportarFichaExcel(f)}

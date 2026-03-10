@@ -69,7 +69,7 @@ export default function DashboardPage({ user, rol }) {
             <p className={`${t.textSecondary} text-sm mt-1`}>Genera listas de ingredientes por producción</p>
           </button>
 
-          {rol === "admin" && (
+          {(rol === "admin" || rol === "unico") && (
             <button
               onClick={() => navegarA("usuarios")}
               className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
