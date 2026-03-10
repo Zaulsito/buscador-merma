@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase/config";
 import { collection, addDoc, serverTimestamp, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { useTheme } from "../context/ThemeContext";
 
 const CATEGORIAS_DEFAULT = ["Carnes", "Abarrotes", "Acompañamientos", "Bollería", "Cafetería"];
 
 export default function AddProductModal({ onClose, onAdded }) {
+  const { t } = useTheme();
   const [codigo, setCodigo] = useState("");
   const [nombre, setNombre] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -62,10 +64,12 @@ export default function AddProductModal({ onClose, onAdded }) {
     setLoading(false);
   };
 
+  const inputClass = `w-full ${t.bgInput} ${t.text} px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500`;
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-      <div className="bg-gray-800 rounded-2xl p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-white text-xl font-bold mb-6">Agregar producto</h2>
+      <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
+        <h2 className={`${t.text} text-xl font-bold mb-6`}>Agregar producto</h2>
 
         {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
 
@@ -74,14 +78,14 @@ export default function AddProductModal({ onClose, onAdded }) {
           placeholder="Código *"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}
-          className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+          className={`${inputClass} mb-3`}
         />
         <input
           type="text"
           placeholder="Nombre *"
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+          className={`${inputClass} mb-3`}
         />
 
         <div className="mb-3">
@@ -95,7 +99,7 @@ export default function AddProductModal({ onClose, onAdded }) {
                 setAgregandoCategoria(false);
               }
             }}
-            className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+            className={inputClass}
           >
             <option value="">Seleccionar categoría</option>
             {categorias.map((c) => (
@@ -112,7 +116,7 @@ export default function AddProductModal({ onClose, onAdded }) {
                   placeholder="Nueva categoría"
                   value={nuevaCategoria}
                   onChange={(e) => setNuevaCategoria(e.target.value)}
-                  className="flex-1 bg-gray-700 text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 />
                 <button
                   onClick={handleAgregarCategoria}
@@ -122,17 +126,17 @@ export default function AddProductModal({ onClose, onAdded }) {
                 </button>
                 <button
                   onClick={() => setAgregandoCategoria(false)}
-                  className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded-lg transition"
+                  className={`${t.bgInput} ${t.hover} ${t.text} text-sm px-3 py-2 rounded-lg transition`}
                 >
                   ✕
                 </button>
               </div>
               {categoriasDocs.length > 0 && (
-                <div className="bg-gray-700 rounded-lg p-2">
-                  <p className="text-gray-400 text-xs mb-2">Categorías personalizadas:</p>
+                <div className={`${t.bgInput} rounded-lg p-2`}>
+                  <p className={`${t.textSecondary} text-xs mb-2`}>Categorías personalizadas:</p>
                   {categoriasDocs.map((c) => (
                     <div key={c.id} className="flex items-center justify-between py-1">
-                      <span className="text-white text-sm">{c.nombre}</span>
+                      <span className={`${t.text} text-sm`}>{c.nombre}</span>
                       <button
                         onClick={() => handleEliminarCategoria(c.id)}
                         className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded transition"
@@ -152,13 +156,13 @@ export default function AddProductModal({ onClose, onAdded }) {
           placeholder="Unidad de medida (opcional)"
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
-          className="w-full bg-gray-700 text-white px-4 py-3 rounded-lg mb-6 outline-none focus:ring-2 focus:ring-blue-500"
+          className={`${inputClass} mb-6`}
         />
 
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition"
+            className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
           >
             Cancelar
           </button>

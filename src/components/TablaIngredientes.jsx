@@ -66,24 +66,57 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
               </div>
             )}
           </div>
-          <input
-            value={item.cantidadBruta}
-            onChange={(e) => {
-              const nuevo = formatearCantidad(e.target.value);
-              onUpdate(campo, i, "cantidadBruta", nuevo);
-              onUpdate(campo, i, "cantidadNeta", nuevo);
-            }}
-            onFocus={(e) => e.target.select()}
-            className={inputClass}
-            placeholder="0.000"
-          />
-          <input
-            value={item.cantidadNeta}
-            onChange={(e) => onUpdate(campo, i, "cantidadNeta", formatearCantidad(e.target.value))}
-            onFocus={(e) => e.target.select()}
-            className={inputClass}
-            placeholder="0.000"
-          />
+          {(item.unidad === "UN/KG" || item.unidad === "L/KG") ? (
+            <input
+              value={item.cantidadBruta}
+              onChange={(e) => {
+                const partes = e.target.value.split("/");
+                const p1 = formatearCantidad(partes[0] || "");
+                const p2 = partes[1] !== undefined ? formatearCantidad(partes[1]) : "0.000";
+                const nuevo = p1 + "/" + p2;
+                onUpdate(campo, i, "cantidadBruta", nuevo);
+                onUpdate(campo, i, "cantidadNeta", nuevo);
+              }}
+              onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+              className={inputClass}
+              placeholder="0.000/0.000"
+            />
+          ) : (
+            <input
+              value={item.cantidadBruta}
+              onChange={(e) => {
+                const nuevo = formatearCantidad(e.target.value);
+                onUpdate(campo, i, "cantidadBruta", nuevo);
+                onUpdate(campo, i, "cantidadNeta", nuevo);
+              }}
+              onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+              className={inputClass}
+              placeholder="0.000"
+            />
+          )}
+
+          {(item.unidad === "UN/KG" || item.unidad === "L/KG") ? (
+            <input
+              value={item.cantidadNeta}
+              onChange={(e) => {
+                const partes = e.target.value.split("/");
+                const p1 = formatearCantidad(partes[0] || "");
+                const p2 = partes[1] !== undefined ? formatearCantidad(partes[1]) : "0.000";
+                onUpdate(campo, i, "cantidadNeta", p1 + "/" + p2);
+              }}
+              onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+              className={inputClass}
+              placeholder="0.000/0.000"
+            />
+          ) : (
+            <input
+              value={item.cantidadNeta}
+              onChange={(e) => onUpdate(campo, i, "cantidadNeta", formatearCantidad(e.target.value))}
+              onFocus={(e) => setTimeout(() => e.target.select(), 0)}
+              className={inputClass}
+              placeholder="0.000"
+            />
+          )}
           {conUnidad && (
             <div className="flex gap-1 items-center">
               <select
@@ -96,6 +129,7 @@ export default function TablaIngredientes({ titulo, lista, campo, onUpdate, onAg
                 <option value="KG">KG</option>
                 <option value="L">L</option>
                 <option value="UN/KG">UN/KG</option>
+                <option value="L/KG">L/KG</option>
               </select>
               <button onClick={() => onEliminar(campo, i)} className="text-red-400 text-xs px-2">✕</button>
             </div>

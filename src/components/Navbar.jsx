@@ -25,10 +25,13 @@ export default function Navbar({ user, rol, onPerfil }) {
   };
 
   return (
-    <nav className={`${t.bgNav} px-6 py-4 flex items-center justify-between shadow-lg`}>
-      <div className="flex items-center gap-3">
+    <nav className={`${t.bgNav} px-6 py-4 flex items-center justify-between shadow-lg sticky top-0 z-40`}>
+      <div
+        className="flex items-center gap-3 cursor-pointer"
+        onClick={() => { window.location.hash = ""; window.location.reload(); }}
+      >
         <img src="/icon-192.png" className="w-8 h-8 rounded-lg" />
-        <h1 className={`${t.text} font-bold text-xl`}>RInfo</h1>
+        <h1 className={`${t.text} font-bold text-xl`}>Rincón Informaciones</h1>
       </div>
 
       <div className="relative">

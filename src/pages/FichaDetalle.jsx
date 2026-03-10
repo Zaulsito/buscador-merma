@@ -31,7 +31,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
           <button onClick={onBack} className={`${t.textSecondary} text-sm flex items-center gap-2`}>
             ← Volver
           </button>
-          {rol === "admin" || rol === "unico" && (
+          {(rol === "admin" || rol === "unico") && (
             <button
               onClick={onEditar}
               className={`${t.bgCard} ${t.hover} ${t.text} text-sm font-semibold px-4 py-2 rounded-xl transition`}

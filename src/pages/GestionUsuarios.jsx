@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { db } from "../firebase/config";
-import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc } from "firebase/firestore";
+import { db, auth } from "../firebase/config";
+import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import Navbar from "../components/Navbar";
 import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
@@ -21,12 +22,14 @@ export default function GestionUsuarios({ user, rol, onBack }) {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [limpiando, setLimpiando] = useState(false);
+  const [showCrearUsuario, setShowCrearUsuario] = useState(false);
+  const [nuevoUsuario, setNuevoUsuario] = useState({ nombre: "", apellido: "", email: "", username: "" });
+  const [creando, setCreando] = useState(false);
   const { t } = useTheme();
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "usuarios"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      // Ordenar: unico primero, luego admin, luego usuario
       data.sort((a, b) => {
         const orden = { unico: 0, admin: 1, usuario: 2 };
         return (orden[a.rol] ?? 3) - (orden[b.rol] ?? 3);
@@ -49,21 +52,13 @@ export default function GestionUsuarios({ user, rol, onBack }) {
       const snap = await getDocs(collection(db, "merma"));
       const vistos = {};
       const aEliminar = [];
-
       snap.docs.forEach((d) => {
         const codigo = d.data().codigo?.trim().toLowerCase();
         if (!codigo) return;
-        if (vistos[codigo]) {
-          aEliminar.push(d.id);
-        } else {
-          vistos[codigo] = true;
-        }
+        if (vistos[codigo]) aEliminar.push(d.id);
+        else vistos[codigo] = true;
       });
-
-      for (const id of aEliminar) {
-        await deleteDoc(doc(db, "merma", id));
-      }
-
+      for (const id of aEliminar) await deleteDoc(doc(db, "merma", id));
       toast.success(`✅ ${aEliminar.length} duplicado${aEliminar.length !== 1 ? "s" : ""} eliminado${aEliminar.length !== 1 ? "s" : ""}`);
     } catch (err) {
       toast.error("Error al limpiar duplicados");
@@ -71,18 +66,45 @@ export default function GestionUsuarios({ user, rol, onBack }) {
     setLimpiando(false);
   };
 
-  // Lo que puede hacer cada rol
   const puedeGestionarUsuario = (usuarioObjetivo) => {
-    if (usuarioObjetivo.rol === "unico") return false; // nadie puede tocar al único
-    if (rol === "unico") return true; // único puede tocar a todos
-    if (rol === "admin") return usuarioObjetivo.rol !== "admin"; // admin solo puede tocar usuarios
+    if (usuarioObjetivo.rol === "unico") return false;
+    if (rol === "unico") return true;
+    if (rol === "admin") return usuarioObjetivo.rol !== "admin";
     return false;
   };
 
   const opcionesRol = (usuarioObjetivo) => {
-    if (rol === "unico") return ["usuario", "admin"]; // único puede asignar admin o usuario
-    if (rol === "admin") return ["usuario"]; // admin solo puede tener usuarios
+    if (rol === "unico") return ["usuario", "admin"];
+    if (rol === "admin") return ["usuario"];
     return [];
+  };
+
+  const handleCrearUsuario = async () => {
+    const { nombre, apellido, email, username } = nuevoUsuario;
+    if (!nombre || !apellido || !email || !username) { toast.error("Completa todos los campos obligatorios"); return; }
+    const usernameExiste = usuarios.some(u => u.username?.toLowerCase() === username.toLowerCase());
+    if (usernameExiste) { toast.error("Ese nombre de usuario ya está en uso"); return; }
+    setCreando(true);
+    try {
+      const passwordTemporal = Math.random().toString(36).slice(-10) + "A1!";
+      const cred = await createUserWithEmailAndPassword(auth, email, passwordTemporal);
+      await updateProfile(cred.user, { displayName: `${nombre} ${apellido}` });
+      await setDoc(doc(db, "usuarios", cred.user.uid), {
+        email,
+        nombre: `${nombre} ${apellido}`,
+        username: username.trim(),
+        rol: "usuario",
+        fechaRegistro: new Date(),
+      });
+      await sendPasswordResetEmail(auth, email);
+      toast.success(`✅ Usuario creado. Se envió un correo a ${email} para establecer su contraseña.`);
+      setNuevoUsuario({ nombre: "", apellido: "", email: "", username: "" });
+      setShowCrearUsuario(false);
+    } catch (err) {
+      if (err.code === "auth/email-already-in-use") toast.error("Este correo ya está registrado");
+      else toast.error("Error al crear usuario");
+    }
+    setCreando(false);
   };
 
   return (
@@ -90,24 +112,31 @@ export default function GestionUsuarios({ user, rol, onBack }) {
       <Toaster />
       <Navbar user={user} />
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <button
-          onClick={onBack}
-          className={`${t.textSecondary} text-sm mb-6 flex items-center gap-2 transition`}
-        >
+        <button onClick={onBack} className={`${t.textSecondary} text-sm mb-6 flex items-center gap-2 transition`}>
           ← Volver al inicio
         </button>
 
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h2 className={`${t.text} text-2xl font-bold`}>👥 Gestión de Usuarios</h2>
-          {rol === "unico" && (
-            <button
-              onClick={eliminarDuplicados}
-              disabled={limpiando}
-              className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-            >
-              {limpiando ? "Limpiando..." : "🧹 Eliminar duplicados en Merma"}
-            </button>
-          )}
+          <div className="flex gap-2 flex-wrap">
+            {(rol === "unico" || rol === "admin") && (
+              <button
+                onClick={() => setShowCrearUsuario(true)}
+                className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition"
+              >
+                + Crear usuario
+              </button>
+            )}
+            {rol === "unico" && (
+              <button
+                onClick={eliminarDuplicados}
+                disabled={limpiando}
+                className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
+              >
+                {limpiando ? "Limpiando..." : "🧹 Eliminar duplicados en Merma"}
+              </button>
+            )}
+          </div>
         </div>
 
         {loading ? (
@@ -123,6 +152,7 @@ export default function GestionUsuarios({ user, rol, onBack }) {
                   <div>
                     <p className={`${t.text} font-semibold`}>{u.email}</p>
                     <p className={`${t.textSecondary} text-sm`}>{u.nombre || "Sin nombre"}</p>
+                    {u.username && <p className={`${t.textSecondary} text-xs`}>@{u.username}</p>}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -150,6 +180,75 @@ export default function GestionUsuarios({ user, rol, onBack }) {
           </div>
         )}
       </div>
+
+      {showCrearUsuario && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
+            <h3 className={`${t.text} font-bold text-lg mb-4`}>👤 Crear nuevo usuario</h3>
+
+            <div className="flex gap-3 mb-3">
+              <div className="flex-1">
+                <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre *</label>
+                <input
+                  value={nuevoUsuario.nombre}
+                  onChange={(e) => setNuevoUsuario(p => ({ ...p, nombre: e.target.value }))}
+                  className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                  placeholder="Nombre"
+                />
+              </div>
+              <div className="flex-1">
+                <label className={`${t.textSecondary} text-xs mb-1 block`}>Apellido *</label>
+                <input
+                  value={nuevoUsuario.apellido}
+                  onChange={(e) => setNuevoUsuario(p => ({ ...p, apellido: e.target.value }))}
+                  className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                  placeholder="Apellido"
+                />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Correo electrónico *</label>
+              <input
+                type="email"
+                value={nuevoUsuario.email}
+                onChange={(e) => setNuevoUsuario(p => ({ ...p, email: e.target.value }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="correo@ejemplo.com"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre de usuario único *</label>
+              <input
+                value={nuevoUsuario.username}
+                onChange={(e) => setNuevoUsuario(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="ej: juan.perez"
+              />
+              <p className={`${t.textSecondary} text-xs mt-1`}>Solo letras minúsculas, números y puntos. Sin espacios.</p>
+            </div>
+
+            <p className={`${t.textSecondary} text-xs mb-4`}>📧 El usuario recibirá un correo para establecer su propia contraseña.</p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCrearUsuario(false); setNuevoUsuario({ nombre: "", apellido: "", email: "", username: "" }); }}
+                className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCrearUsuario}
+                disabled={creando}
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
+              >
+                {creando ? "Creando..." : "Crear usuario"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

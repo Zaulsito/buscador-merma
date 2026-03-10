@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth, db } from "../firebase/config";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+
 
 const AuthContext = createContext();
 
@@ -27,6 +28,17 @@ export function AuthProvider({ children }) {
         } else {
           setRol(snap.data().rol);
         }
+
+        // Bloquear acceso si el correo no está verificado (solo email/password)
+        if (!currentUser.emailVerified && currentUser.providerData[0]?.providerId === "password") {
+          await signOut(auth);
+          setUser(null);
+          setRol(null);
+          setLoading(false);
+          return;
+        }
+
+        setUser(currentUser);
 
         setUser(currentUser);
       } else {
