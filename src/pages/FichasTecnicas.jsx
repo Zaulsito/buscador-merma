@@ -177,6 +177,11 @@ export default function FichasTecnicas({ user, rol, onBack }) {
                     </span>
                     <h3 className={`${t.text} font-bold text-sm mt-1`}>{f.nombre}</h3>
                     <p className={`${t.textSecondary} text-xs mt-1`}>COD. SAP: {f.formatosVenta?.[0]?.codSap || "—"}</p>
+                    {f.esAlergeno && (
+                      <div className="mt-2 bg-red-500/20 border border-red-500/40 rounded-lg px-2 py-1 flex items-center gap-1">
+                        <span className="text-red-400 text-xs font-bold">⚠️ CONTIENE ALÉRGENOS</span>
+                      </div>
+                    )}
                     {(rol === "admin" || rol === "unico") && (
                       <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                         <button

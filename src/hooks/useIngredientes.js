@@ -59,3 +59,22 @@ export function useSubcategorias() {
 
   return subcategorias;
 }
+export function useMermaMap() {
+  const [mermaMap, setMermaMap] = useState({});
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "merma"), (snap) => {
+      const map = {};
+      snap.docs.forEach((d) => {
+        const data = d.data();
+        if (data.nombre && data.codigo) {
+          map[data.nombre.toLowerCase().trim()] = data.codigo.trim();
+        }
+      });
+      setMermaMap(map);
+    });
+    return () => unsub();
+  }, []);
+
+  return mermaMap;
+}

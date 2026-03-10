@@ -57,6 +57,12 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
             {ficha.seccion}{ficha.subcategoria ? ` › ${ficha.subcategoria}` : ""}
           </span>
           <h1 className={`${t.text} text-3xl font-bold mt-1`}>{ficha.nombre}</h1>
+          {ficha.esAlergeno && (
+            <div className="mt-3 bg-red-500/20 border border-red-500/40 rounded-xl px-4 py-2 flex items-center gap-2">
+              <span className="text-red-400 font-bold">⚠️ CONTIENE ALÉRGENOS</span>
+              {ficha.descripcionAlergeno && <span className="text-red-300 text-sm">· {ficha.descripcionAlergeno}</span>}
+            </div>
+          )}
           <div className="flex gap-4 mt-2 flex-wrap">
             {ficha.codigo && <span className={`${t.textSecondary} text-sm`}>Código: {ficha.codigo}</span>}
             {ficha.porciones && <span className={`${t.textSecondary} text-sm`}>🍽 {ficha.porciones}</span>}
@@ -151,7 +157,10 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
         {/* Descripción del Proceso */}
         {ficha.descripcionProceso && (
           <Seccion titulo="📝 Descripción del Proceso">
-            <p className={`${t.text} text-sm whitespace-pre-line leading-relaxed`}>{ficha.descripcionProceso}</p>
+            <div
+              className={`${t.text} text-sm leading-relaxed prose prose-invert max-w-none`}
+              dangerouslySetInnerHTML={{ __html: ficha.descripcionProceso }}
+            />
           </Seccion>
         )}
 
@@ -166,6 +175,11 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
               <Campo label="Vida Útil Vacío" valor={ficha.vidaUtilVacio} />
               <Campo label="Vida Útil Anaquel" valor={ficha.vidaUtilAnaquel} />
             </div>
+          </Seccion>
+        )}
+        {ficha.tienePropiedadesFQ && ficha.propiedadesFQ && (
+          <Seccion titulo="🧪 Propiedades Fisicoquímicas">
+            <p className={`${t.text} text-sm whitespace-pre-line leading-relaxed`}>{ficha.propiedadesFQ}</p>
           </Seccion>
         )}
 

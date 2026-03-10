@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
 import { useCodigos, useSubcategorias } from "../hooks/useIngredientes";
 import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
+import RichTextEditor from "./RichTextEditor";
 
 const SECCIONES = ["Snack y Desayuno", "Acompañamientos", "Carnes", "Cuarto Frío", "Postres", "Sizzling"];
 const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
@@ -36,8 +37,12 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     vidaUtilGrado: ficha?.vidaUtilGrado || "NA",
     vidaUtilVacio: ficha?.vidaUtilVacio || "NA",
     vidaUtilAnaquel: ficha?.vidaUtilAnaquel || "NA",
+    esAlergeno: ficha?.esAlergeno || false,
+    descripcionAlergeno: ficha?.descripcionAlergeno || "",
+    tienePropiedadesFQ: ficha?.tienePropiedadesFQ || false,
+    propiedadesFQ: ficha?.propiedadesFQ || "",
     materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "KG", cantidadBruta: "0.000", cantidadNeta: "0.000" }],
-elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "0.000", cantidadNeta: "0.000", unidad: "KG" }],
+    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "0.000", cantidadNeta: "0.000", unidad: "KG" }],
     envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" }],
     formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
@@ -89,7 +94,11 @@ elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBrut
         toast.success("Ficha creada ✅");
       }
 
-      const formatosConSap = (form.formatosVenta || []).filter(f => f.codSap?.trim());
+      const formatosConSap = [
+        ...(form.formatosVenta || []).filter(f => f.codSap?.trim()),
+        ...(form.materiasPrimas || []).filter(f => f.codSap?.trim()).map(f => ({ codSap: f.codSap, descripcion: f.nombre })),
+        ...(form.elementosDecorativos || []).filter(f => f.codSap?.trim()).map(f => ({ codSap: f.codSap, descripcion: f.nombre })),
+      ];
       if (formatosConSap.length > 0) {
         const mermaSnap = await getDocs(collection(db, "merma"));
         const codigosEnMerma = new Set(mermaSnap.docs.map(d => d.data().codigo?.trim()));
@@ -298,6 +307,47 @@ elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBrut
                 + Agregar formato
               </button>
             </div>
+            {/* Insumo Alergeno */}
+            <div className="col-span-2 sm:col-span-3 mt-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.esAlergeno}
+                  onChange={(e) => update("esAlergeno", e.target.checked)}
+                  className="w-4 h-4 accent-red-500"
+                />
+                <span className={`${t.text} font-semibold`}>⚠️ Insumo Alergeno</span>
+              </label>
+              {form.esAlergeno && (
+                <input
+                  value={form.descripcionAlergeno}
+                  onChange={(e) => update("descripcionAlergeno", e.target.value)}
+                  className={`${inputClass} mt-2`}
+                  placeholder="Ej: Contiene gluten, lácteos, maní..."
+                />
+              )}
+            </div>
+
+            {/* Propiedades Fisicoquímicas */}
+            <div className="col-span-2 sm:col-span-3 mt-2">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.tienePropiedadesFQ}
+                  onChange={(e) => update("tienePropiedadesFQ", e.target.checked)}
+                  className="w-4 h-4 accent-teal-500"
+                />
+                <span className={`${t.text} font-semibold`}>🧪 Propiedades Fisicoquímicas</span>
+              </label>
+              {form.tienePropiedadesFQ && (
+                <textarea
+                  value={form.propiedadesFQ}
+                  onChange={(e) => update("propiedadesFQ", e.target.value)}
+                  className={`${inputClass} mt-2 h-24 resize-none`}
+                  placeholder="Ej: pH: 6.5, Humedad: 12%, Proteínas: 8%..."
+                />
+              )}
+            </div>
           </div>
         )}
 
@@ -332,11 +382,9 @@ elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBrut
           <>
             <div className="mb-6">
               <label className={labelClass}>Descripción del proceso</label>
-              <textarea
+              <RichTextEditor
                 value={form.descripcionProceso}
-                onChange={(e) => update("descripcionProceso", e.target.value)}
-                className={`${inputClass} h-40 resize-none`}
-                placeholder="Escribe los pasos de preparación aquí..."
+                onChange={(val) => update("descripcionProceso", val)}
               />
             </div>
             <div>
