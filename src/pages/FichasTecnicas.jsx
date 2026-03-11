@@ -11,6 +11,7 @@ const POR_PAGINA = 25;
 
 export default function FichasTecnicas({ user, rol, onBack }) {
   const [fichas, setFichas] = useState([]);
+  const [secciones, setSecciones] = useState(["Todas"]);
   const [seccionActiva, setSeccionActiva] = useState("Todas");
   const [busqueda, setBusqueda] = useState("");
   const [subcategoriaFiltro, setSubcategoriaFiltro] = useState("");
@@ -26,6 +27,14 @@ export default function FichasTecnicas({ user, rol, onBack }) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setFichas(data);
       setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
+      const data = snap.docs.map(d => d.data().nombre).sort();
+      setSecciones(["Todas", ...data]);
     });
     return () => unsub();
   }, []);
@@ -91,16 +100,13 @@ export default function FichasTecnicas({ user, rol, onBack }) {
 
         {/* Filtros */}
         <div className="flex flex-col gap-3 mb-6">
-          {/* Buscador */}
           <input
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             className={`w-full ${t.bgCard} ${t.text} px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-teal-500`}
             placeholder="🔍 Buscar ficha por nombre..."
           />
-
           <div className="flex gap-3 flex-wrap">
-            {/* Subcategoría */}
             {subcategorias.length > 0 && (
               <select
                 value={subcategoriaFiltro}
@@ -113,8 +119,6 @@ export default function FichasTecnicas({ user, rol, onBack }) {
                 ))}
               </select>
             )}
-
-            {/* Limpiar filtros */}
             {(busqueda || subcategoriaFiltro) && (
               <button
                 onClick={() => { setBusqueda(""); setSubcategoriaFiltro(""); }}
@@ -128,7 +132,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
 
         {/* Secciones */}
         <div className="flex gap-2 flex-wrap mb-6">
-          {SECCIONES.map((s) => (
+          {secciones.map((s) => (
             <button
               key={s}
               onClick={() => setSeccionActiva(s)}
@@ -205,37 +209,19 @@ export default function FichasTecnicas({ user, rol, onBack }) {
             {/* Paginación */}
             {totalPaginas > 1 && (
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                <button
-                  onClick={() => cambiarPagina(1)}
-                  disabled={pagina === 1}
-                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
-                >«</button>
-                <button
-                  onClick={() => cambiarPagina(pagina - 1)}
-                  disabled={pagina === 1}
-                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
-                >‹</button>
+                <button onClick={() => cambiarPagina(1)} disabled={pagina === 1} className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}>«</button>
+                <button onClick={() => cambiarPagina(pagina - 1)} disabled={pagina === 1} className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}>‹</button>
                 {Array.from({ length: totalPaginas }, (_, i) => i + 1)
                   .filter(n => n === 1 || n === totalPaginas || Math.abs(n - pagina) <= 2)
                   .map((n) => (
                     <button
                       key={n}
                       onClick={() => cambiarPagina(n)}
-                      className={`px-4 py-2 rounded-lg transition text-sm font-semibold ${
-                        n === pagina ? "bg-teal-600 text-white" : `${t.bgCard} ${t.hover} ${t.text}`
-                      }`}
+                      className={`px-4 py-2 rounded-lg transition text-sm font-semibold ${n === pagina ? "bg-teal-600 text-white" : `${t.bgCard} ${t.hover} ${t.text}`}`}
                     >{n}</button>
                   ))}
-                <button
-                  onClick={() => cambiarPagina(pagina + 1)}
-                  disabled={pagina === totalPaginas}
-                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
-                >›</button>
-                <button
-                  onClick={() => cambiarPagina(totalPaginas)}
-                  disabled={pagina === totalPaginas}
-                  className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}
-                >»</button>
+                <button onClick={() => cambiarPagina(pagina + 1)} disabled={pagina === totalPaginas} className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}>›</button>
+                <button onClick={() => cambiarPagina(totalPaginas)} disabled={pagina === totalPaginas} className={`${t.bgCard} ${t.hover} ${t.text} px-3 py-2 rounded-lg transition disabled:opacity-40 text-sm`}>»</button>
               </div>
             )}
           </>
@@ -245,7 +231,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
       {showModal && (
         <FichaModal
           ficha={fichaEditar}
-          seccionInicial={seccionActiva === "Todas" ? "Snack y Desayuno" : seccionActiva}
+          seccionInicial={seccionActiva === "Todas" ? secciones[1] || "Snack y Desayuno" : seccionActiva}
           onClose={() => setShowModal(false)}
         />
       )}
