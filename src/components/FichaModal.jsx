@@ -41,8 +41,8 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     descripcionAlergeno: ficha?.descripcionAlergeno || "",
     tienePropiedadesFQ: ficha?.tienePropiedadesFQ || false,
     propiedadesFQ: ficha?.propiedadesFQ || "",
-    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "KG", cantidadBruta: "0.000", cantidadNeta: "0.000" }],
-    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "0.000", cantidadNeta: "0.000", unidad: "KG" }],
+    materiasPrimas: ficha?.materiasPrimas || [{ nombre: "", unidad: "KG", cantidadBruta: "0.000", cantidadNeta: "0.000", codSap: "" }],
+    elementosDecorativos: ficha?.elementosDecorativos || [{ nombre: "", cantidadBruta: "0.000", cantidadNeta: "0.000", unidad: "KG", codSap: "" }],
     envases: ficha?.envases || [{ descripcion: "", codigoSap: "", cantidad: "", pesoEnvase: "" }],
     formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
@@ -59,6 +59,10 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
 
   const agregarFila = (lista, modelo) => update(lista, [...form[lista], { ...modelo }]);
   const eliminarFila = (lista, idx) => update(lista, form[lista].filter((_, i) => i !== idx));
+  const agregarVariasFila = (lista, cantidad, modelo) => {
+    const nuevas = Array.from({ length: cantidad }, () => ({ ...modelo }));
+    update(lista, [...form[lista], ...nuevas]);
+  };
 
   const handleAgregarAMerma = async (producto) => {
     try {
@@ -117,6 +121,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     }
     setLoading(false);
   };
+
   const formatearCantidad = (valor) => {
     const soloNumeros = valor.replace(/\D/g, "").slice(0, 6);
     if (!soloNumeros) return "0.000";
@@ -124,6 +129,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     const resultado = padded.slice(0, -3) + "." + padded.slice(-3);
     return parseFloat(resultado).toFixed(3).toString();
   };
+
   const inputClass = `w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`;
   const labelClass = `${t.textSecondary} text-xs mb-1 block`;
 
@@ -206,7 +212,20 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <div className="col-span-2 sm:col-span-3">
               <label className={labelClass}>Nombre del plato *</label>
-              <input value={form.nombre} onChange={(e) => update("nombre", e.target.value)} className={inputClass} placeholder="Ej: FICHA TECNICA QUICHE MINI VARIEDAD" />
+              <input
+                value={form.nombre}
+                onChange={(e) => {
+                  update("nombre", e.target.value);
+                  // Autorrellenar descripción del primer formato de venta si está vacía
+                  const nuevosFormatos = [...form.formatosVenta];
+                  if (!nuevosFormatos[0]?.descripcion || nuevosFormatos[0]?.descripcion === form.nombre) {
+                    nuevosFormatos[0] = { ...nuevosFormatos[0], descripcion: e.target.value };
+                    update("formatosVenta", nuevosFormatos);
+                  }
+                }}
+                className={inputClass}
+                placeholder="Ej: FICHA TECNICA QUICHE MINI VARIEDAD"
+              />
             </div>
             <div>
               <label className={labelClass}>Código</label>
@@ -307,6 +326,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                 + Agregar formato
               </button>
             </div>
+
             {/* Insumo Alergeno */}
             <div className="col-span-2 sm:col-span-3 mt-2">
               <label className="flex items-center gap-3 cursor-pointer">
@@ -360,6 +380,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
               campo="materiasPrimas"
               onUpdate={updateLista}
               onAgregar={agregarFila}
+              onAgregarVarios={agregarVariasFila}
               onEliminar={eliminarFila}
               placeholder="Ingrediente"
               conUnidad={true}
@@ -370,6 +391,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
               campo="elementosDecorativos"
               onUpdate={updateLista}
               onAgregar={agregarFila}
+              onAgregarVarios={agregarVariasFila}
               onEliminar={eliminarFila}
               placeholder="Elemento"
               conUnidad={true}

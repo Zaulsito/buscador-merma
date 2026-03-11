@@ -28,7 +28,10 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <button onClick={onBack} className={`${t.textSecondary} text-sm flex items-center gap-2`}>
+          <button
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2 bg-teal-600/20 hover:bg-teal-600/40 text-teal-300 text-sm font-semibold px-4 py-2 rounded-full transition border border-teal-500/30"
+          >
             ← Volver
           </button>
           {(rol === "admin" || rol === "unico") && (
@@ -114,13 +117,19 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {ficha.materiasPrimas.map((m, i) => (
-                    <tr key={i} className={`border-t ${t.border}`}>
-                      <td className={`${t.text} py-2`}>{m.nombre}</td>
-                      <td className={`${t.text} py-2`}>{m.cantidadBruta}</td>
-                      <td className={`${t.text} py-2`}>{m.cantidadNeta}</td>
-                      <td className={`${t.text} py-2`}>{m.unidad}</td>
-                    </tr>
+                  {ficha.materiasPrimas.map((mp, i) => (
+                    !mp.unidad || mp.unidad === "" ? (
+                      <tr key={i}>
+                        <td colSpan={5} className="py-2 px-3 bg-teal-600/20 text-teal-300 font-bold text-sm rounded text-center">{mp.nombre}</td>
+                      </tr>
+                    ) : (
+                      <tr key={i} className={`border-t ${t.border}`}>
+                        <td className={`${t.text} py-2`}>{mp.nombre}</td>
+                        <td className={`${t.text} py-2`}>{mp.cantidadBruta}</td>
+                        <td className={`${t.text} py-2`}>{mp.cantidadNeta}</td>
+                        <td className={`${t.text} py-2`}>{mp.unidad}</td>
+                      </tr>
+                    )
                   ))}
                 </tbody>
               </table>
@@ -269,6 +278,25 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
             </div>
           </Seccion>
         )}
+
+        {/* Pie de página */}
+        <div className={`${t.bgCard} rounded-2xl overflow-hidden shadow mt-4`}>
+          <div className="grid grid-cols-2">
+            <div className={`p-4 border-r ${t.border}`}>
+              <p className={`${t.textSecondary} text-xs font-bold uppercase mb-2`}>Preparado por:</p>
+              <p className={`${t.text} text-sm`}>Chef Ejecutivo Cencosud</p>
+              <p className={`${t.text} text-sm`}>Supervisores Rincón Jumbo</p>
+              <p className={`${t.text} text-sm`}>Centro de Competencia Platos preparados, Rincón Jumbo, Casino de Personal y Cafetería.</p>
+            </div>
+            <div className="p-4">
+              <p className={`${t.textSecondary} text-xs font-bold uppercase mb-2`}>Aprobado por:</p>
+              <p className={`${t.text} text-sm`}>Gerente Departamento Aseguramiento de Calidad</p>
+              <p className={`${t.text} text-sm`}>Jefe de Area Sección</p>
+              <p className={`${t.text} text-sm`}>Encargada de Producción y Envases</p>
+              <p className={`${t.text} text-sm`}>Gerente Operación y Venta Jumbo</p>
+            </div>
+          </div>
+        </div>
 
       </div>
     </div>

@@ -94,9 +94,9 @@ export default function PerfilPage({ user, rol, onBack }) {
       <div className="max-w-lg mx-auto px-4 py-8">
         <button
           onClick={onBack}
-          className={`${t.textSecondary} text-sm mb-6 flex items-center gap-2 transition`}
+          className="flex items-center gap-2 bg-teal-600/20 hover:bg-teal-600/40 text-teal-300 text-sm font-semibold px-4 py-2 rounded-full transition border border-teal-500/30 mb-6"
         >
-          ← Volver al inicio
+          ← Volver
         </button>
 
         <h2 className={`${t.text} text-2xl font-bold mb-8`}>👤 Mi Perfil</h2>

@@ -80,8 +80,11 @@ export default function FichasTecnicas({ user, rol, onBack }) {
     <div className={`min-h-screen ${t.bg}`}>
       <Navbar user={user} />
       <div className="max-w-5xl mx-auto px-4 py-8">
-        <button onClick={onBack} className={`${t.textSecondary} text-sm mb-6 flex items-center gap-2`}>
-          ← Volver al inicio
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 bg-teal-600/20 hover:bg-teal-600/40 text-teal-300 text-sm font-semibold px-4 py-2 rounded-full transition border border-teal-500/30 mb-6"
+        >
+          ← Volver
         </button>
 
         <div className="flex items-center justify-between mb-6">
