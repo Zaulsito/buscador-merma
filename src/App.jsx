@@ -1,9 +1,26 @@
+import { useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import { collection, getDocs, addDoc } from "firebase/firestore";
+import { db } from "./firebase/config";
+
+const SECCIONES_DEFAULT = ["Snack y Desayuno", "Acompañamientos", "Cuarto Frío", "Postres", "Sizzling"];
 
 export default function App() {
   const { user, rol, loading } = useAuth();
+
+  useEffect(() => {
+    const inicializar = async () => {
+      const snap = await getDocs(collection(db, "secciones"));
+      if (snap.empty) {
+        for (const nombre of SECCIONES_DEFAULT) {
+          await addDoc(collection(db, "secciones"), { nombre });
+        }
+      }
+    };
+    inicializar();
+  }, []);
 
   if (loading) {
     return (

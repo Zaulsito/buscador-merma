@@ -7,16 +7,6 @@ import FichaDetalle from "./FichaDetalle";
 import { useTheme } from "../context/ThemeContext";
 import { exportarFichaExcel } from "../utils/fichaExcel";
 
-const SECCIONES = [
-  "Todas",
-  "Snack y Desayuno",
-  "Acompañamientos",
-  "Carnes",
-  "Cuarto Frío",
-  "Postres",
-  "Sizzling",
-];
-
 const POR_PAGINA = 25;
 
 export default function FichasTecnicas({ user, rol, onBack }) {

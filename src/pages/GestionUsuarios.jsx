@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db, auth } from "../firebase/config";
-import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import Navbar from "../components/Navbar";
 import { useTheme } from "../context/ThemeContext";
@@ -25,6 +25,14 @@ export default function GestionUsuarios({ user, rol, onBack }) {
   const [showCrearUsuario, setShowCrearUsuario] = useState(false);
   const [nuevoUsuario, setNuevoUsuario] = useState({ nombre: "", apellido: "", email: "", username: "" });
   const [creando, setCreando] = useState(false);
+  const [editandoUsuario, setEditandoUsuario] = useState(null);
+  const [formEditar, setFormEditar] = useState({ nombre: "", username: "", telefono: "", rol: "" });
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [showSecciones, setShowSecciones] = useState(false);
+  const [secciones, setSecciones] = useState([]);
+  const [nuevaSeccion, setNuevaSeccion] = useState("");
+  const [editandoSeccion, setEditandoSeccion] = useState(null);
+  const [nombreEditadoSeccion, setNombreEditadoSeccion] = useState("");
   const { t } = useTheme();
 
   useEffect(() => {
@@ -36,6 +44,14 @@ export default function GestionUsuarios({ user, rol, onBack }) {
       });
       setUsuarios(data);
       setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, nombre: d.data().nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setSecciones(data);
     });
     return () => unsub();
   }, []);
@@ -73,10 +89,77 @@ export default function GestionUsuarios({ user, rol, onBack }) {
     return false;
   };
 
-  const opcionesRol = (usuarioObjetivo) => {
+  const opcionesRol = () => {
     if (rol === "unico") return ["usuario", "admin"];
     if (rol === "admin") return ["usuario"];
     return [];
+  };
+
+  const abrirEditar = (u) => {
+    setEditandoUsuario(u);
+    setFormEditar({
+      nombre: u.nombre || "",
+      username: u.username || "",
+      telefono: u.telefono || "",
+      rol: u.rol || "usuario",
+    });
+  };
+
+  const handleGuardarEdicion = async () => {
+    if (!formEditar.nombre || !formEditar.username) {
+      toast.error("Nombre y username son obligatorios");
+      return;
+    }
+    const usernameExiste = usuarios.some(
+      u => u.username?.toLowerCase() === formEditar.username.toLowerCase() && u.id !== editandoUsuario.id
+    );
+    if (usernameExiste) { toast.error("Ese username ya está en uso"); return; }
+    setGuardandoEdicion(true);
+    try {
+      await updateDoc(doc(db, "usuarios", editandoUsuario.id), {
+        nombre: formEditar.nombre.trim(),
+        username: formEditar.username.trim().toLowerCase(),
+        telefono: formEditar.telefono.trim(),
+        rol: formEditar.rol,
+      });
+      toast.success("Usuario actualizado ✅");
+      setEditandoUsuario(null);
+    } catch (err) {
+      toast.error("Error al actualizar usuario");
+    }
+    setGuardandoEdicion(false);
+  };
+
+  const handleEliminarUsuario = async (u) => {
+    if (!confirm(`¿Eliminar a ${u.nombre || u.email}? Esta acción no se puede deshacer.`)) return;
+    try {
+      await deleteDoc(doc(db, "usuarios", u.id));
+      toast.success("Usuario eliminado ✅");
+    } catch (err) {
+      toast.error("Error al eliminar usuario");
+    }
+  };
+
+  const handleAgregarSeccion = async () => {
+    if (!nuevaSeccion.trim()) return;
+    const existe = secciones.some(s => s.nombre.toLowerCase() === nuevaSeccion.toLowerCase());
+    if (existe) { toast.error("Esa sección ya existe"); return; }
+    await addDoc(collection(db, "secciones"), { nombre: nuevaSeccion.trim() });
+    toast.success("Sección agregada ✅");
+    setNuevaSeccion("");
+  };
+
+  const handleEliminarSeccion = async (id) => {
+    if (!confirm("¿Eliminar esta sección?")) return;
+    await deleteDoc(doc(db, "secciones", id));
+    toast.success("Sección eliminada ✅");
+  };
+
+  const handleEditarSeccion = async (id) => {
+    if (!nombreEditadoSeccion.trim()) return;
+    await updateDoc(doc(db, "secciones", id), { nombre: nombreEditadoSeccion.trim() });
+    toast.success("Sección actualizada ✅");
+    setEditandoSeccion(null);
   };
 
   const handleCrearUsuario = async () => {
@@ -131,13 +214,21 @@ export default function GestionUsuarios({ user, rol, onBack }) {
               </button>
             )}
             {rol === "unico" && (
-              <button
-                onClick={eliminarDuplicados}
-                disabled={limpiando}
-                className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-              >
-                {limpiando ? "Limpiando..." : "🧹 Eliminar duplicados en Merma"}
-              </button>
+              <>
+                <button
+                  onClick={() => setShowSecciones(true)}
+                  className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-sm font-semibold px-4 py-2 rounded-xl transition"
+                >
+                  ⚙️ Secciones
+                </button>
+                <button
+                  onClick={eliminarDuplicados}
+                  disabled={limpiando}
+                  className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
+                >
+                  {limpiando ? "Limpiando..." : "🧹 Eliminar duplicados en Merma"}
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -156,22 +247,30 @@ export default function GestionUsuarios({ user, rol, onBack }) {
                     <p className={`${t.text} font-semibold`}>{u.email}</p>
                     <p className={`${t.textSecondary} text-sm`}>{u.nombre || "Sin nombre"}</p>
                     {u.username && <p className={`${t.textSecondary} text-xs`}>@{u.username}</p>}
+                    {u.telefono && <p className={`${t.textSecondary} text-xs`}>📞 {u.telefono}</p>}
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className={`text-xs font-semibold px-3 py-1 rounded-full ${BADGE_COLOR[u.rol] || "bg-gray-500/20 text-gray-400"}`}>
                     {BADGE[u.rol] || u.rol}
                   </span>
                   {puedeGestionarUsuario(u) ? (
-                    <select
-                      value={u.rol}
-                      onChange={(e) => cambiarRol(u.id, e.target.value)}
-                      className={`${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-                    >
-                      {opcionesRol(u).map((r) => (
-                        <option key={r} value={r}>{BADGE[r]}</option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => abrirEditar(u)}
+                        className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-xs font-semibold px-3 py-2 rounded-lg transition"
+                      >
+                        ✏️ Editar
+                      </button>
+                      {rol === "unico" && (
+                        <button
+                          onClick={() => handleEliminarUsuario(u)}
+                          className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg transition"
+                        >
+                          🗑️ Eliminar
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <span className={`${t.textSecondary} text-xs`}>
                       {u.rol === "unico" ? "🔒 Protegido" : "Sin permisos"}
@@ -184,6 +283,133 @@ export default function GestionUsuarios({ user, rol, onBack }) {
         )}
       </div>
 
+      {/* Modal Gestionar Secciones */}
+      {showSecciones && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
+            <h3 className={`${t.text} font-bold text-lg mb-4`}>⚙️ Gestionar Secciones</h3>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                value={nuevaSeccion}
+                onChange={(e) => setNuevaSeccion(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAgregarSeccion()}
+                className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="Nueva sección..."
+              />
+              <button
+                onClick={handleAgregarSeccion}
+                className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              >
+                + Agregar
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto">
+              {secciones.map((s) => (
+                <div key={s.id} className={`${t.bgInput} rounded-xl px-3 py-2 flex items-center justify-between gap-2`}>
+                  {editandoSeccion === s.id ? (
+                    <>
+                      <input
+                        value={nombreEditadoSeccion}
+                        onChange={(e) => setNombreEditadoSeccion(e.target.value)}
+                        className={`flex-1 bg-transparent ${t.text} outline-none text-sm`}
+                        autoFocus
+                      />
+                      <button onClick={() => handleEditarSeccion(s.id)} className="text-teal-400 text-xs font-semibold px-2">✓</button>
+                      <button onClick={() => setEditandoSeccion(null)} className="text-gray-400 text-xs px-2">✕</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className={`${t.text} text-sm flex-1`}>{s.nombre}</span>
+                      <button onClick={() => { setEditandoSeccion(s.id); setNombreEditadoSeccion(s.nombre); }} className="text-blue-400 text-xs px-2">✏️</button>
+                      <button onClick={() => handleEliminarSeccion(s.id)} className="text-red-400 text-xs px-2">🗑️</button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowSecciones(false)}
+              className={`w-full ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Usuario */}
+      {editandoUsuario && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
+            <h3 className={`${t.text} font-bold text-lg mb-4`}>✏️ Editar usuario</h3>
+            <p className={`${t.textSecondary} text-xs mb-4`}>{editandoUsuario.email}</p>
+
+            <div className="mb-3">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre completo *</label>
+              <input
+                value={formEditar.nombre}
+                onChange={(e) => setFormEditar(p => ({ ...p, nombre: e.target.value }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="Nombre completo"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Username *</label>
+              <input
+                value={formEditar.username}
+                onChange={(e) => setFormEditar(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="ej: juan.perez"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Teléfono</label>
+              <input
+                value={formEditar.telefono}
+                onChange={(e) => setFormEditar(p => ({ ...p, telefono: e.target.value }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+                placeholder="+56 9 1234 5678"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className={`${t.textSecondary} text-xs mb-1 block`}>Rol</label>
+              <select
+                value={formEditar.rol}
+                onChange={(e) => setFormEditar(p => ({ ...p, rol: e.target.value }))}
+                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
+              >
+                {opcionesRol().map((r) => (
+                  <option key={r} value={r}>{BADGE[r]}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEditandoUsuario(null)}
+                className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarEdicion}
+                disabled={guardandoEdicion}
+                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
+              >
+                {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Crear Usuario */}
       {showCrearUsuario && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
           <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>

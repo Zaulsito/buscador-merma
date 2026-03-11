@@ -8,7 +8,16 @@ import { useCodigos, useSubcategorias } from "../hooks/useIngredientes";
 import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 import RichTextEditor from "./RichTextEditor";
 
-const SECCIONES = ["Snack y Desayuno", "Acompañamientos", "Carnes", "Cuarto Frío", "Postres", "Sizzling"];
+const [secciones, setSecciones] = useState([]);
+
+useEffect(() => {
+  const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
+    const data = snap.docs.map(d => d.data().nombre).sort();
+    setSecciones(data);
+  });
+  return () => unsub();
+}, []);
+
 const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
 
 export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
@@ -257,7 +266,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
             <div>
               <label className={labelClass}>Sección</label>
               <select value={form.seccion} onChange={(e) => update("seccion", e.target.value)} className={inputClass}>
-                {SECCIONES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {secciones.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
