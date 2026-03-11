@@ -4,18 +4,10 @@ import { collection, onSnapshot } from "firebase/firestore";
 import Navbar from "../components/Navbar";
 import { useTheme } from "../context/ThemeContext";
 
-const SECCIONES = [
-  "Snack y Desayuno",
-  "Acompañamientos",
-  "Carnes",
-  "Cuarto Frío",
-  "Postres",
-  "Sizzling",
-];
-
 export default function Planificador({ user, rol, onBack }) {
   const [fichas, setFichas] = useState([]);
-  const [seccionActiva, setSeccionActiva] = useState(SECCIONES[0]);
+  const [secciones, setSecciones] = useState([]);
+  const [seccionActiva, setSeccionActiva] = useState(null);
   const [seleccionadas, setSeleccionadas] = useState([]);
   const [listaGenerada, setListaGenerada] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -26,6 +18,15 @@ export default function Planificador({ user, rol, onBack }) {
       const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setFichas(data);
       setLoading(false);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
+      const data = snap.docs.map(d => d.data().nombre).sort();
+      setSecciones(data);
+      if (!seccionActiva && data.length > 0) setSeccionActiva(data[0]);
     });
     return () => unsub();
   }, []);
@@ -114,7 +115,7 @@ export default function Planificador({ user, rol, onBack }) {
 
         {/* Secciones */}
         <div className="flex gap-2 flex-wrap mb-6">
-          {SECCIONES.map((s) => (
+          {secciones.map((s) => (
             <button
               key={s}
               onClick={() => setSeccionActiva(s)}
