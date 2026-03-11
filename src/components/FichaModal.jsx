@@ -1,22 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
 import { useCodigos, useSubcategorias } from "../hooks/useIngredientes";
 import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
 import RichTextEditor from "./RichTextEditor";
-
-const [secciones, setSecciones] = useState([]);
-
-useEffect(() => {
-  const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
-    const data = snap.docs.map(d => d.data().nombre).sort();
-    setSecciones(data);
-  });
-  return () => unsub();
-}, []);
 
 const TABS = ["📋 General", "🥩 Ingredientes", "📝 Proceso", "📦 Envases", "📸 Fotos", "🔄 Revisiones"];
 
@@ -26,10 +16,19 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const [tabActiva, setTabActiva] = useState(0);
   const [productosFaltantes, setProductosFaltantes] = useState([]);
   const [showMermaModal, setShowMermaModal] = useState(false);
+  const [secciones, setSecciones] = useState([]);
   const codigos = useCodigos();
   const subcategorias = useSubcategorias();
   const [sugerenciasCodigo, setSugerenciasCodigo] = useState([]);
   const [sugerenciasSubcat, setSugerenciasSubcat] = useState([]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
+      const data = snap.docs.map(d => d.data().nombre).sort();
+      setSecciones(data);
+    });
+    return () => unsub();
+  }, []);
 
   const [form, setForm] = useState({
     nombre: ficha?.nombre || "",
@@ -225,7 +224,6 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                 value={form.nombre}
                 onChange={(e) => {
                   update("nombre", e.target.value);
-                  // Autorrellenar descripción del primer formato de venta si está vacía
                   const nuevosFormatos = [...form.formatosVenta];
                   if (!nuevosFormatos[0]?.descripcion || nuevosFormatos[0]?.descripcion === form.nombre) {
                     nuevosFormatos[0] = { ...nuevosFormatos[0], descripcion: e.target.value };

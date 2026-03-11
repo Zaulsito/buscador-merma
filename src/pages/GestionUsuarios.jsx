@@ -18,7 +18,10 @@ const BADGE_COLOR = {
   usuario: "bg-gray-500/20 text-gray-400",
 };
 
+const TABS = ["👥 Usuarios", "📂 Secciones", "⚙️ Funciones"];
+
 export default function GestionUsuarios({ user, rol, onBack }) {
+  const [tabActiva, setTabActiva] = useState(0);
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [limpiando, setLimpiando] = useState(false);
@@ -28,7 +31,6 @@ export default function GestionUsuarios({ user, rol, onBack }) {
   const [editandoUsuario, setEditandoUsuario] = useState(null);
   const [formEditar, setFormEditar] = useState({ nombre: "", username: "", telefono: "", rol: "" });
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
-  const [showSecciones, setShowSecciones] = useState(false);
   const [secciones, setSecciones] = useState([]);
   const [nuevaSeccion, setNuevaSeccion] = useState("");
   const [editandoSeccion, setEditandoSeccion] = useState(null);
@@ -97,22 +99,12 @@ export default function GestionUsuarios({ user, rol, onBack }) {
 
   const abrirEditar = (u) => {
     setEditandoUsuario(u);
-    setFormEditar({
-      nombre: u.nombre || "",
-      username: u.username || "",
-      telefono: u.telefono || "",
-      rol: u.rol || "usuario",
-    });
+    setFormEditar({ nombre: u.nombre || "", username: u.username || "", telefono: u.telefono || "", rol: u.rol || "usuario" });
   };
 
   const handleGuardarEdicion = async () => {
-    if (!formEditar.nombre || !formEditar.username) {
-      toast.error("Nombre y username son obligatorios");
-      return;
-    }
-    const usernameExiste = usuarios.some(
-      u => u.username?.toLowerCase() === formEditar.username.toLowerCase() && u.id !== editandoUsuario.id
-    );
+    if (!formEditar.nombre || !formEditar.username) { toast.error("Nombre y username son obligatorios"); return; }
+    const usernameExiste = usuarios.some(u => u.username?.toLowerCase() === formEditar.username.toLowerCase() && u.id !== editandoUsuario.id);
     if (usernameExiste) { toast.error("Ese username ya está en uso"); return; }
     setGuardandoEdicion(true);
     try {
@@ -173,11 +165,7 @@ export default function GestionUsuarios({ user, rol, onBack }) {
       const cred = await createUserWithEmailAndPassword(auth, email, passwordTemporal);
       await updateProfile(cred.user, { displayName: `${nombre} ${apellido}` });
       await setDoc(doc(db, "usuarios", cred.user.uid), {
-        email,
-        nombre: `${nombre} ${apellido}`,
-        username: username.trim(),
-        rol: "usuario",
-        fechaRegistro: new Date(),
+        email, nombre: `${nombre} ${apellido}`, username: username.trim(), rol: "usuario", fechaRegistro: new Date(),
       });
       await sendPasswordResetEmail(auth, email);
       toast.success(`✅ Usuario creado. Se envió un correo a ${email} para establecer su contraseña.`);
@@ -189,6 +177,9 @@ export default function GestionUsuarios({ user, rol, onBack }) {
     }
     setCreando(false);
   };
+
+  const inputClass = `w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`;
+  const labelClass = `${t.textSecondary} text-xs mb-1 block`;
 
   return (
     <div className={`min-h-screen ${t.bg}`}>
@@ -202,94 +193,90 @@ export default function GestionUsuarios({ user, rol, onBack }) {
           ← Volver
         </button>
 
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h2 className={`${t.text} text-2xl font-bold`}>👥 Gestión de Usuarios</h2>
-          <div className="flex gap-2 flex-wrap">
-            {(rol === "unico" || rol === "admin") && (
-              <button
-                onClick={() => setShowCrearUsuario(true)}
-                className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition"
-              >
-                + Crear usuario
-              </button>
-            )}
-            {rol === "unico" && (
-              <>
-                <button
-                  onClick={() => setShowSecciones(true)}
-                  className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-sm font-semibold px-4 py-2 rounded-xl transition"
-                >
-                  ⚙️ Secciones
-                </button>
-                <button
-                  onClick={eliminarDuplicados}
-                  disabled={limpiando}
-                  className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50"
-                >
-                  {limpiando ? "Limpiando..." : "🧹 Eliminar duplicados en Merma"}
-                </button>
-              </>
-            )}
-          </div>
+        <h2 className={`${t.text} text-2xl font-bold mb-6`}>🛠️ Gestionamiento</h2>
+
+        {/* Tabs */}
+        <div className="flex gap-2 flex-wrap mb-6">
+          {TABS.map((tab, i) => (
+            <button
+              key={i}
+              onClick={() => setTabActiva(i)}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+                tabActiva === i ? "bg-teal-600 text-white" : `${t.bgCard} ${t.text} ${t.hover}`
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
 
-        {loading ? (
-          <p className={`${t.textSecondary} text-center`}>Cargando usuarios...</p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {usuarios.map((u) => (
-              <div key={u.id} className={`${t.bgCard} rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${BADGE_COLOR[u.rol] || "bg-gray-500/20 text-gray-400"}`}>
-                    {(u.nombre || u.email || "?")[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <p className={`${t.text} font-semibold`}>{u.email}</p>
-                    <p className={`${t.textSecondary} text-sm`}>{u.nombre || "Sin nombre"}</p>
-                    {u.username && <p className={`${t.textSecondary} text-xs`}>@{u.username}</p>}
-                    {u.telefono && <p className={`${t.textSecondary} text-xs`}>📞 {u.telefono}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className={`text-xs font-semibold px-3 py-1 rounded-full ${BADGE_COLOR[u.rol] || "bg-gray-500/20 text-gray-400"}`}>
-                    {BADGE[u.rol] || u.rol}
-                  </span>
-                  {puedeGestionarUsuario(u) ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => abrirEditar(u)}
-                        className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-xs font-semibold px-3 py-2 rounded-lg transition"
-                      >
-                        ✏️ Editar
-                      </button>
-                      {rol === "unico" && (
-                        <button
-                          onClick={() => handleEliminarUsuario(u)}
-                          className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg transition"
-                        >
-                          🗑️ Eliminar
-                        </button>
+        {/* Tab 0 - Usuarios */}
+        {tabActiva === 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <h3 className={`${t.text} text-lg font-semibold`}>👥 Usuarios</h3>
+              {(rol === "unico" || rol === "admin") && (
+                <button
+                  onClick={() => setShowCrearUsuario(true)}
+                  className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition"
+                >
+                  + Crear usuario
+                </button>
+              )}
+            </div>
+
+            {loading ? (
+              <p className={`${t.textSecondary} text-center`}>Cargando usuarios...</p>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {usuarios.map((u) => (
+                  <div key={u.id} className={`${t.bgCard} rounded-xl p-4 flex items-center justify-between gap-4 flex-wrap`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${BADGE_COLOR[u.rol] || "bg-gray-500/20 text-gray-400"}`}>
+                        {(u.nombre || u.email || "?")[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className={`${t.text} font-semibold`}>{u.email}</p>
+                        <p className={`${t.textSecondary} text-sm`}>{u.nombre || "Sin nombre"}</p>
+                        {u.username && <p className={`${t.textSecondary} text-xs`}>@{u.username}</p>}
+                        {u.telefono && <p className={`${t.textSecondary} text-xs`}>📞 {u.telefono}</p>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`text-xs font-semibold px-3 py-1 rounded-full ${BADGE_COLOR[u.rol] || "bg-gray-500/20 text-gray-400"}`}>
+                        {BADGE[u.rol] || u.rol}
+                      </span>
+                      {puedeGestionarUsuario(u) ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => abrirEditar(u)} className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-xs font-semibold px-3 py-2 rounded-lg transition">
+                            ✏️ Editar
+                          </button>
+                          {rol === "unico" && (
+                            <button onClick={() => handleEliminarUsuario(u)} className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg transition">
+                              🗑️ Eliminar
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className={`${t.textSecondary} text-xs`}>
+                          {u.rol === "unico" ? "🔒 Protegido" : "Sin permisos"}
+                        </span>
                       )}
                     </div>
-                  ) : (
-                    <span className={`${t.textSecondary} text-xs`}>
-                      {u.rol === "unico" ? "🔒 Protegido" : "Sin permisos"}
-                    </span>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
-      </div>
 
-      {/* Modal Gestionar Secciones */}
-      {showSecciones && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-          <div className={`${t.bgCard} rounded-2xl p-6 w-full max-w-md shadow-xl`}>
-            <h3 className={`${t.text} font-bold text-lg mb-4`}>⚙️ Gestionar Secciones</h3>
+        {/* Tab 1 - Secciones */}
+        {tabActiva === 1 && (
+          <div>
+            <h3 className={`${t.text} text-lg font-semibold mb-4`}>📂 Secciones de Fichas Técnicas</h3>
+            <p className={`${t.textSecondary} text-sm mb-4`}>Estas secciones aparecen como filtros en el módulo de Fichas Técnicas.</p>
 
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-6">
               <input
                 value={nuevaSeccion}
                 onChange={(e) => setNuevaSeccion(e.target.value)}
@@ -305,40 +292,67 @@ export default function GestionUsuarios({ user, rol, onBack }) {
               </button>
             </div>
 
-            <div className="flex flex-col gap-2 mb-6 max-h-64 overflow-y-auto">
+            <div className="flex flex-col gap-3">
               {secciones.map((s) => (
-                <div key={s.id} className={`${t.bgInput} rounded-xl px-3 py-2 flex items-center justify-between gap-2`}>
+                <div key={s.id} className={`${t.bgCard} rounded-xl px-4 py-3 flex items-center justify-between gap-2`}>
                   {editandoSeccion === s.id ? (
                     <>
                       <input
                         value={nombreEditadoSeccion}
                         onChange={(e) => setNombreEditadoSeccion(e.target.value)}
-                        className={`flex-1 bg-transparent ${t.text} outline-none text-sm`}
+                        className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
                         autoFocus
                       />
-                      <button onClick={() => handleEditarSeccion(s.id)} className="text-teal-400 text-xs font-semibold px-2">✓</button>
-                      <button onClick={() => setEditandoSeccion(null)} className="text-gray-400 text-xs px-2">✕</button>
+                      <button onClick={() => handleEditarSeccion(s.id)} className="bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition">✓ Guardar</button>
+                      <button onClick={() => setEditandoSeccion(null)} className={`${t.bgInput} ${t.textSecondary} text-xs px-3 py-2 rounded-lg transition`}>✕</button>
                     </>
                   ) : (
                     <>
-                      <span className={`${t.text} text-sm flex-1`}>{s.nombre}</span>
-                      <button onClick={() => { setEditandoSeccion(s.id); setNombreEditadoSeccion(s.nombre); }} className="text-blue-400 text-xs px-2">✏️</button>
-                      <button onClick={() => handleEliminarSeccion(s.id)} className="text-red-400 text-xs px-2">🗑️</button>
+                      <span className={`${t.text} text-sm font-semibold flex-1`}>{s.nombre}</span>
+                      <button onClick={() => { setEditandoSeccion(s.id); setNombreEditadoSeccion(s.nombre); }} className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 text-xs font-semibold px-3 py-2 rounded-lg transition">✏️ Editar</button>
+                      <button onClick={() => handleEliminarSeccion(s.id)} className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs font-semibold px-3 py-2 rounded-lg transition">🗑️ Eliminar</button>
                     </>
                   )}
                 </div>
               ))}
+              {secciones.length === 0 && <p className={`${t.textSecondary} text-sm text-center`}>No hay secciones creadas.</p>}
             </div>
-
-            <button
-              onClick={() => setShowSecciones(false)}
-              className={`w-full ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
-            >
-              Cerrar
-            </button>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Tab 2 - Funciones */}
+        {tabActiva === 2 && (
+          <div>
+            <h3 className={`${t.text} text-lg font-semibold mb-4`}>⚙️ Funciones del Sistema</h3>
+            <p className={`${t.textSecondary} text-sm mb-6`}>Herramientas avanzadas de mantenimiento. Úsalas con cuidado.</p>
+
+            <div className="flex flex-col gap-4">
+              {/* Eliminar duplicados */}
+              <div className={`${t.bgCard} rounded-xl p-5`}>
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <h4 className={`${t.text} font-semibold mb-1`}>🧹 Eliminar duplicados en Merma</h4>
+                    <p className={`${t.textSecondary} text-sm`}>Busca y elimina productos con el mismo código SAP en el Buscador de Merma. Esta acción no se puede deshacer.</p>
+                  </div>
+                  <button
+                    onClick={eliminarDuplicados}
+                    disabled={limpiando}
+                    className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {limpiando ? "Limpiando..." : "Ejecutar"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Placeholder para futuras funciones */}
+              <div className={`${t.bgCard} rounded-xl p-5 opacity-40`}>
+                <h4 className={`${t.text} font-semibold mb-1`}>🔧 Más funciones próximamente...</h4>
+                <p className={`${t.textSecondary} text-sm`}>Aquí aparecerán nuevas herramientas de administración.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Modal Editar Usuario */}
       {editandoUsuario && (
@@ -348,60 +362,27 @@ export default function GestionUsuarios({ user, rol, onBack }) {
             <p className={`${t.textSecondary} text-xs mb-4`}>{editandoUsuario.email}</p>
 
             <div className="mb-3">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre completo *</label>
-              <input
-                value={formEditar.nombre}
-                onChange={(e) => setFormEditar(p => ({ ...p, nombre: e.target.value }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                placeholder="Nombre completo"
-              />
+              <label className={labelClass}>Nombre completo *</label>
+              <input value={formEditar.nombre} onChange={(e) => setFormEditar(p => ({ ...p, nombre: e.target.value }))} className={inputClass} placeholder="Nombre completo" />
             </div>
-
             <div className="mb-3">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Username *</label>
-              <input
-                value={formEditar.username}
-                onChange={(e) => setFormEditar(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                placeholder="ej: juan.perez"
-              />
+              <label className={labelClass}>Username *</label>
+              <input value={formEditar.username} onChange={(e) => setFormEditar(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))} className={inputClass} placeholder="ej: juan.perez" />
             </div>
-
             <div className="mb-3">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Teléfono</label>
-              <input
-                value={formEditar.telefono}
-                onChange={(e) => setFormEditar(p => ({ ...p, telefono: e.target.value }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                placeholder="+56 9 1234 5678"
-              />
+              <label className={labelClass}>Teléfono</label>
+              <input value={formEditar.telefono} onChange={(e) => setFormEditar(p => ({ ...p, telefono: e.target.value }))} className={inputClass} placeholder="+56 9 1234 5678" />
             </div>
-
             <div className="mb-6">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Rol</label>
-              <select
-                value={formEditar.rol}
-                onChange={(e) => setFormEditar(p => ({ ...p, rol: e.target.value }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-              >
-                {opcionesRol().map((r) => (
-                  <option key={r} value={r}>{BADGE[r]}</option>
-                ))}
+              <label className={labelClass}>Rol</label>
+              <select value={formEditar.rol} onChange={(e) => setFormEditar(p => ({ ...p, rol: e.target.value }))} className={inputClass}>
+                {opcionesRol().map((r) => <option key={r} value={r}>{BADGE[r]}</option>)}
               </select>
             </div>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => setEditandoUsuario(null)}
-                className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleGuardarEdicion}
-                disabled={guardandoEdicion}
-                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-              >
+              <button onClick={() => setEditandoUsuario(null)} className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}>Cancelar</button>
+              <button onClick={handleGuardarEdicion} disabled={guardandoEdicion} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
                 {guardandoEdicion ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
@@ -417,61 +398,28 @@ export default function GestionUsuarios({ user, rol, onBack }) {
 
             <div className="flex gap-3 mb-3">
               <div className="flex-1">
-                <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre *</label>
-                <input
-                  value={nuevoUsuario.nombre}
-                  onChange={(e) => setNuevoUsuario(p => ({ ...p, nombre: e.target.value }))}
-                  className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                  placeholder="Nombre"
-                />
+                <label className={labelClass}>Nombre *</label>
+                <input value={nuevoUsuario.nombre} onChange={(e) => setNuevoUsuario(p => ({ ...p, nombre: e.target.value }))} className={inputClass} placeholder="Nombre" />
               </div>
               <div className="flex-1">
-                <label className={`${t.textSecondary} text-xs mb-1 block`}>Apellido *</label>
-                <input
-                  value={nuevoUsuario.apellido}
-                  onChange={(e) => setNuevoUsuario(p => ({ ...p, apellido: e.target.value }))}
-                  className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                  placeholder="Apellido"
-                />
+                <label className={labelClass}>Apellido *</label>
+                <input value={nuevoUsuario.apellido} onChange={(e) => setNuevoUsuario(p => ({ ...p, apellido: e.target.value }))} className={inputClass} placeholder="Apellido" />
               </div>
             </div>
-
             <div className="mb-3">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Correo electrónico *</label>
-              <input
-                type="email"
-                value={nuevoUsuario.email}
-                onChange={(e) => setNuevoUsuario(p => ({ ...p, email: e.target.value }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                placeholder="correo@ejemplo.com"
-              />
+              <label className={labelClass}>Correo electrónico *</label>
+              <input type="email" value={nuevoUsuario.email} onChange={(e) => setNuevoUsuario(p => ({ ...p, email: e.target.value }))} className={inputClass} placeholder="correo@ejemplo.com" />
             </div>
-
-            <div className="mb-6">
-              <label className={`${t.textSecondary} text-xs mb-1 block`}>Nombre de usuario único *</label>
-              <input
-                value={nuevoUsuario.username}
-                onChange={(e) => setNuevoUsuario(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))}
-                className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-teal-500 text-sm`}
-                placeholder="ej: juan.perez"
-              />
+            <div className="mb-4">
+              <label className={labelClass}>Nombre de usuario único *</label>
+              <input value={nuevoUsuario.username} onChange={(e) => setNuevoUsuario(p => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, "") }))} className={inputClass} placeholder="ej: juan.perez" />
               <p className={`${t.textSecondary} text-xs mt-1`}>Solo letras minúsculas, números y puntos. Sin espacios.</p>
             </div>
-
             <p className={`${t.textSecondary} text-xs mb-4`}>📧 El usuario recibirá un correo para establecer su propia contraseña.</p>
 
             <div className="flex gap-3">
-              <button
-                onClick={() => { setShowCrearUsuario(false); setNuevoUsuario({ nombre: "", apellido: "", email: "", username: "" }); }}
-                className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCrearUsuario}
-                disabled={creando}
-                className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50"
-              >
+              <button onClick={() => { setShowCrearUsuario(false); setNuevoUsuario({ nombre: "", apellido: "", email: "", username: "" }); }} className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} font-semibold py-3 rounded-lg transition`}>Cancelar</button>
+              <button onClick={handleCrearUsuario} disabled={creando} className="flex-1 bg-teal-600 hover:bg-teal-700 text-white font-semibold py-3 rounded-lg transition disabled:opacity-50">
                 {creando ? "Creando..." : "Crear usuario"}
               </button>
             </div>

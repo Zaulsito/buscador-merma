@@ -75,8 +75,8 @@ export default function DashboardPage({ user, rol }) {
               className={`${t.bgCard} ${t.hoverCard} rounded-2xl p-6 text-left transition shadow`}
             >
               <span className="text-4xl">👥</span>
-              <h3 className={`${t.text} font-bold text-lg mt-3`}>Gestión de Usuarios</h3>
-              <p className={`${t.textSecondary} text-sm mt-1`}>Administra roles y accesos</p>
+              <h3 className={`${t.text} font-bold text-lg mt-3`}>Gestionamiento</h3>
+              <p className={`${t.textSecondary} text-sm mt-1`}>Gestiona usuarios, secciones entre otros.</p>
             </button>
           )}
         </div>
