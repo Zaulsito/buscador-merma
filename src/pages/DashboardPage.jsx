@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import Navbar from "../components/Navbar";
+import { useTheme } from "../context/ThemeContext";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
 import PerfilPage from "./PerfilPage";
 import FichasTecnicas from "./FichasTecnicas";
 import Planificador from "./Planificador";
-import { useTheme } from "../context/ThemeContext";
 
 const modulos = [
   {
@@ -13,48 +12,70 @@ const modulos = [
     nombre: "Buscador de Merma",
     descripcion: "Localiza y analiza pérdidas operativas eficientemente.",
     icon: "search",
-    color: "#3B82F6",
-    bg: "rgba(59,130,246,0.12)",
-    hoverBg: "#3B82F6",
+    accion: "Acceder módulo",
+    color: "#258cf4",
+    colorClass: "text-blue-400",
+    bg: "bg-blue-500/10",
+    hoverBg: "group-hover:bg-blue-500",
+    borderB: "border-b-blue-500",
   },
   {
     id: "fichas",
     nombre: "Fichas Técnicas",
-    descripcion: "Consulta especificaciones y documentación detallada.",
+    descripcion: "Biblioteca centralizada de especificaciones y procesos.",
     icon: "description",
-    color: "#F97316",
-    bg: "rgba(249,115,22,0.12)",
-    hoverBg: "#F97316",
+    accion: "Consultar archivos",
+    color: "#f97316",
+    colorClass: "text-orange-500",
+    bg: "bg-orange-500/10",
+    hoverBg: "group-hover:bg-orange-500",
+    borderB: "border-b-orange-500",
   },
   {
     id: "planificador",
     nombre: "Planificador",
     descripcion: "Organiza tareas y cronogramas de producción.",
-    icon: "calendar_today",
-    color: "#10B981",
-    bg: "rgba(16,185,129,0.12)",
-    hoverBg: "#10B981",
+    icon: "account_tree",
+    accion: "Abrir panel",
+    color: "#10b981",
+    colorClass: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    hoverBg: "group-hover:bg-emerald-500",
+    borderB: "border-b-emerald-500",
   },
 ];
 
 const moduloAdmin = {
   id: "usuarios",
   nombre: "Gestionamiento",
-  descripcion: "Administra usuarios, permisos y configuraciones.",
+  descripcion: "Administración de usuarios, roles y permisos del sistema.",
   icon: "manage_accounts",
-  color: "#A855F7",
-  bg: "rgba(168,85,247,0.12)",
-  hoverBg: "#A855F7",
+  accion: "Administrar equipo",
+  color: "#a855f7",
+  colorClass: "text-purple-500",
+  bg: "bg-purple-500/10",
+  hoverBg: "group-hover:bg-purple-500",
+  borderB: "border-b-purple-500",
 };
+
+const actividadReciente = [
+  { icon: "add_task", color: "bg-blue-500/10 text-blue-400", titulo: "Nueva ficha técnica cargada", desc: "Se agregó una nueva ficha al sistema", tiempo: "Hace 5m" },
+  { icon: "warning", color: "bg-red-500/10 text-red-400", titulo: "Alerta de merma crítica", desc: "Se detectó exceso en línea de producción B", tiempo: "Hace 1h" },
+  { icon: "check_circle", color: "bg-emerald-500/10 text-emerald-400", titulo: "Planificación completada", desc: "Se generó lista de ingredientes para producción", tiempo: "Hace 3h" },
+];
+
+const proximosEventos = [
+  { fecha: "Hoy • 14:00", titulo: "Reunión de Sincronización", lugar: "Sala de conferencias B", activo: true },
+  { fecha: "Mañana • 09:00", titulo: "Auditoría de Calidad", lugar: "Planta de Manufactura", activo: false },
+  { fecha: "Próximamente", titulo: "Lanzamiento Módulo IA", lugar: "Despliegue General", activo: false },
+];
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
   const { t } = useTheme();
 
   useEffect(() => {
-    const handleHash = () => {
-      setModulo(window.location.hash.replace("#", "") || null);
-    };
+    const handleHash = () => setModulo(window.location.hash.replace("#", "") || null);
     window.addEventListener("hashchange", handleHash);
     return () => window.removeEventListener("hashchange", handleHash);
   }, []);
@@ -68,104 +89,271 @@ export default function DashboardPage({ user, rol }) {
     }
   };
 
-  if (modulo === "merma") return <BuscadorMerma user={user} rol={rol} onBack={() => navegarA(null)} />;
-  if (modulo === "usuarios") return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
-  if (modulo === "perfil") return <PerfilPage user={user} rol={rol} onBack={() => navegarA(null)} />;
-  if (modulo === "fichas") return <FichasTecnicas user={user} rol={rol} onBack={() => navegarA(null)} />;
-  if (modulo === "planificador") return <Planificador user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
+  const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const todosModulos = (rol === "admin" || rol === "unico") ? [...modulos, moduloAdmin] : modulos;
 
   return (
     <div className={`min-h-screen ${t.bg} flex flex-col`}>
-      <Navbar user={user} rol={rol} onPerfil={() => navegarA("perfil")} />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 pb-28 pt-4">
-
-        {/* Hero banner */}
-        <div className="relative overflow-hidden rounded-2xl p-6 mb-8 shadow-lg"
-          style={{ background: "linear-gradient(135deg, #258cf4 0%, #1d4ed8 100%)" }}
-        >
-          <div className="absolute top-0 right-0 w-64 h-64 rounded-full"
-            style={{ background: "rgba(255,255,255,0.08)", filter: "blur(40px)", transform: "translate(30%,-30%)" }} />
-          <div className="absolute bottom-0 right-12 w-32 h-32 rounded-full"
-            style={{ background: "rgba(255,255,255,0.05)", filter: "blur(20px)", transform: "translateY(30%)" }} />
-          <div className="relative z-10">
-            <p className="text-blue-100 text-xs font-semibold uppercase tracking-widest mb-1">Panel de Control</p>
-            <h1 className="text-white text-3xl font-bold mb-2">Bienvenido, {nombre}</h1>
-            <p className="text-blue-100 text-sm leading-relaxed max-w-xs">
-              Gestiona tus procesos, accede a fichas técnicas y planifica tus operaciones desde un solo lugar.
-            </p>
+      {/* ── TOP NAV mobile ── */}
+      <header className={`sticky top-0 z-50 md:hidden w-full border-b ${t.border} ${t.bgNav} backdrop-blur-md px-4 py-3 flex items-center justify-between`}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+            <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>monitoring</span>
           </div>
+          <h1 className={`${t.text} text-lg font-black tracking-tight uppercase`}>R.info</h1>
         </div>
-
-        {/* Título sección */}
-        <div className="flex items-center justify-between mb-5">
-          <h3 className={`${t.text} font-bold text-base flex items-center gap-2`}>
-            <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>grid_view</span>
-            Módulos principales
-          </h3>
+        <div className="flex items-center gap-2">
+          <button className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} relative`}>
+            <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>notifications</span>
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+          </button>
+          <button onClick={() => navegarA("perfil")} className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">
+            {iniciales}
+          </button>
         </div>
+      </header>
 
-        {/* Cards de módulos */}
-        <div className="flex flex-col gap-4 mb-8">
-          {todosModulos.map((m) => (
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── SIDEBAR desktop ── */}
+        <aside className={`hidden md:flex w-64 flex-shrink-0 ${t.bgCard} border-r ${t.border} flex-col h-screen sticky top-0`}>
+          <div className="p-6 flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>monitoring</span>
+            </div>
+            <h1 className={`${t.text} text-xl font-black tracking-tight uppercase`}>R.info</h1>
+          </div>
+
+          <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
             <button
-              key={m.id}
-              onClick={() => navegarA(m.id)}
-              className={`${t.bgCard} border ${t.border} rounded-2xl p-5 flex flex-col gap-4 text-left w-full transition-all hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98] group`}
+              onClick={() => navegarA(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-500/20 text-blue-400 font-medium text-sm"
+              style={{ borderRight: "3px solid #258cf4" }}
             >
-              <div
-                className="w-14 h-14 rounded-xl flex items-center justify-center transition-colors"
-                style={{ background: m.bg, color: m.color }}
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
+              Home
+            </button>
+            {todosModulos.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => navegarA(m.id)}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${t.textSecondary} ${t.hover} transition-all font-medium text-sm text-left`}
               >
-                <span
-                  className="material-symbols-outlined transition-colors"
-                  style={{ fontSize: 28, color: m.color }}
-                >
-                  {m.icon}
-                </span>
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{m.icon}</span>
+                {m.nombre}
+              </button>
+            ))}
+          </nav>
+
+          <div className={`p-4 border-t ${t.border}`}>
+            <button onClick={() => navegarA("perfil")} className={`w-full flex items-center gap-3 p-2 ${t.bgInput} rounded-xl hover:ring-2 hover:ring-blue-500/30 transition-all`}>
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
+                {iniciales}
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className={`${t.text} font-bold text-base`}>{m.nombre}</h4>
-                <p className={`${t.textSecondary} text-sm mt-1 leading-snug`}>{m.descripcion}</p>
-              </div>
-              <div className="flex items-center gap-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: m.color }}>
-                ACCEDER
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
+              <div className="overflow-hidden text-left">
+                <p className={`${t.text} text-sm font-bold truncate`}>{user?.displayName || "Usuario"}</p>
+                <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
               </div>
             </button>
-          ))}
-        </div>
+          </div>
+        </aside>
 
-        {/* Footer */}
-        <p className={`${t.textSecondary} text-xs text-center`}>
-          © 2024 R.info · Sistema de Información Operativa. Todos los derechos reservados.
-        </p>
-      </main>
+        {/* ── MAIN CONTENT ── */}
+        <main className="flex-1 overflow-y-auto pb-24 md:pb-0">
 
-      {/* Bottom nav */}
-      <nav className={`fixed bottom-0 left-0 right-0 ${t.bgNav} border-t ${t.border} flex justify-around items-center z-40`}
-        style={{ paddingTop: 8, paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+          {/* Top bar desktop */}
+          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} backdrop-blur-md items-center justify-between px-8 sticky top-0 z-10`}>
+            <div className="flex-1 max-w-md relative">
+              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
+              <input className={`w-full pl-10 pr-4 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`} placeholder="Buscar módulos o reportes..." />
+            </div>
+            <div className="flex items-center gap-3">
+              <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary} relative`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>notifications</span>
+                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+              <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>help</span>
+              </button>
+              <div className={`h-6 w-px ${t.bgInput}`}></div>
+              <button onClick={() => navegarA("perfil")} className="flex items-center gap-2 group">
+                <span className={`${t.text} text-sm font-semibold group-hover:text-blue-400 transition-colors`}>{nombre}</span>
+                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">{iniciales}</div>
+              </button>
+            </div>
+          </header>
+
+          <div className="p-4 md:p-8 space-y-8">
+
+            {/* Hero */}
+            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 p-8 md:p-10 text-white shadow-xl shadow-blue-500/20">
+              <div className="relative z-10 max-w-2xl">
+                <span className="text-blue-100 text-xs font-semibold uppercase tracking-widest">Panel de Control</span>
+                <h2 className="text-3xl md:text-4xl font-black mt-1 mb-2">Bienvenido, {nombre}</h2>
+                <p className="text-blue-100 text-sm md:text-base max-w-md">
+                  Gestiona tus procesos, accede a fichas técnicas y planifica tus operaciones desde un solo lugar.
+                </p>
+              </div>
+              <div className="absolute top-0 right-0 h-full w-1/3 bg-white/10 pointer-events-none" style={{ clipPath: "polygon(30% 0, 100% 0, 100% 100%, 0% 100%)" }}></div>
+              <div className="absolute bottom-0 right-1/4 h-1/2 w-1/4 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+            </section>
+
+            {/* Stats */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className={`${t.text} text-base font-bold flex items-center gap-2`}>
+                  <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>analytics</span>
+                  Estadísticas Rápidas
+                </h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 hover:border-blue-500/50 transition-colors`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>map</span>
+                    </div>
+                    <span className="text-orange-500 text-xs font-bold px-2 py-1 bg-orange-500/10 rounded-full">Próximamente</span>
+                  </div>
+                  <p className={`${t.textSecondary} text-xs font-medium`}>Planograma</p>
+                  <p className={`${t.text} text-2xl font-black mt-1`}>— <span className={`${t.textSecondary} text-sm font-normal`}>activos</span></p>
+                </div>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 hover:border-blue-500/50 transition-colors`}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>group</span>
+                    </div>
+                    <span className="text-emerald-500 text-xs font-bold px-2 py-1 bg-emerald-500/10 rounded-full">Próximamente</span>
+                  </div>
+                  <p className={`${t.textSecondary} text-xs font-medium`}>Usuarios</p>
+                  <p className={`${t.text} text-2xl font-black mt-1`}>—</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Módulos */}
+            <section>
+              <h3 className={`${t.text} text-base font-bold flex items-center gap-2 mb-5`}>
+                <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>grid_view</span>
+                Módulos Principales
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {todosModulos.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => navegarA(m.id)}
+                    className={`group relative ${t.bgCard} border ${t.border} border-b-4 ${m.borderB} rounded-2xl p-6 flex flex-col gap-4 text-left w-full hover:shadow-2xl hover:-translate-y-1 transition-all`}
+                  >
+                    <div className={`w-14 h-14 rounded-xl ${m.bg} ${m.colorClass} flex items-center justify-center ${m.hoverBg} group-hover:text-white transition-colors`}>
+                      <span className="material-symbols-outlined group-hover:scale-110 transition-transform" style={{ fontSize: 28 }}>{m.icon}</span>
+                    </div>
+                    <div>
+                      <h4 className={`${t.text} text-base font-bold mb-1`}>{m.nombre}</h4>
+                      <p className={`${t.textSecondary} text-sm leading-relaxed`}>{m.descripcion}</p>
+                    </div>
+                    <div className="mt-auto flex items-center gap-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: m.color }}>
+                      {m.accion}
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* Actividad Reciente + Próximos Eventos */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4">
+
+              {/* Actividad Reciente */}
+              <div className={`lg:col-span-2 ${t.bgCard} border ${t.border} rounded-2xl p-6`}>
+                <div className="flex items-center justify-between mb-5">
+                  <h4 className={`${t.text} font-bold flex items-center gap-2`}>
+                    <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>history</span>
+                    Actividad Reciente (Modo prueba)
+                  </h4>
+                  <button className={`p-1.5 ${t.hover} rounded-lg`}>
+                    <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 20 }}>more_vert</span>
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {actividadReciente.map((a, i) => (
+                    <div key={i} className={`flex items-start gap-4 p-3 ${t.hover} rounded-xl transition-colors`}>
+                      <div className={`w-10 h-10 rounded-full ${a.color} flex items-center justify-center flex-shrink-0`}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{a.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`${t.text} text-sm font-semibold`}>{a.titulo}</p>
+                        <p className={`${t.textSecondary} text-xs mt-0.5`}>{a.desc}</p>
+                      </div>
+                      <span className={`${t.textSecondary} text-xs whitespace-nowrap`}>{a.tiempo}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Próximos Eventos */}
+              <div className={`${t.bgCard} border ${t.border} rounded-2xl p-6`}>
+                <h4 className={`${t.text} font-bold mb-5 flex items-center gap-2`}>
+                  <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>event</span>
+                  Próximos Eventos (Modo prueba)
+                </h4>
+                <div className="space-y-5">
+                  {proximosEventos.map((e, i) => (
+                    <div key={i} className={`border-l-4 pl-4 ${e.activo ? "border-blue-500" : `border-slate-600`}`}>
+                      <p className={`text-xs font-bold uppercase ${e.activo ? "text-blue-400" : t.textSecondary}`}>{e.fecha}</p>
+                      <p className={`${t.text} text-sm font-bold mt-1`}>{e.titulo}</p>
+                      <p className={`${t.textSecondary} text-xs mt-0.5`}>{e.lugar}</p>
+                    </div>
+                  ))}
+                </div>
+                <button className={`w-full mt-6 py-2.5 border ${t.border} ${t.hover} ${t.text} rounded-xl text-sm font-bold transition-colors`}>
+                  Ver Calendario Completo
+                </button>
+              </div>
+
+            </section>
+
+            {/* Footer integrado sin fondo separado */}
+            <p className={`${t.textSecondary} text-xs text-center py-4`}>
+              © 2026 R.info · Sistema de Información Operativa. Todos los derechos reservados.
+            </p>
+
+          </div>
+        </main>
+      </div>
+
+      {/* ── BOTTOM NAV mobile ── */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-50 ${t.bgNav} border-t ${t.border} flex justify-around items-center px-2 py-2`}
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
       >
-        <button onClick={() => navegarA(null)} className="flex flex-col items-center gap-0.5 px-4 py-1">
-          <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 22 }}>home</span>
-          <span className="text-xs font-bold text-blue-400 uppercase tracking-wider" style={{ fontSize: 10 }}>Inicio</span>
+        <button onClick={() => navegarA(null)} className="flex flex-col items-center gap-0.5 p-2 text-blue-400">
+          <span className="material-symbols-outlined" style={{ fontSize: 22, fontVariationSettings: "'FILL' 1" }}>home</span>
+          <span className="font-bold" style={{ fontSize: 10 }}>INICIO</span>
         </button>
-        <button onClick={() => navegarA("merma")} className="flex flex-col items-center gap-0.5 px-4 py-1">
-          <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>search</span>
-          <span className={`${t.textSecondary} font-bold uppercase tracking-wider`} style={{ fontSize: 10 }}>Buscar</span>
+        <button onClick={() => navegarA("merma")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>search</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>MERMA</span>
         </button>
-        <button onClick={() => navegarA("fichas")} className="flex flex-col items-center gap-0.5 px-4 py-1">
-          <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>description</span>
-          <span className={`${t.textSecondary} font-bold uppercase tracking-wider`} style={{ fontSize: 10 }}>Fichas</span>
+        <button onClick={() => navegarA("fichas")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>description</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>FICHAS</span>
         </button>
-        <button onClick={() => navegarA("perfil")} className="flex flex-col items-center gap-0.5 px-4 py-1">
-          <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>person</span>
-          <span className={`${t.textSecondary} font-bold uppercase tracking-wider`} style={{ fontSize: 10 }}>Perfil</span>
+        <button onClick={() => navegarA("planificador")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>account_tree</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>PLAN.</span>
+        </button>
+        <button onClick={() => navegarA("perfil")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>person</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>PERFIL</span>
         </button>
       </nav>
+
     </div>
   );
 }
