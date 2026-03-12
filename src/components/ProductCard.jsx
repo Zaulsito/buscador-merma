@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { doc, deleteDoc, updateDoc, collection, onSnapshot, addDoc } from "firebase/firestore";
+import { doc, deleteDoc, updateDoc, collection, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 
-const CATEGORIAS_DEFAULT = ["Carnes", "Abarrotes", "Acompañamientos", "Bollería", "Cafetería"];
+const COLOR_MAP = {
+  red:     { bg: "bg-red-500/15",     text: "text-red-400",     border: "border-red-500/20" },
+  orange:  { bg: "bg-orange-500/15",  text: "text-orange-400",  border: "border-orange-500/20" },
+  amber:   { bg: "bg-amber-500/15",   text: "text-amber-400",   border: "border-amber-500/20" },
+  emerald: { bg: "bg-emerald-500/15", text: "text-emerald-400", border: "border-emerald-500/20" },
+  cyan:    { bg: "bg-cyan-500/15",    text: "text-cyan-400",    border: "border-cyan-500/20" },
+  blue:    { bg: "bg-blue-500/15",    text: "text-blue-400",    border: "border-blue-500/20" },
+  purple:  { bg: "bg-purple-500/15",  text: "text-purple-400",  border: "border-purple-500/20" },
+  pink:    { bg: "bg-pink-500/15",    text: "text-pink-400",    border: "border-pink-500/20" },
+  slate:   { bg: "bg-slate-500/15",   text: "text-slate-400",   border: "border-slate-500/20" },
+};
 
 export default function ProductCard({ product, rol }) {
   const { t } = useTheme();
@@ -11,39 +21,27 @@ export default function ProductCard({ product, rol }) {
   const [nombre, setNombre] = useState(product.nombre);
   const [categoria, setCategoria] = useState(product.categoria || "");
   const [unidadMedida, setUnidadMedida] = useState(product.unidadMedida || product.sap || "");
-  const [categorias, setCategorias] = useState(CATEGORIAS_DEFAULT);
   const [categoriasDocs, setCategoriasDocs] = useState([]);
-  const [nuevaCategoria, setNuevaCategoria] = useState("");
-  const [agregandoCategoria, setAgregandoCategoria] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
-      const extras = snap.docs.map((d) => ({ id: d.id, nombre: d.data().nombre }));
-      const extrasNombres = extras.map((e) => e.nombre);
-      const todas = [...new Set([...CATEGORIAS_DEFAULT, ...extrasNombres])]
-        .filter(c => c.toLowerCase() !== "otros");
-      todas.push("Otros");
-      setCategorias(todas);
-      setCategoriasDocs(extras);
+      const docs = snap.docs
+        .map((d) => ({ id: d.id, nombre: d.data().nombre, color: d.data().color || "blue" }))
+        .sort((a, b) => a.nombre.localeCompare(b.nombre));
+      setCategoriasDocs(docs);
     });
     return () => unsub();
   }, []);
 
+  const getCatStyle = () => {
+    const found = categoriasDocs.find(c => c.nombre === product.categoria);
+    return COLOR_MAP[found?.color] || COLOR_MAP.blue;
+  };
+
   const handleDelete = async () => {
     if (!confirm("¿Eliminar este producto?")) return;
     await deleteDoc(doc(db, "merma", product.id));
-  };
-
-  const handleAgregarCategoria = async () => {
-    if (!nuevaCategoria.trim()) return;
-    await addDoc(collection(db, "categorias"), { nombre: nuevaCategoria.trim() });
-    setCategoria(nuevaCategoria.trim());
-    setNuevaCategoria("");
-  };
-
-  const handleEliminarCategoria = async (id) => {
-    await deleteDoc(doc(db, "categorias", id));
   };
 
   const handleSave = async () => {
@@ -54,87 +52,45 @@ export default function ProductCard({ product, rol }) {
   };
 
   const esPrivilegiado = rol === "admin" || rol === "unico";
-  const inputClass = `w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm`;
+  const cat = getCatStyle();
+  const inputClass = `w-full bg-[#223649] text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border border-slate-700/50 placeholder:text-slate-500`;
 
+  // ── MODO EDICIÓN ──
   if (editing) {
     return (
-      <div className={`${t.bgCard} rounded-xl p-4 shadow`}>
+      <div className="bg-white dark:bg-[#1a2632] rounded-xl p-5 border border-slate-200 dark:border-slate-800/50 shadow-sm">
+        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Editando</p>
+
         <input
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          className={`${inputClass} mb-2`}
-          placeholder="Nombre"
+          className={`${inputClass} mb-3`}
+          placeholder="Nombre del producto"
         />
 
-        <div className="mb-2">
-          <select
-            value={categoria}
-            onChange={(e) => {
-              if (e.target.value === "__nueva__") {
-                setAgregandoCategoria(true);
-              } else {
-                setCategoria(e.target.value);
-                setAgregandoCategoria(false);
-              }
-            }}
-            className={inputClass}
-          >
-            <option value="">Seleccionar categoría</option>
-            {categorias.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-            <option value="__nueva__">+ Agregar / Eliminar categorías</option>
-          </select>
-
-          {agregandoCategoria && (
-            <div className="mt-2">
-              <div className="flex gap-2 mb-2">
-                <input
-                  type="text"
-                  placeholder="Nueva categoría"
-                  value={nuevaCategoria}
-                  onChange={(e) => setNuevaCategoria(e.target.value)}
-                  className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-                />
-                <button onClick={handleAgregarCategoria} className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg transition">
-                  Agregar
-                </button>
-                <button onClick={() => setAgregandoCategoria(false)} className={`${t.bgInput} ${t.hover} ${t.text} text-sm px-3 py-2 rounded-lg transition`}>
-                  ✕
-                </button>
-              </div>
-              {categoriasDocs.length > 0 && (
-                <div className={`${t.bgInput} rounded-lg p-2`}>
-                  <p className={`${t.textSecondary} text-xs mb-2`}>Categorías personalizadas:</p>
-                  {categoriasDocs.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between py-1">
-                      <span className={`${t.text} text-sm`}>{c.nombre}</span>
-                      <button
-                        onClick={() => handleEliminarCategoria(c.id)}
-                        className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded transition"
-                      >
-                        ✕ Eliminar
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        <select
+          value={categoria}
+          onChange={(e) => setCategoria(e.target.value)}
+          className={`${inputClass} mb-3`}
+        >
+          <option value="">Sin categoría</option>
+          {categoriasDocs.map((c) => (
+            <option key={c.id} value={c.nombre}>{c.nombre}</option>
+          ))}
+        </select>
 
         <input
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
-          className={`${inputClass} mb-3`}
+          className={`${inputClass} mb-4`}
           placeholder="Unidad de medida (opcional)"
         />
 
         <div className="flex gap-2">
-          <button onClick={() => setEditing(false)} className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} text-sm py-2 rounded-lg transition`}>
+          <button onClick={() => setEditing(false)} className="flex-1 bg-[#223649] hover:bg-slate-700 text-slate-300 text-sm py-2.5 rounded-lg transition font-semibold">
             Cancelar
           </button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg transition disabled:opacity-50">
+          <button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-110 text-white text-sm py-2.5 rounded-lg transition font-bold disabled:opacity-50 shadow-lg shadow-blue-500/20">
             {saving ? "Guardando..." : "Guardar"}
           </button>
         </div>
@@ -142,29 +98,43 @@ export default function ProductCard({ product, rol }) {
     );
   }
 
+  // ── MODO VISTA ──
   return (
-    <div className={`${t.bgCard} rounded-xl p-4 shadow ${t.hoverCard} transition`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1">
-          <span className="text-xs text-blue-400 font-semibold uppercase tracking-wide">
-            {product.categoria || "Otros"}
-          </span>
-          <h3 className={`${t.text} font-semibold text-lg mt-1`}>{product.nombre}</h3>
-        </div>
-        <span className={`${t.badge} text-xs font-mono px-3 py-1 rounded-lg whitespace-nowrap`}>
-          #{product.codigo}
+    <div className="bg-white dark:bg-[#1a2632] rounded-xl p-5 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+
+      <div className="flex justify-between items-start mb-4">
+        <span className={`px-3 py-1 rounded-full ${cat.bg} ${cat.text} text-[10px] font-black uppercase tracking-widest border ${cat.border}`}>
+          {product.categoria || "Sin categoría"}
+        </span>
+        <span className="text-slate-400 dark:text-slate-500 text-xs font-mono">
+          ID: {product.codigo}
         </span>
       </div>
+
+      <h3 className="text-slate-900 dark:text-white font-bold text-base leading-snug mb-1 h-12 overflow-hidden group-hover:text-blue-400 transition-colors">
+        {product.nombre}
+      </h3>
+
       {(product.unidadMedida || product.sap) && (
-        <p className={`${t.textSecondary} text-sm mt-2`}>Unidad: {product.unidadMedida || product.sap}</p>
+        <p className="text-slate-400 text-xs mb-2">
+          Unidad: {product.unidadMedida || product.sap}
+        </p>
       )}
+
       {esPrivilegiado && (
-        <div className="flex gap-2 mt-3">
-          <button onClick={() => setEditing(true)} className={`flex-1 ${t.bgInput} ${t.hover} ${t.text} text-xs py-2 rounded-lg transition`}>
-            ✏️ Editar
+        <div className="flex gap-2 mt-4">
+          <button
+            onClick={() => setEditing(true)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-100 dark:bg-[#223649] text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+            Editar
           </button>
-          <button onClick={handleDelete} className="flex-1 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs py-2 rounded-lg transition">
-            🗑️ Eliminar
+          <button
+            onClick={handleDelete}
+            className="flex items-center justify-center p-2 rounded-lg bg-slate-100 dark:bg-[#223649] text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
           </button>
         </div>
       )}
