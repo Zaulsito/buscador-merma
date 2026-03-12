@@ -100,10 +100,11 @@ export default function DashboardPage({ user, rol }) {
   const todosModulos = (rol === "admin" || rol === "unico") ? [...modulos, moduloAdmin] : modulos;
 
   return (
-    <div className={`min-h-screen ${t.bg} flex flex-col`}>
+    // ✅ h-screen + overflow-hidden en el root — el scroll ocurre solo en main
+    <div className={`h-screen overflow-hidden ${t.bg} flex flex-col`}>
 
       {/* ── TOP NAV mobile ── */}
-      <header className={`sticky top-0 z-50 md:hidden w-full border-b ${t.border} ${t.bgNav} backdrop-blur-md px-4 py-3 flex items-center justify-between`}>
+      <header className={`md:hidden w-full border-b ${t.border} ${t.bgNav} px-4 py-3 flex items-center justify-between flex-shrink-0`}>
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
             <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>monitoring</span>
@@ -121,17 +122,21 @@ export default function DashboardPage({ user, rol }) {
         </div>
       </header>
 
+      {/* ── LAYOUT desktop: sidebar + main ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── SIDEBAR desktop ── */}
-        <aside className={`hidden md:flex w-64 flex-shrink-0 ${t.bgCard} border-r ${t.border} flex-col h-screen sticky top-0`}>
-          <div className="p-6 flex items-center gap-3">
+        {/* ── SIDEBAR desktop ──
+            ✅ h-full en lugar de h-screen — ocupa exactamente lo que queda debajo del topnav
+        */}
+        <aside className={`hidden md:flex w-64 flex-shrink-0 ${t.bgCard} border-r ${t.border} flex-col h-full`}>
+          <div className="p-6 flex items-center gap-3 flex-shrink-0">
             <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
               <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>monitoring</span>
             </div>
             <h1 className={`${t.text} text-xl font-black tracking-tight uppercase`}>R.info</h1>
           </div>
 
+          {/* Nav con scroll propio si hay muchos items */}
           <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
             <button
               onClick={() => navegarA(null)}
@@ -153,7 +158,8 @@ export default function DashboardPage({ user, rol }) {
             ))}
           </nav>
 
-          <div className={`p-4 border-t ${t.border}`}>
+          {/* User card — siempre al fondo */}
+          <div className={`p-4 border-t ${t.border} flex-shrink-0`}>
             <button onClick={() => navegarA("perfil")} className={`w-full flex items-center gap-3 p-2 ${t.bgInput} rounded-xl hover:ring-2 hover:ring-blue-500/30 transition-all`}>
               <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
                 {iniciales}
@@ -166,11 +172,11 @@ export default function DashboardPage({ user, rol }) {
           </div>
         </aside>
 
-        {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 overflow-y-auto pb-24 md:pb-0">
+        {/* ── MAIN CONTENT ── scroll solo aquí ── */}
+        <main className="flex-1 overflow-y-auto">
 
           {/* Top bar desktop */}
-          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} backdrop-blur-md items-center justify-between px-8 sticky top-0 z-10`}>
+          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} items-center justify-between px-8 sticky top-0 z-10`}>
             <div className="flex-1 max-w-md relative">
               <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
               <input className={`w-full pl-10 pr-4 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`} placeholder="Buscar módulos o reportes..." />
@@ -191,7 +197,7 @@ export default function DashboardPage({ user, rol }) {
             </div>
           </header>
 
-          <div className="p-4 md:p-8 space-y-8">
+          <div className="p-4 md:p-8 space-y-8 pb-24 md:pb-8">
 
             {/* Hero */}
             <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 p-8 md:p-10 text-white shadow-xl shadow-blue-500/20">
@@ -268,9 +274,8 @@ export default function DashboardPage({ user, rol }) {
             </section>
 
             {/* Actividad Reciente + Próximos Eventos */}
-            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-4">
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-              {/* Actividad Reciente */}
               <div className={`lg:col-span-2 ${t.bgCard} border ${t.border} rounded-2xl p-6`}>
                 <div className="flex items-center justify-between mb-5">
                   <h4 className={`${t.text} font-bold flex items-center gap-2`}>
@@ -297,7 +302,6 @@ export default function DashboardPage({ user, rol }) {
                 </div>
               </div>
 
-              {/* Próximos Eventos */}
               <div className={`${t.bgCard} border ${t.border} rounded-2xl p-6`}>
                 <h4 className={`${t.text} font-bold mb-5 flex items-center gap-2`}>
                   <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>event</span>
@@ -305,7 +309,7 @@ export default function DashboardPage({ user, rol }) {
                 </h4>
                 <div className="space-y-5">
                   {proximosEventos.map((e, i) => (
-                    <div key={i} className={`border-l-4 pl-4 ${e.activo ? "border-blue-500" : `border-slate-600`}`}>
+                    <div key={i} className={`border-l-4 pl-4 ${e.activo ? "border-blue-500" : "border-slate-600"}`}>
                       <p className={`text-xs font-bold uppercase ${e.activo ? "text-blue-400" : t.textSecondary}`}>{e.fecha}</p>
                       <p className={`${t.text} text-sm font-bold mt-1`}>{e.titulo}</p>
                       <p className={`${t.textSecondary} text-xs mt-0.5`}>{e.lugar}</p>
@@ -319,7 +323,6 @@ export default function DashboardPage({ user, rol }) {
 
             </section>
 
-            {/* Footer integrado sin fondo separado */}
             <p className={`${t.textSecondary} text-xs text-center py-4`}>
               © 2026 R.info · Sistema de Información Operativa. Todos los derechos reservados.
             </p>
