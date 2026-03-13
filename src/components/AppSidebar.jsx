@@ -8,8 +8,7 @@ const navItems = [
   { id: "planificador", label: "Planificador",        icon: "account_tree"   },
 ];
 
-const adminItem  = { id: "usuarios",  label: "Gestión",        icon: "manage_accounts" };
-const configItem = { id: "perfil",    label: "Configuración",  icon: "settings"        };
+const adminItem = { id: "usuarios", label: "Gestionamiento", icon: "manage_accounts" };
 
 export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
   const { t } = useTheme();
@@ -20,7 +19,6 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
   const items = [
     ...navItems,
     ...(rol === "admin" || rol === "unico" ? [adminItem] : []),
-    configItem,
   ];
 
   return (
@@ -31,8 +29,8 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
         className="p-6 flex items-center gap-3 cursor-pointer flex-shrink-0"
         onClick={() => onNavegar(null)}
       >
-        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <img src="/icon-192.png" className="w-6 h-6 rounded" alt="logo" />
+        <div className="w-10 h-10 flex items-center justify-center">
+          <img src="/icon-192.png" className="w-10 h-10 rounded-xl" alt="logo" />
         </div>
         <div>
           <h1 className={`${t.text} font-black text-base tracking-tight italic leading-none`}>R.info</h1>
@@ -54,7 +52,7 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
           }`}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
-          Dashboard
+          Inicio
         </button>
 
         {items.map(item => {

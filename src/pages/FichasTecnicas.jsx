@@ -6,21 +6,29 @@ import FichaModal from "../components/FichaModal";
 import FichaDetalle from "./FichaDetalle";
 import { useTheme } from "../context/ThemeContext";
 import { exportarFichaExcel } from "../utils/fichaExcel";
+import AppSidebar from "../components/AppSidebar";
 
 const POR_PAGINA = 25;
 
-// Badge de estado
+// Badge de estado por verificación/costeado
 function EstadoBadge({ ficha }) {
-  const estados = {
-    activa:    { label: "Activa",    dot: "bg-emerald-400", cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-    pendiente: { label: "Pendiente", dot: "bg-amber-400",   cls: "bg-amber-500/20 text-amber-400 border-amber-500/30"       },
-    inactiva:  { label: "Inactiva",  dot: "bg-red-400",     cls: "bg-red-500/20 text-red-400 border-red-500/30"             },
-  };
-  const e = estados[ficha.estado] || estados.pendiente;
+  if (ficha.verificada) {
+    return (
+      <span className="text-[10px] font-black bg-emerald-500/20 backdrop-blur-md text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 tracking-tight uppercase">
+        Verificada
+      </span>
+    );
+  }
+  if (ficha.costeada) {
+    return (
+      <span className="text-[10px] font-black bg-blue-500/20 backdrop-blur-md text-blue-400 px-2 py-1 rounded border border-blue-500/30 tracking-tight uppercase">
+        Costeada
+      </span>
+    );
+  }
   return (
-    <span className={`flex items-center gap-1 text-[10px] font-black backdrop-blur-md px-2 py-1 rounded border tracking-tight uppercase ${e.cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${e.dot}`} />
-      {e.label}
+    <span className="text-[10px] font-black bg-amber-500/20 backdrop-blur-md text-amber-400 px-2 py-1 rounded border border-amber-500/30 tracking-tight uppercase">
+      Pendiente
     </span>
   );
 }
@@ -183,7 +191,7 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina, t }) {
   );
 }
 
-export default function FichasTecnicas({ user, rol, onBack }) {
+export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
   const [fichas, setFichas] = useState([]);
   const [secciones, setSecciones] = useState(["Todas"]);
   const [seccionActiva, setSeccionActiva] = useState("Todas");
@@ -284,6 +292,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
         user={user}
         rol={rol}
         onBack={() => setFichaDetalle(null)}
+        onNavegar={onNavegar}
         onEditar={() => {
           setFichaEditar(fichaDetalle);
           setFichaDetalle(null);
@@ -293,22 +302,29 @@ export default function FichasTecnicas({ user, rol, onBack }) {
     );
 
   return (
-    <div className={`min-h-screen ${t.bg}`}>
-      <Navbar user={user} />
+    <div className={`${t.bg} flex h-screen overflow-hidden`}>
 
-      <div className="w-full px-6 lg:px-10 py-8">
+      {/* Sidebar — solo desktop */}
+      <div className="hidden md:block flex-shrink-0">
+        <AppSidebar user={user} rol={rol} moduloActivo="fichas" onNavegar={onNavegar} />
+      </div>
 
-        {/* Botón volver */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm font-medium mb-8 transition-colors group"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver
+      {/* Columna principal */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <div className="hidden md:block flex-shrink-0">
+          <Navbar user={user} />
+        </div>
+        <main className="flex-1 overflow-y-auto">
+    <div className={`min-h-full ${t.bg}`}>
+
+      {/* Header móvil */}
+      <div className="flex items-center gap-3 p-4 md:hidden">
+        <button onClick={onBack} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
         </button>
+      </div>
 
+      <div className="w-full px-6 lg:px-10 py-8 pt-0 md:pt-8">
         {/* Encabezado */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
@@ -474,6 +490,9 @@ export default function FichasTecnicas({ user, rol, onBack }) {
           onClose={() => setShowModal(false)}
         />
       )}
+    </div>{/* /min-h-full */}
+        </main>
+      </div>{/* /columna principal */}
     </div>
   );
 }

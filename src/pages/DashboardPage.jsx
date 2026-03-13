@@ -5,6 +5,7 @@ import GestionUsuarios from "./GestionUsuarios";
 import PerfilPage from "./PerfilPage";
 import FichasTecnicas from "./FichasTecnicas";
 import Planificador from "./Planificador";
+import AppSidebar from "../components/AppSidebar";
 
 const modulos = [
   {
@@ -89,10 +90,10 @@ export default function DashboardPage({ user, rol }) {
     }
   };
 
-  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} />;
-  if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
@@ -125,52 +126,8 @@ export default function DashboardPage({ user, rol }) {
       {/* ── LAYOUT desktop: sidebar + main ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── SIDEBAR desktop ──
-            ✅ h-full en lugar de h-screen — ocupa exactamente lo que queda debajo del topnav
-        */}
-        <aside className={`hidden md:flex w-64 flex-shrink-0 ${t.bgCard} border-r ${t.border} flex-col h-full`}>
-          <div className="p-6 flex items-center gap-3 flex-shrink-0">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-              <span className="material-symbols-outlined text-white" style={{ fontSize: 22 }}>monitoring</span>
-            </div>
-            <h1 className={`${t.text} text-xl font-black tracking-tight uppercase`}>R.info</h1>
-          </div>
-
-          {/* Nav con scroll propio si hay muchos items */}
-          <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
-            <button
-              onClick={() => navegarA(null)}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-500/20 text-blue-400 font-medium text-sm"
-              style={{ borderRight: "3px solid #258cf4" }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
-              Home
-            </button>
-            {todosModulos.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => navegarA(m.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${t.textSecondary} ${t.hover} transition-all font-medium text-sm text-left`}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{m.icon}</span>
-                {m.nombre}
-              </button>
-            ))}
-          </nav>
-
-          {/* User card — siempre al fondo */}
-          <div className={`p-4 border-t ${t.border} flex-shrink-0`}>
-            <button onClick={() => navegarA("perfil")} className={`w-full flex items-center gap-3 p-2 ${t.bgInput} rounded-xl hover:ring-2 hover:ring-blue-500/30 transition-all`}>
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-sm flex-shrink-0">
-                {iniciales}
-              </div>
-              <div className="overflow-hidden text-left">
-                <p className={`${t.text} text-sm font-bold truncate`}>{user?.displayName || "Usuario"}</p>
-                <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
-              </div>
-            </button>
-          </div>
-        </aside>
+        {/* ── SIDEBAR desktop ── */}
+        <AppSidebar user={user} rol={rol} moduloActivo={null} onNavegar={navegarA} />
 
         {/* ── MAIN CONTENT ── scroll solo aquí ── */}
         <main className="flex-1 overflow-y-auto">
