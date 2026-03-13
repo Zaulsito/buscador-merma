@@ -33,10 +33,10 @@ function EstadoBadge({ ficha }) {
 }
 
 // Tarjeta individual de ficha
-function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
+function FichaCard({ f, rol, onDetalle, onEditar, onEliminar, t }) {
   return (
     <div
-      className="bg-[var(--card)] rounded-2xl border border-[var(--border)] hover:border-blue-500/50 transition-all duration-200 group flex flex-col h-full overflow-hidden cursor-pointer shadow-sm hover:shadow-lg hover:shadow-blue-500/5"
+      className={`${t.bgCard} rounded-2xl border ${t.border} hover:border-blue-400/60 transition-all duration-200 group flex flex-col h-full overflow-hidden cursor-pointer shadow-sm hover:shadow-md`}
       onClick={() => onDetalle(f)}
     >
       {/* Imagen */}
@@ -48,8 +48,8 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-            <span className="text-5xl opacity-30">📋</span>
+          <div className={`w-full h-full bg-gradient-to-br ${t.cardImage} flex items-center justify-center`}>
+            <span className={`text-5xl ${t.isDark ? "opacity-30" : "opacity-20"}`}>📋</span>
           </div>
         )}
         {/* Icono ficha */}
@@ -78,7 +78,7 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
           <p className="text-[10px] font-bold text-blue-400 mb-1 tracking-wider uppercase">
             {f.seccion}{f.subcategoria ? ` › ${f.subcategoria}` : ""}
           </p>
-          <h3 className="text-sm font-black text-white leading-tight mb-2 group-hover:text-blue-400 transition-colors uppercase tracking-tight line-clamp-2">
+          <h3 className={`text-sm font-black leading-tight mb-2 group-hover:text-blue-500 transition-colors uppercase tracking-tight line-clamp-2 ${t.text}`}>
             {f.nombre}
           </h3>
           <div className="flex items-center gap-1.5 text-slate-500 text-xs">
@@ -99,7 +99,7 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
           >
             <button
               onClick={() => onEditar(f)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700 transition-colors"
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold transition-colors ${t.cardBtn}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -108,7 +108,7 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
             </button>
             <button
               onClick={() => onEliminar(f.id)}
-              className="flex items-center justify-center p-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+              className={`flex items-center justify-center p-2 rounded-lg transition-all ${t.cardBtnDelete}`}
               title="Eliminar ficha"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -123,13 +123,13 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar }) {
 }
 
 // Tarjeta "Crear nueva receta"
-function NuevaFichaCard({ onNueva }) {
+function NuevaFichaCard({ onNueva, t }) {
   return (
     <div
       onClick={onNueva}
-      className="border-2 border-dashed border-[var(--border)] rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-blue-500/5 hover:border-blue-500/50 transition-all cursor-pointer group min-h-[300px]"
+      className={`border-2 border-dashed ${t.border} rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-blue-500/5 hover:border-blue-400/50 transition-all cursor-pointer group min-h-[300px]`}
     >
-      <div className="size-14 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-blue-500/20 group-hover:text-blue-400 mb-4 transition-all">
+      <div className={`size-14 rounded-full ${t.bgInput} flex items-center justify-center ${t.textSecondary} group-hover:bg-blue-500/20 group-hover:text-blue-500 mb-4 transition-all`}>
         <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
         </svg>
@@ -142,7 +142,7 @@ function NuevaFichaCard({ onNueva }) {
 }
 
 // Paginación
-function Paginacion({ pagina, totalPaginas, cambiarPagina }) {
+function Paginacion({ pagina, totalPaginas, cambiarPagina, t }) {
   if (totalPaginas <= 1) return null;
 
   const paginas = Array.from({ length: totalPaginas }, (_, i) => i + 1)
@@ -153,7 +153,7 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina }) {
       <button
         onClick={() => cambiarPagina(pagina - 1)}
         disabled={pagina === 1}
-        className="size-10 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-slate-400 hover:text-blue-400 disabled:opacity-40 transition-colors"
+        className={`size-10 rounded-lg ${t.bgCard} border ${t.border} flex items-center justify-center ${t.textSecondary} hover:text-blue-500 disabled:opacity-40 transition-colors`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -169,7 +169,7 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina }) {
               className={`size-10 rounded-lg text-sm font-bold transition-colors ${
                 n === pagina
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                  : "bg-[var(--card)] border border-[var(--border)] text-slate-400 hover:text-blue-400"
+                  : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-500`
               }`}
             >
               {n}
@@ -180,7 +180,7 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina }) {
       <button
         onClick={() => cambiarPagina(pagina + 1)}
         disabled={pagina === totalPaginas}
-        className="size-10 rounded-lg bg-[var(--card)] border border-[var(--border)] flex items-center justify-center text-slate-400 hover:text-blue-400 disabled:opacity-40 transition-colors"
+        className={`size-10 rounded-lg ${t.bgCard} border ${t.border} flex items-center justify-center ${t.textSecondary} hover:text-blue-500 disabled:opacity-40 transition-colors`}
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -350,7 +350,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full bg-[var(--card)] border border-[var(--border)] rounded-xl pl-12 pr-4 py-3.5 text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-500 outline-none text-sm"
+              className={`w-full ${t.bgInput} border ${t.border} rounded-xl pl-12 pr-4 py-3.5 ${t.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-400 outline-none text-sm`}
               placeholder="Buscar por nombre de receta, categoría o código SAP..."
             />
           </div>
@@ -362,7 +362,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
                 <select
                   value={subcategoriaFiltro}
                   onChange={(e) => setSubcategoriaFiltro(e.target.value)}
-                  className="bg-[var(--card)] border border-[var(--border)] text-slate-300 px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className={`${t.bgInput} border ${t.border} ${t.text} px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
                 >
                   <option value="">Todas las subcategorías</option>
                   {subcategorias.map((s) => (
@@ -394,7 +394,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
               className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
                 seccionActiva === s
                   ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                  : "bg-[var(--card)] border border-[var(--border)] text-slate-300 hover:border-blue-500/50 hover:text-blue-400"
+                  : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:border-blue-400 hover:text-blue-500`
               }`}
             >
               {s}
@@ -428,13 +428,14 @@ export default function FichasTecnicas({ user, rol, onBack }) {
                   key={f.id}
                   f={f}
                   rol={rol}
+                  t={t}
                   onDetalle={setFichaDetalle}
                   onEditar={abrirEditar}
                   onEliminar={handleEliminar}
                 />
               ))}
               {(rol === "admin" || rol === "unico") && pagina === totalPaginas && (
-                <NuevaFichaCard onNueva={abrirNueva} />
+                <NuevaFichaCard onNueva={abrirNueva} t={t} />
               )}
             </div>
 
@@ -442,6 +443,7 @@ export default function FichasTecnicas({ user, rol, onBack }) {
               pagina={pagina}
               totalPaginas={totalPaginas}
               cambiarPagina={cambiarPagina}
+              t={t}
             />
           </>
         )}

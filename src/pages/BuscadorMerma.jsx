@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import ProductCard from "../components/ProductCard";
@@ -20,7 +20,31 @@ export default function BuscadorMerma({ user, rol, onBack }) {
   const [showNuevaCat, setShowNuevaCat] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pagina, setPagina] = useState(1);
+  const [fabVisible, setFabVisible] = useState(true);
+  const fabTimerRef = useRef(null);
+  const lastScrollY = useRef(0);
   const { t } = useTheme();
+
+  // FAB: aparece al hacer scroll down, desaparece tras 3s de inactividad
+  const resetFabTimer = useCallback(() => {
+    setFabVisible(true);
+    clearTimeout(fabTimerRef.current);
+    fabTimerRef.current = setTimeout(() => setFabVisible(false), 3000);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY > lastScrollY.current) resetFabTimer();
+      lastScrollY.current = currentY;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    fabTimerRef.current = setTimeout(() => setFabVisible(false), 3000);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(fabTimerRef.current);
+    };
+  }, [resetFabTimer]);
 
   useEffect(() => {
     const q = query(collection(db, "merma"), orderBy("fechaCreacion", "desc"));
@@ -133,8 +157,6 @@ export default function BuscadorMerma({ user, rol, onBack }) {
 
         {/* Chips de categoría */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 no-scrollbar items-center">
-
-          {/* Todas */}
           <button
             onClick={() => setCatActiva("")}
             className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all shrink-0 ${
@@ -145,8 +167,6 @@ export default function BuscadorMerma({ user, rol, onBack }) {
           >
             Todas
           </button>
-
-          {/* Chips dinámicos */}
           {categoriasDocs.map((cat) => (
             <button
               key={cat.id}
@@ -160,8 +180,6 @@ export default function BuscadorMerma({ user, rol, onBack }) {
               {cat.nombre}
             </button>
           ))}
-
-          {/* Botón "+" nueva categoría */}
           {(rol === "admin" || rol === "unico") && (
             <button
               onClick={() => setShowNuevaCat(true)}
@@ -231,6 +249,25 @@ export default function BuscadorMerma({ user, rol, onBack }) {
           </>
         )}
       </section>
+
+      {/* ── FAB móvil ── */}
+      {(rol === "admin" || rol === "unico") && (
+        <button
+          onClick={() => setShowModal(true)}
+          onTouchStart={resetFabTimer}
+          className={`
+            md:hidden fixed right-5 z-50
+            w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/40
+            flex items-center justify-center
+            transition-all duration-300 ease-in-out
+            ${fabVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}
+          `}
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+          aria-label="Agregar producto"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 28 }}>add</span>
+        </button>
+      )}
 
       {showModal && <AddProductModal onClose={() => setShowModal(false)} onAdded={() => setShowModal(false)} />}
       {showImportExport && <ImportExportModal onClose={() => setShowImportExport(false)} />}
