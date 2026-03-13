@@ -176,7 +176,7 @@ export default function DashboardPage({ user, rol }) {
         <main className="flex-1 overflow-y-auto">
 
           {/* Top bar desktop */}
-          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} items-center justify-between px-8 sticky top-0 z-10`}>
+          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} items-center justify-between px-8 sticky top-0 z-20`} style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--bg-nav, #0f1923)" }}>
             <div className="flex-1 max-w-md relative">
               <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
               <input className={`w-full pl-10 pr-4 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`} placeholder="Buscar módulos o reportes..." />
@@ -221,25 +221,25 @@ export default function DashboardPage({ user, rol }) {
                 </h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 hover:border-blue-500/50 transition-colors`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg">
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg w-fit">
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>map</span>
                     </div>
-                    <span className="text-orange-500 text-xs font-bold px-2 py-1 bg-orange-500/10 rounded-full">Próximamente</span>
+                    <span className="text-orange-500 text-[10px] font-bold px-2 py-0.5 bg-orange-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
                   <p className={`${t.textSecondary} text-xs font-medium`}>Planograma</p>
-                  <p className={`${t.text} text-2xl font-black mt-1`}>— <span className={`${t.textSecondary} text-sm font-normal`}>activos</span></p>
+                  <p className={`${t.text} text-xl font-black mt-1`}>— <span className={`${t.textSecondary} text-xs font-normal`}>activos</span></p>
                 </div>
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 hover:border-blue-500/50 transition-colors`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
+                  <div className="flex flex-col gap-2 mb-3">
+                    <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg w-fit">
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>group</span>
                     </div>
-                    <span className="text-emerald-500 text-xs font-bold px-2 py-1 bg-emerald-500/10 rounded-full">Próximamente</span>
+                    <span className="text-emerald-500 text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
                   <p className={`${t.textSecondary} text-xs font-medium`}>Usuarios</p>
-                  <p className={`${t.text} text-2xl font-black mt-1`}>—</p>
+                  <p className={`${t.text} text-xl font-black mt-1`}>—</p>
                 </div>
               </div>
             </section>
