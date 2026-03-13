@@ -1,5 +1,6 @@
 import { useTheme } from "../context/ThemeContext";
 import Navbar from "../components/Navbar";
+import AppSidebar from "../components/AppSidebar";
 import { useState } from "react";
 
 // Sección con acento azul lateral
@@ -9,7 +10,11 @@ function Seccion({ titulo, icon, children, t }) {
       <div className="flex items-center gap-3 mb-5">
         <div className="h-7 w-1 bg-blue-500 rounded-full flex-shrink-0" />
         <h3 className={`${t.text} text-lg font-bold flex items-center gap-2`}>
-          {icon && <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>{icon}</span>}
+          {icon && (
+            <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>
+              {icon}
+            </span>
+          )}
           {titulo}
         </h3>
       </div>
@@ -40,46 +45,22 @@ function TablaDetalle({ headers, rows, t }) {
   );
 }
 
-export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
+export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNavegar }) {
   const { t } = useTheme();
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
 
-  // Badge estado
-  const estadoBadge = ficha.verificada
-    ? { label: "Verificada", cls: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30" }
-    : ficha.costeada
-    ? { label: "Costeada", cls: "bg-blue-500/20 text-blue-400 border border-blue-500/30" }
-    : { label: "Pendiente", cls: "bg-amber-500/20 text-amber-400 border border-amber-500/30" };
+  const estadoBadge =
+    ficha.estado === "inactiva"
+      ? { label: "Inactiva",  cls: "bg-red-500/20 text-red-400 border border-red-500/30",             dot: "bg-red-400"     }
+      : ficha.estado === "pendiente"
+      ? { label: "Pendiente", cls: "bg-amber-500/20 text-amber-400 border border-amber-500/30",       dot: "bg-amber-400"   }
+      : { label: "Activa",    cls: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30", dot: "bg-emerald-400" };
 
-  return (
-    <div className={`min-h-screen ${t.bg}`}>
-      {/* Navbar desktop */}
-      <div className="hidden md:block">
-        <Navbar user={user} />
-      </div>
-
-      {/* Header móvil sticky */}
-      <header className={`md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 ${t.bgNav} border-b ${t.border}`}
-        style={{ backdropFilter: "blur(12px)" }}>
-        <button
-          onClick={onBack}
-          className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text} transition`}
-        >
-          <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <h2 className={`${t.text} text-base font-bold flex-1 text-center truncate px-2`}>Ficha Técnica</h2>
-        {(rol === "admin" || rol === "unico") && (
-          <button
-            onClick={onEditar}
-            className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text} transition`}
-          >
-            <span className="material-symbols-outlined">edit</span>
-          </button>
-        )}
-      </header>
-
+  // Contenido principal (compartido entre móvil y desktop)
+  const Contenido = () => (
+    <>
       {/* Hero image */}
-      <div className="relative w-full h-72 md:h-96 overflow-hidden">
+      <div className="relative w-full h-72 md:h-96 overflow-hidden flex-shrink-0">
         {ficha.foto ? (
           <>
             <img
@@ -95,14 +76,13 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
             <span className="text-7xl opacity-20">📋</span>
           </div>
         )}
-
-        {/* Overlay info */}
         <div className="absolute bottom-0 left-0 w-full p-6">
           <div className="flex flex-wrap gap-2 mb-3">
             <span className="px-3 py-1 bg-blue-600 text-white text-[10px] font-black rounded-full uppercase tracking-wider">
               {ficha.seccion}{ficha.subcategoria ? ` › ${ficha.subcategoria}` : ""}
             </span>
-            <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider ${estadoBadge.cls}`}>
+            <span className={`px-3 py-1 text-[10px] font-black rounded-full uppercase tracking-wider flex items-center gap-1.5 ${estadoBadge.cls}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${estadoBadge.dot}`} />
               {estadoBadge.label}
             </span>
             {ficha.esAlergeno && (
@@ -123,16 +103,18 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Body */}
       <div className="max-w-5xl mx-auto w-full px-4 md:px-8 py-8">
 
         {/* Botones desktop */}
         <div className="hidden md:flex items-center justify-between mb-8">
           <button
             onClick={onBack}
-            className={`flex items-center gap-2 ${t.textSecondary} hover:${t.text} text-sm font-medium transition-colors group`}
+            className={`flex items-center gap-2 ${t.textSecondary} hover:text-blue-400 text-sm font-medium transition-colors group`}
           >
-            <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform" style={{ fontSize: 18 }}>arrow_back</span>
+            <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform" style={{ fontSize: 18 }}>
+              arrow_back
+            </span>
             Volver a Fichas
           </button>
           {(rol === "admin" || rol === "unico") && (
@@ -147,8 +129,8 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
         </div>
 
         {/* Stats rápidos */}
-        {(ficha.porciones || ficha.tiempoPreparacion || ficha.tempCoccion) && (
-          <div className={`grid grid-cols-2 md:grid-cols-4 gap-3 mb-8`}>
+        {(ficha.porciones || ficha.tiempoPreparacion || ficha.tempCoccion || ficha.vidaUtilGrado) && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             {ficha.porciones && (
               <div className={`${t.bgCard} border ${t.border} p-4 rounded-xl shadow-sm`}>
                 <p className={`${t.textSecondary} text-xs mb-1`}>Porciones</p>
@@ -176,7 +158,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
           </div>
         )}
 
-        {/* Alergeno detalle */}
+        {/* Alérgeno */}
         {ficha.esAlergeno && ficha.descripcionAlergeno && (
           <div className="mb-8 bg-red-500/10 border border-red-500/30 rounded-xl px-5 py-4 flex items-start gap-3">
             <span className="material-symbols-outlined text-red-400 mt-0.5" style={{ fontSize: 20 }}>warning</span>
@@ -195,7 +177,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
               headers={["Cod. SAP", "Descripción", "N° Envase", "Peso (kg)", "Cod. Barra"]}
               rows={ficha.formatosVenta.map((f, i) => (
                 <tr key={i} className={`${t.hover} transition-colors`}>
-                  <td className={`px-4 py-3 font-mono text-xs text-blue-400`}>{f.codSap}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-blue-400">{f.codSap}</td>
                   <td className={`px-4 py-3 font-medium ${t.text}`}>{f.descripcion}</td>
                   <td className={`px-4 py-3 ${t.textSecondary}`}>{f.numEnvase}</td>
                   <td className={`px-4 py-3 ${t.textSecondary}`}>{f.pesoProducto}</td>
@@ -223,7 +205,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
                   <tr key={i} className={`${t.hover} transition-colors`}>
                     <td className={`px-4 py-3 font-medium ${t.text}`}>{mp.nombre}</td>
                     <td className={`px-4 py-3 ${t.textSecondary}`}>{mp.cantidadBruta}</td>
-                    <td className={`px-4 py-3 text-blue-400 font-bold`}>{mp.cantidadNeta}</td>
+                    <td className="px-4 py-3 text-blue-400 font-bold">{mp.cantidadNeta}</td>
                     <td className={`px-4 py-3 ${t.textSecondary}`}>{mp.unidad}</td>
                   </tr>
                 )
@@ -242,18 +224,16 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
                 <tr key={i} className={`${t.hover} transition-colors`}>
                   <td className={`px-4 py-3 font-medium ${t.text}`}>{e.nombre}</td>
                   <td className={`px-4 py-3 ${t.textSecondary}`}>{e.cantidadBruta}</td>
-                  <td className={`px-4 py-3 text-blue-400 font-bold`}>{e.cantidadNeta}</td>
+                  <td className="px-4 py-3 text-blue-400 font-bold">{e.cantidadNeta}</td>
                 </tr>
               ))}
             />
           </Seccion>
         )}
 
-        {/* Proceso + Datos de Control (columnas en desktop) */}
+        {/* Proceso + Datos de Control */}
         {(ficha.descripcionProceso || ficha.tempCoccion || ficha.tempEnfriado || ficha.tempAlmacenamiento) && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-
-            {/* Descripción del Proceso */}
             {ficha.descripcionProceso && (
               <section>
                 <div className="flex items-center gap-3 mb-5">
@@ -269,8 +249,6 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
                 />
               </section>
             )}
-
-            {/* Datos de Control */}
             {(ficha.tempCoccion || ficha.tempEnfriado || ficha.tempAlmacenamiento || ficha.vidaUtilVacio || ficha.vidaUtilAnaquel) && (
               <section>
                 <div className="flex items-center gap-3 mb-5">
@@ -359,7 +337,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
               rows={ficha.envases.map((e, i) => (
                 <tr key={i} className={`${t.hover} transition-colors`}>
                   <td className={`px-4 py-3 font-medium ${t.text}`}>{e.descripcion}</td>
-                  <td className={`px-4 py-3 font-mono text-xs text-blue-400`}>{e.codigoSap}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-blue-400">{e.codigoSap}</td>
                   <td className={`px-4 py-3 ${t.textSecondary}`}>{e.cantidad}</td>
                   <td className={`px-4 py-3 ${t.textSecondary}`}>{e.pesoEnvase}</td>
                 </tr>
@@ -368,10 +346,9 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
           </Seccion>
         )}
 
-        {/* Fotos del proceso */}
+        {/* Fotos */}
         {ficha.fotosExtra?.some(f => f) && (
           <Seccion titulo="Evidencia Visual" icon="photo_library" t={t}>
-            {/* Scroll horizontal en móvil, grid en desktop */}
             <div className="flex md:grid md:grid-cols-3 gap-3 overflow-x-auto pb-2 md:overflow-visible md:pb-0">
               {ficha.fotosExtra.filter(f => f).map((url, i) => (
                 <div
@@ -406,7 +383,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
           </Seccion>
         )}
 
-        {/* Pie — Preparado / Aprobado */}
+        {/* Pie */}
         <div className={`${t.bgCard} border ${t.border} rounded-2xl overflow-hidden shadow-sm mb-8`}>
           <div className="grid grid-cols-1 md:grid-cols-2">
             <div className={`p-5 md:border-r ${t.border}`}>
@@ -447,14 +424,69 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar }) {
           )}
         </div>
       </div>
+    </>
+  );
 
-      {/* Foto ampliada */}
+  return (
+    <div className={`${t.bg} flex h-screen overflow-hidden`}>
+
+      {/* Sidebar — solo desktop */}
+      <div className="hidden md:block flex-shrink-0">
+        <AppSidebar
+          user={user}
+          rol={rol}
+          moduloActivo="fichaDetalle"
+          onNavegar={onNavegar}
+        />
+      </div>
+
+      {/* Columna principal */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+
+        {/* Header móvil sticky */}
+        <header
+          className={`md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 ${t.bgNav} border-b ${t.border}`}
+          style={{ backdropFilter: "blur(12px)" }}
+        >
+          <button
+            onClick={onBack}
+            className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text} transition`}
+          >
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h2 className={`${t.text} text-base font-bold flex-1 text-center truncate px-2`}>Ficha Técnica</h2>
+          {(rol === "admin" || rol === "unico") && (
+            <button
+              onClick={onEditar}
+              className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text} transition`}
+            >
+              <span className="material-symbols-outlined">edit</span>
+            </button>
+          )}
+        </header>
+
+        {/* Navbar desktop */}
+        <div className="hidden md:block flex-shrink-0">
+          <Navbar user={user} rol={rol} />
+        </div>
+
+        {/* Área scrolleable */}
+        <main className="flex-1 overflow-y-auto">
+          <Contenido />
+        </main>
+      </div>
+
+      {/* Modal foto ampliada */}
       {fotoAmpliada && (
         <div
           className="fixed inset-0 bg-black/95 flex items-center justify-center z-50 cursor-zoom-out p-4"
           onClick={() => setFotoAmpliada(null)}
         >
-          <img src={fotoAmpliada} alt="Foto ampliada" className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl" />
+          <img
+            src={fotoAmpliada}
+            alt="Foto ampliada"
+            className="max-w-full max-h-full rounded-2xl object-contain shadow-2xl"
+          />
           <button
             onClick={() => setFotoAmpliada(null)}
             className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition"

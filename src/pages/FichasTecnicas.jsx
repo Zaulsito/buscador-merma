@@ -9,25 +9,18 @@ import { exportarFichaExcel } from "../utils/fichaExcel";
 
 const POR_PAGINA = 25;
 
-// Badge de estado por verificación/costeado
+// Badge de estado
 function EstadoBadge({ ficha }) {
-  if (ficha.verificada) {
-    return (
-      <span className="text-[10px] font-black bg-emerald-500/20 backdrop-blur-md text-emerald-400 px-2 py-1 rounded border border-emerald-500/30 tracking-tight uppercase">
-        Verificada
-      </span>
-    );
-  }
-  if (ficha.costeada) {
-    return (
-      <span className="text-[10px] font-black bg-blue-500/20 backdrop-blur-md text-blue-400 px-2 py-1 rounded border border-blue-500/30 tracking-tight uppercase">
-        Costeada
-      </span>
-    );
-  }
+  const estados = {
+    activa:    { label: "Activa",    dot: "bg-emerald-400", cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+    pendiente: { label: "Pendiente", dot: "bg-amber-400",   cls: "bg-amber-500/20 text-amber-400 border-amber-500/30"       },
+    inactiva:  { label: "Inactiva",  dot: "bg-red-400",     cls: "bg-red-500/20 text-red-400 border-red-500/30"             },
+  };
+  const e = estados[ficha.estado] || estados.pendiente;
   return (
-    <span className="text-[10px] font-black bg-amber-500/20 backdrop-blur-md text-amber-400 px-2 py-1 rounded border border-amber-500/30 tracking-tight uppercase">
-      Pendiente
+    <span className={`flex items-center gap-1 text-[10px] font-black backdrop-blur-md px-2 py-1 rounded border tracking-tight uppercase ${e.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${e.dot}`} />
+      {e.label}
     </span>
   );
 }

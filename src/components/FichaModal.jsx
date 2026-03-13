@@ -55,6 +55,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     formatosVenta: ficha?.formatosVenta || [{ codSap: "", descripcion: "", numEnvase: "", pesoProducto: "", codBarra: "" }],
     fotosExtra: ficha?.fotosExtra || [""],
     revisiones: ficha?.revisiones || [{ numero: "000", fecha: "", descripcion: "Versión inicial" }],
+    estado: ficha?.estado || "activa",
   });
 
   const update = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
@@ -218,6 +219,32 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         {/* Tab 0 - General */}
         {tabActiva === 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+            {/* Estado */}
+            <div className="col-span-2 sm:col-span-3">
+              <label className={labelClass}>Estado de la ficha</label>
+              <div className="flex gap-2">
+                {[
+                  { valor: "activa",    label: "Activa",    bg: "bg-emerald-500/15 border-emerald-500/40 text-emerald-400", dot: "bg-emerald-400" },
+                  { valor: "pendiente", label: "Pendiente", bg: "bg-amber-500/15 border-amber-500/40 text-amber-400",       dot: "bg-amber-400"   },
+                  { valor: "inactiva",  label: "Inactiva",  bg: "bg-red-500/15 border-red-500/40 text-red-400",             dot: "bg-red-400"     },
+                ].map(({ valor, label, bg, dot }) => (
+                  <button
+                    key={valor}
+                    type="button"
+                    onClick={() => update("estado", valor)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-wider transition-all ${
+                      form.estado === valor
+                        ? `${bg} shadow-sm scale-105`
+                        : `${t.bgInput} ${t.textSecondary} border-transparent opacity-50 hover:opacity-80`
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${dot}`} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="col-span-2 sm:col-span-3">
               <label className={labelClass}>Nombre del plato *</label>
               <input
