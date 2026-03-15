@@ -53,25 +53,24 @@ export default function ProductCard({ product, rol }) {
 
   const esPrivilegiado = rol === "admin" || rol === "unico";
   const cat = getCatStyle();
-  const inputClass = `w-full bg-[#223649] text-white px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border border-slate-700/50 placeholder:text-slate-500`;
 
   // ── MODO EDICIÓN ──
   if (editing) {
     return (
-      <div className="bg-white dark:bg-[#1a2632] rounded-xl p-5 border border-slate-200 dark:border-slate-800/50 shadow-sm">
-        <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mb-3">Editando</p>
+      <div className={`${t.bgCard} border ${t.border} rounded-xl p-5 shadow-sm`}>
+        <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Editando</p>
 
         <input
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          className={`${inputClass} mb-3`}
+          className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} placeholder:text-slate-500 mb-3`}
           placeholder="Nombre del producto"
         />
 
         <select
           value={categoria}
           onChange={(e) => setCategoria(e.target.value)}
-          className={`${inputClass} mb-3`}
+          className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} mb-3`}
         >
           <option value="">Sin categoría</option>
           {categoriasDocs.map((c) => (
@@ -82,12 +81,12 @@ export default function ProductCard({ product, rol }) {
         <input
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
-          className={`${inputClass} mb-4`}
+          className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} placeholder:text-slate-500 mb-4`}
           placeholder="Unidad de medida (opcional)"
         />
 
         <div className="flex gap-2">
-          <button onClick={() => setEditing(false)} className="flex-1 bg-[#223649] hover:bg-slate-700 text-slate-300 text-sm py-2.5 rounded-lg transition font-semibold">
+          <button onClick={() => setEditing(false)} className={`flex-1 ${t.bgInput} ${t.hover} ${t.textSecondary} text-sm py-2.5 rounded-lg transition font-semibold`}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving} className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-110 text-white text-sm py-2.5 rounded-lg transition font-bold disabled:opacity-50 shadow-lg shadow-blue-500/20">
@@ -100,23 +99,23 @@ export default function ProductCard({ product, rol }) {
 
   // ── MODO VISTA ──
   return (
-    <div className="bg-white dark:bg-[#1a2632] rounded-xl p-5 border border-slate-200 dark:border-slate-800/50 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all group">
+    <div className={`${t.bgCard} border ${t.border} rounded-xl p-5 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all group`}>
 
       <div className="flex justify-between items-start mb-4">
         <span className={`px-3 py-1 rounded-full ${cat.bg} ${cat.text} text-[10px] font-black uppercase tracking-widest border ${cat.border}`}>
           {product.categoria || "Sin categoría"}
         </span>
-        <span className="text-slate-400 dark:text-slate-500 text-xs font-mono">
+        <span className={`${t.textSecondary} text-xs font-mono`}>
           ID: {product.codigo}
         </span>
       </div>
 
-      <h3 className="text-slate-900 dark:text-white font-bold text-base leading-snug mb-1 h-12 overflow-hidden group-hover:text-blue-400 transition-colors">
+      <h3 className={`${t.text} font-bold text-base leading-snug mb-1 h-12 overflow-hidden group-hover:text-blue-400 transition-colors`}>
         {product.nombre}
       </h3>
 
       {(product.unidadMedida || product.sap) && (
-        <p className="text-slate-400 text-xs mb-2">
+        <p className={`${t.textSecondary} text-xs mb-2`}>
           Unidad: {product.unidadMedida || product.sap}
         </p>
       )}
@@ -125,14 +124,14 @@ export default function ProductCard({ product, rol }) {
         <div className="flex gap-2 mt-4">
           <button
             onClick={() => setEditing(true)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-100 dark:bg-[#223649] text-slate-600 dark:text-slate-300 text-xs font-bold hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all"
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg ${t.bgInput} ${t.textSecondary} text-xs font-bold hover:bg-gradient-to-r hover:from-blue-500 hover:to-blue-600 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all`}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
             Editar
           </button>
           <button
             onClick={handleDelete}
-            className="flex items-center justify-center p-2 rounded-lg bg-slate-100 dark:bg-[#223649] text-slate-400 hover:text-red-500 hover:bg-red-500/10 transition-all"
+            className={`flex items-center justify-center p-2 rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-red-500 hover:bg-red-500/10 transition-all`}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
           </button>

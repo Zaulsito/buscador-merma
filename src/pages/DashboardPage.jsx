@@ -6,6 +6,8 @@ import PerfilPage from "./PerfilPage";
 import FichasTecnicas from "./FichasTecnicas";
 import Planificador from "./Planificador";
 import AppSidebar from "../components/AppSidebar";
+import PlanogramaPage from "./PlanogramaPage";
+import TutorialOverlay from "../components/TutorialOverlay";
 
 const modulos = [
   {
@@ -73,6 +75,9 @@ const proximosEventos = [
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return !localStorage.getItem("rinfo_tutorial_visto");
+  });
   const { t } = useTheme();
 
   useEffect(() => {
@@ -91,10 +96,11 @@ export default function DashboardPage({ user, rol }) {
   };
 
   if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "planograma")  return <PlanogramaPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
   const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -143,7 +149,11 @@ export default function DashboardPage({ user, rol }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 22 }}>notifications</span>
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+              <button
+                onClick={() => setShowTutorial(true)}
+                className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary} hover:text-blue-400 transition-colors`}
+                title="Ver tutorial"
+              >
                 <span className="material-symbols-outlined" style={{ fontSize: 22 }}>help</span>
               </button>
               <div className={`h-6 w-px ${t.bgInput}`}></div>
@@ -178,16 +188,18 @@ export default function DashboardPage({ user, rol }) {
                 </h3>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
+                <button
+                  onClick={() => navegarA("planograma")}
+                  className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-emerald-500/50 transition-colors text-left`}>
                   <div className="flex flex-col gap-2 mb-3">
-                    <div className="p-2 bg-orange-500/10 text-orange-500 rounded-lg w-fit">
-                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>map</span>
+                    <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg w-fit">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>calendar_month</span>
                     </div>
-                    <span className="text-orange-500 text-[10px] font-bold px-2 py-0.5 bg-orange-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
                   <p className={`${t.textSecondary} text-xs font-medium`}>Planograma</p>
-                  <p className={`${t.text} text-xl font-black mt-1`}>— <span className={`${t.textSecondary} text-xs font-normal`}>activos</span></p>
-                </div>
+                  <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Menú del día por cuarto</p>
+                  <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Organiza y consulta los platos planificados por sección para cada jornada.</p>
+                </button>
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
                   <div className="flex flex-col gap-2 mb-3">
                     <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg w-fit">
@@ -313,6 +325,11 @@ export default function DashboardPage({ user, rol }) {
           <span className="font-medium" style={{ fontSize: 10 }}>PERFIL</span>
         </button>
       </nav>
+
+      {/* Tutorial */}
+      {showTutorial && (
+        <TutorialOverlay rol={rol} onClose={() => setShowTutorial(false)} />
+      )}
 
     </div>
   );

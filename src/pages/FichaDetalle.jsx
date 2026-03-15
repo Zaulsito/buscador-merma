@@ -245,8 +245,14 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
                 </div>
                 <div
                   className={`${t.text} text-sm leading-relaxed prose ${t.isDark ? "prose-invert" : ""} max-w-none`}
+                  style={{ "--tw-prose-bullets": "currentColor" }}
                   dangerouslySetInnerHTML={{ __html: ficha.descripcionProceso }}
                 />
+                <style>{`
+                  .prose ol { list-style-type: decimal !important; padding-left: 1.5rem !important; margin: 0.5rem 0 !important; }
+                  .prose ul { list-style-type: disc !important; padding-left: 1.5rem !important; margin: 0.5rem 0 !important; }
+                  .prose li { display: list-item !important; margin: 0.15rem 0 !important; }
+                `}</style>
               </section>
             )}
             {(ficha.tempCoccion || ficha.tempEnfriado || ficha.tempAlmacenamiento || ficha.vidaUtilVacio || ficha.vidaUtilAnaquel) && (
