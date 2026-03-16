@@ -82,7 +82,7 @@ export default function ProductCard({ product, rol }) {
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
           className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} placeholder:text-slate-500 mb-4`}
-          placeholder="Unidad de medida (opcional)"
+          placeholder="Forma de medida (opcional)"
         />
 
         <div className="flex gap-2">
@@ -116,7 +116,7 @@ export default function ProductCard({ product, rol }) {
 
       {(product.unidadMedida || product.sap) && (
         <p className={`${t.textSecondary} text-xs mb-2`}>
-          Unidad: {product.unidadMedida || product.sap}
+          Medida:  {product.unidadMedida || product.sap}
         </p>
       )}
 

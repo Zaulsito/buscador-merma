@@ -82,7 +82,7 @@ export default function AddProductModal({ onClose, onAdded }) {
 
         <input
           type="text"
-          placeholder="Unidad de medida (opcional)"
+          placeholder="Porciones / Unidades / Kilogramos (opcional)"
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
           className={`${inputClass} mb-6`}

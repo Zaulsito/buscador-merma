@@ -8,6 +8,7 @@ import Planificador from "./Planificador";
 import AppSidebar from "../components/AppSidebar";
 import PlanogramaPage from "./PlanogramaPage";
 import TutorialOverlay from "../components/TutorialOverlay";
+import InformacionPage from "./InformacionPage";
 
 const modulos = [
   {
@@ -99,6 +100,7 @@ export default function DashboardPage({ user, rol }) {
   if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} />;
   if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "informacion") return <InformacionPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planograma")  return <PlanogramaPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
@@ -200,16 +202,18 @@ export default function DashboardPage({ user, rol }) {
                   <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Menú del día por cuarto</p>
                   <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Organiza y consulta los platos planificados por sección para cada jornada.</p>
                 </button>
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
+                <button
+                  onClick={() => navegarA("informacion")}
+                  className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-indigo-500/50 transition-colors text-left`}>
                   <div className="flex flex-col gap-2 mb-3">
-                    <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg w-fit">
-                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>group</span>
+                    <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg w-fit">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>menu_book</span>
                     </div>
-                    <span className="text-emerald-500 text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
-                  <p className={`${t.textSecondary} text-xs font-medium`}>Usuarios</p>
-                  <p className={`${t.text} text-xl font-black mt-1`}>—</p>
-                </div>
+                  <p className={`${t.textSecondary} text-xs font-medium`}>Información Útil</p>
+                  <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Manual Vida Útil</p>
+                  <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Consulta los tiempos de almacenamiento y modos de conservación de insumos.</p>
+                </button>
               </div>
             </section>
 
