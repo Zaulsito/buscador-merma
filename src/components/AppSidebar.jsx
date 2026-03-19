@@ -8,7 +8,8 @@ const navItems = [
   { id: "planificador", label: "Planificador",        icon: "account_tree"   },
 ];
 
-const adminItem = { id: "usuarios", label: "Gestionamiento", icon: "manage_accounts" };
+const adminItem = { id: "usuarios",     label: "Gestionamiento",    icon: "manage_accounts" };
+const infoItem  = { id: "informacion",  label: "Información Útil",  icon: "info"            };
 
 export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
   const { t } = useTheme();
@@ -19,6 +20,7 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
   const items = [
     ...navItems,
     ...(rol === "admin" || rol === "unico" ? [adminItem] : []),
+    infoItem,
   ];
 
   return (
@@ -52,7 +54,7 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
           }`}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
-          Inicio
+          Dashboard
         </button>
 
         {items.map(item => {

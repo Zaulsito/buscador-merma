@@ -21,8 +21,8 @@ const FILA_VACIA = {
   cerrado_retiro: "",
   cerrado_duracion: "",
   abierto_modo: "Refrigerado",
+  abierto_retiro: "",
   abierto_duracion: "",
-  modo_final: "Refrigerado",
 };
 
 export default function InformacionPage({ user, rol, onBack, onNavegar }) {
@@ -53,7 +53,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
 
   const filtrados = insumos.filter(i => {
     const matchBusqueda = !busqueda || i.insumo?.toLowerCase().includes(busqueda.toLowerCase());
-    const matchModo = filtroModo === "Todos" || i.modo_final === filtroModo;
+    const matchModo = filtroModo === "Todos" || i.abierto_modo === filtroModo;
     return matchBusqueda && matchModo;
   });
 
@@ -102,9 +102,9 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const selectCls = `w-full ${t.bgInput} border ${t.border} ${t.text} px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`;
 
   // Stats
-  const totalRefrig  = insumos.filter(i => i.modo_final === "Refrigerado").length;
-  const totalFresco  = insumos.filter(i => i.modo_final === "Fresco y seco").length;
-  const totalCongelado = insumos.filter(i => i.modo_final === "Congelado").length;
+  const totalRefrig  = insumos.filter(i => i.abierto_modo === "Refrigerado").length;
+  const totalFresco  = insumos.filter(i => i.abierto_modo === "Fresco y seco").length;
+  const totalCongelado = insumos.filter(i => i.abierto_modo === "Congelado").length;
 
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
@@ -210,8 +210,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                     <tr className={`${t.isDark ? "bg-slate-800/80" : "bg-slate-100"} text-xs font-black uppercase tracking-wider ${t.textSecondary}`}>
                       <th className={`p-4 border-b border-r ${t.border} min-w-[220px]`} rowSpan={2}>Insumos</th>
                       <th className={`p-3 border-b border-r ${t.border} text-center bg-indigo-500/10 text-indigo-400`} colSpan={3}>Cerrado</th>
-                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={2}>Abierto</th>
-                      <th className={`p-4 border-b ${t.border} text-center min-w-[130px]`} rowSpan={2}>Modo de<br/>Almacenamiento</th>
+                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={3}>Abierto</th>
                       {esAdmin && <th className={`p-4 border-b border-l ${t.border} text-center w-20`} rowSpan={2}>Acciones</th>}
                     </tr>
                     <tr className={`${t.isDark ? "bg-slate-800/50" : "bg-slate-50"} text-[10px] font-bold uppercase ${t.textSecondary}`}>
@@ -219,6 +218,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                       <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
+                      <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
                     </tr>
                   </thead>
@@ -236,12 +236,9 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_retiro || "N/A"}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_duracion || "N/A"}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_modo}</td>
+                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_retiro || "N/A"}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_duracion || "N/A"}</td>
-                          <td className={`p-4 text-center border-r ${t.border}`}>
-                            <span className={`px-2 py-1 rounded text-xs font-semibold border ${badge.cls}`}>
-                              {item.modo_final}
-                            </span>
-                          </td>
+
                           {esAdmin && (
                             <td className={`p-3 text-center border-l ${t.border}`}>
                               <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -268,12 +265,11 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                 {loading ? (
                   <p className={`${t.textSecondary} text-sm text-center p-8`}>Cargando...</p>
                 ) : paginados.map(item => {
-                  const badge = MODO_BADGE[item.modo_final] || MODO_BADGE["N/A"];
                   return (
                     <div key={item.id} className="p-4">
                       <div className="flex items-start justify-between mb-3">
                         <h3 className={`${t.text} font-bold text-sm flex-1 pr-2`}>{item.insumo}</h3>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border flex-shrink-0 ${badge.cls}`}>{item.modo_final}</span>
+
                       </div>
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
                         <div>
@@ -394,12 +390,17 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               {/* ABIERTO */}
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
                 <p className="text-amber-400 text-xs font-black uppercase tracking-widest mb-3">Abierto</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo Almacenamiento</label>
                     <select value={form.abierto_modo} onChange={e => upd("abierto_modo", e.target.value)} className={selectCls}>
                       {MODOS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
+                  </div>
+                  <div>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Retiro Antes Venc.</label>
+                    <input value={form.abierto_retiro || ""} onChange={e => upd("abierto_retiro", e.target.value)}
+                      className={inputCls} placeholder="Ej: 2 días" />
                   </div>
                   <div>
                     <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
@@ -409,13 +410,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                 </div>
               </div>
 
-              {/* Modo final */}
-              <div>
-                <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Modo de Almacenamiento Final</label>
-                <select value={form.modo_final} onChange={e => upd("modo_final", e.target.value)} className={selectCls}>
-                  {MODOS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
+
             </div>
 
             <div className={`flex gap-3 px-5 pb-5`}>

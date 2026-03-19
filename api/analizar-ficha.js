@@ -28,25 +28,15 @@ export default async function handler(req, res) {
                 }
               },
               {
-                text: `Analiza esta ficha técnica de cocina y extrae TODOS los datos. Responde SOLO con un JSON válido sin markdown ni explicaciones con esta estructura exacta:
-{
-  "nombre": "",
-  "codigo": "",
-  "version": "",
-  "fecha": "",
-  "porciones": "",
-  "tiempoPreparacion": "",
-  "descripcionProceso": "",
-  "tempCoccion": "",
-  "tempEmpanizado": "",
-  "tempAlmacenamiento": "",
-  "vidaUtilGrado": "",
-  "vidaUtilVacio": "",
-  "vidaUtilAnaquel": "",
-  "materiasPrimas": [{"nombre": "", "cantidadBruta": "", "cantidadNeta": ""}],
-  "elementosDecorativos": [{"nombre": "", "cantidadBruta": "", "cantidadNeta": ""}],
-  "envases": [{"descripcion": "", "codigoSap", "cantidad": ""}]
-}`
+                text: `Extrae SOLO los pasos del proceso de elaboración que aparecen en esta imagen.
+Devuelve el texto en formato simple, un paso por línea, numerados así:
+1- Primer paso
+2- Segundo paso
+3- Tercer paso
+
+Ignora ingredientes, temperaturas, títulos y cualquier otro dato. Solo los pasos del proceso.
+Si no hay pasos claramente definidos, extrae el texto descriptivo del proceso tal como aparece.
+Responde únicamente en español.`,
               }
             ]
           }]
@@ -55,16 +45,16 @@ export default async function handler(req, res) {
     );
 
     const data = await response.json();
-    console.log("Gemini response:", JSON.stringify(data));
 
-    if (!data.candidates || !data.candidates[0]) {
-      return res.status(500).json({ error: "Gemini no devolvió candidatos", raw: data });
+    if (!data.candidates?.[0]) {
+      return res.status(500).json({ error: "Sin respuesta de Gemini", raw: data });
     }
 
-    const texto = data.candidates[0].content.parts[0].text;
-    const clean = texto.replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(clean);
-    res.status(200).json(parsed);
+    const texto = data.candidates[0].content.parts[0].text?.trim() || "";
+    
+    // Devolver como descripcionProceso directamente
+    res.status(200).json({ descripcionProceso: texto });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });

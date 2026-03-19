@@ -58,6 +58,47 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     estado: ficha?.estado || "activa",
   });
 
+  const [leyendoImagen, setLeyendoImagen] = useState(false);
+
+  const leerImagenConIA = async (file) => {
+    if (!file) return;
+    setLeyendoImagen(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64,
+          mimeType: file.type || "image/jpeg",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Error al procesar la imagen");
+        return;
+      }
+
+      if (data.descripcionProceso) {
+        update("descripcionProceso", data.descripcionProceso);
+        toast.success("✅ Proceso extraído correctamente");
+      } else {
+        toast.error("No se encontró descripción del proceso en la imagen");
+      }
+    } catch (err) {
+      toast.error("Error al procesar la imagen");
+    }
+    setLeyendoImagen(false);
+  };
+
   const update = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
 
   const updateLista = (lista, idx, campo, valor) => {
@@ -437,7 +478,83 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         {tabActiva === 2 && (
           <>
             <div className="mb-6">
-              <label className={labelClass}>Descripción del proceso</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className={labelClass}>Descripción del proceso</label>
+                <label className={`flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  leyendoImagen
+                    ? "bg-blue-500/20 text-blue-300 cursor-not-allowed"
+                    : "bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30"
+                }`}>
+                  {leyendoImagen ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                      Leyendo...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
+                      Leer con IA
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={leyendoImagen}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) leerImagenConIA(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Zona pegar imagen con Ctrl+V */}
+              <div
+                className={`mb-3 border-2 border-dashed rounded-xl px-4 py-3 text-center transition-all cursor-pointer ${
+                  leyendoImagen
+                    ? "border-blue-500/40 bg-blue-500/5"
+                    : "border-slate-600/40 hover:border-blue-500/40 hover:bg-blue-500/5"
+                }`}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  for (const item of items) {
+                    if (item.type.startsWith("image/")) {
+                      e.preventDefault();
+                      const file = item.getAsFile();
+                      if (file) leerImagenConIA(file);
+                      break;
+                    }
+                  }
+                }}
+                tabIndex={0}
+                title="Haz clic aquí y pega con Ctrl+V"
+              >
+                {leyendoImagen ? (
+                  <div className="flex items-center justify-center gap-2 text-blue-400">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                    <span className="text-xs font-semibold">Leyendo imagen con IA...</span>
+                  </div>
+                ) : (
+                  <div className={`flex items-center justify-center gap-2 ${t.textSecondary}`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>content_paste</span>
+                    <span className="text-xs">
+                      Haz clic aquí y pega con{" "}
+                      <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white font-mono text-[10px]">Ctrl+V</kbd>
+                      {" "}— o usa el botón <strong>Leer con IA</strong> para subir archivo
+                    </span>
+                  </div>
+                )}
+              </div>
+
               <RichTextEditor
                 value={form.descripcionProceso}
                 onChange={(val) => update("descripcionProceso", val)}

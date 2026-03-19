@@ -47,6 +47,18 @@ const modulos = [
     hoverBg: "group-hover:bg-emerald-500",
     borderB: "border-b-emerald-500",
   },
+  {
+    id: "informacion",
+    nombre: "Información Útil",
+    descripcion: "Manual de vida útil, conservación y almacenamiento de insumos por sección.",
+    icon: "menu_book",
+    accion: "Consultar manual",
+    color: "#6366f1",
+    colorClass: "text-indigo-400",
+    bg: "bg-indigo-500/10",
+    hoverBg: "group-hover:bg-indigo-500",
+    borderB: "border-b-indigo-500",
+  },
 ];
 
 const moduloAdmin = {
@@ -202,18 +214,16 @@ export default function DashboardPage({ user, rol }) {
                   <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Menú del día por cuarto</p>
                   <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Organiza y consulta los platos planificados por sección para cada jornada.</p>
                 </button>
-                <button
-                  onClick={() => navegarA("informacion")}
-                  className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-indigo-500/50 transition-colors text-left`}>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
                   <div className="flex flex-col gap-2 mb-3">
-                    <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg w-fit">
-                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>menu_book</span>
+                    <div className="p-2 bg-slate-500/10 text-slate-400 rounded-lg w-fit">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>rocket_launch</span>
                     </div>
+                    <span className="text-slate-400 text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
-                  <p className={`${t.textSecondary} text-xs font-medium`}>Información Útil</p>
-                  <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Manual Vida Útil</p>
-                  <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Consulta los tiempos de almacenamiento y modos de conservación de insumos.</p>
-                </button>
+                  <p className={`${t.textSecondary} text-xs font-medium`}>Módulos Nuevos</p>
+                  <p className={`${t.text} text-sm font-bold mt-1`}>En desarrollo</p>
+                </div>
               </div>
             </section>
 
