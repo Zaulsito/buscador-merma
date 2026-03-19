@@ -83,7 +83,8 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
       const data = await response.json();
 
       if (!response.ok) {
-        toast.error(data.error || "Error al procesar la imagen");
+        toast.error(data.error || "Error al procesar la imagen", { duration: 6000 });
+        console.error("Error API:", data);
         return;
       }
 
@@ -91,10 +92,11 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         update("descripcionProceso", data.descripcionProceso);
         toast.success("✅ Proceso extraído correctamente");
       } else {
-        toast.error("No se encontró descripción del proceso en la imagen");
+        toast.error("Gemini respondió pero sin texto de proceso");
       }
     } catch (err) {
-      toast.error("Error al procesar la imagen");
+      toast.error(`Error: ${err.message}`, { duration: 6000 });
+      console.error(err);
     }
     setLeyendoImagen(false);
   };
