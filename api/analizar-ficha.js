@@ -36,11 +36,17 @@ export default async function handler(req, res) {
                 }
               },
               {
-                text: `Extrae SOLO los pasos del proceso de elaboración que aparecen en esta imagen.
-Devuelve el texto numerado así:
-1- Primer paso
-2- Segundo paso
-Ignora ingredientes, temperaturas y títulos. Solo los pasos del proceso. Responde en español.`,
+                text: `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
+
+Mantén el formato original:
+- Si tiene numeración (1-, 2-, 1., 2., etc.) respétala exactamente
+- Si tiene pasos con guiones o viñetas, mantenlos
+- Conserva mayúsculas, puntuación y acentos tal como aparecen
+- No agregues ni quites palabras
+- Transcribe TODO el texto del proceso, incluso si es largo
+
+Si hay secciones con títulos como "PROCESO:", "ELABORACIÓN:", "PREPARACIÓN:", inclúyelos también.
+Responde únicamente con el texto transcrito, sin explicaciones adicionales.`,
               }
             ]
           }]
