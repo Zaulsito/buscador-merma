@@ -154,6 +154,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         ...(form.formatosVenta || []).filter(f => f.codSap?.trim()),
         ...(form.materiasPrimas || []).filter(f => f.codSap?.trim()).map(f => ({ codSap: f.codSap, descripcion: f.nombre })),
         ...(form.elementosDecorativos || []).filter(f => f.codSap?.trim()).map(f => ({ codSap: f.codSap, descripcion: f.nombre })),
+        ...(form.envases || []).filter(e => e.codigoSap?.trim()).map(e => ({ codSap: e.codigoSap, descripcion: e.descripcion })),
       ];
       if (formatosConSap.length > 0) {
         const mermaSnap = await getDocs(collection(db, "merma"));
