@@ -262,6 +262,92 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         {/* Tab 0 - General */}
         {tabActiva === 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+
+            {/* Banner IA ficha completa */}
+            <div className="col-span-2 sm:col-span-3">
+              <label className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                leyendoImagen
+                  ? "bg-purple-500/10 border-purple-500/30 cursor-not-allowed"
+                  : "bg-purple-500/8 border-purple-500/20 hover:bg-purple-500/15 hover:border-purple-500/40"
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-purple-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    {leyendoImagen ? (
+                      <svg className="w-4 h-4 animate-spin text-purple-400" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                      </svg>
+                    ) : (
+                      <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 18 }}>auto_awesome</span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-purple-400 text-xs font-bold">{leyendoImagen ? "Analizando ficha completa..." : "Rellenar ficha completa con IA"}</p>
+                    <p className={`${t.textSecondary} text-[10px]`}>Sube una foto de la ficha y se rellenan todos los campos automáticamente</p>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 ${
+                  leyendoImagen ? "bg-purple-500/20 text-purple-300" : "bg-purple-600 text-white"
+                }`}>
+                  {leyendoImagen ? "Procesando..." : "Subir imagen"}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={leyendoImagen}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setLeyendoImagen(true);
+                    try {
+                      const base64 = await new Promise((res, rej) => {
+                        const reader = new FileReader();
+                        reader.onload = () => res(reader.result.split(",")[1]);
+                        reader.onerror = rej;
+                        reader.readAsDataURL(file);
+                      });
+                      const response = await fetch("/api/analizar-ficha", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: base64, mimeType: file.type || "image/jpeg", tipo: "completa" }),
+                      });
+                      const data = await response.json();
+                      if (!response.ok) { toast.error(data.error || "Error al procesar", { duration: 6000 }); return; }
+
+                      // Rellenar solo los campos que vengan con valor
+                      setForm(prev => ({
+                        ...prev,
+                        ...(data.nombre             && { nombre:             data.nombre             }),
+                        ...(data.codigo             && { codigo:             data.codigo             }),
+                        ...(data.seccion            && { seccion:            data.seccion            }),
+                        ...(data.porciones          && { porciones:          data.porciones          }),
+                        ...(data.tiempoPreparacion  && { tiempoPreparacion:  data.tiempoPreparacion  }),
+                        ...(data.descripcionProceso && { descripcionProceso: data.descripcionProceso }),
+                        ...(data.tempCoccion        && { tempCoccion:        data.tempCoccion        }),
+                        ...(data.tempEnfriado       && { tempEnfriado:       data.tempEnfriado       }),
+                        ...(data.tempAlmacenamiento && { tempAlmacenamiento: data.tempAlmacenamiento }),
+                        ...(data.vidaUtilGrado      && { vidaUtilGrado:      data.vidaUtilGrado      }),
+                        ...(data.vidaUtilVacio      && { vidaUtilVacio:      data.vidaUtilVacio      }),
+                        ...(data.vidaUtilAnaquel    && { vidaUtilAnaquel:    data.vidaUtilAnaquel    }),
+                        ...(data.materiasPrimas?.length     && { materiasPrimas:       data.materiasPrimas.map(i => ({ ...i, nombre: i.nombre?.toUpperCase() || "", codSap: i.codSap || "" })) }),
+                        ...(data.elementosDecorativos?.length && { elementosDecorativos: data.elementosDecorativos.map(i => ({ ...i, nombre: i.nombre?.toUpperCase() || "" })) }),
+                        ...(data.envases?.length    && { envases:            data.envases }),
+                        ...(data.formatosVenta?.length && { formatosVenta:   data.formatosVenta }),
+                        ...(data.revisiones?.length    && { revisiones:       data.revisiones    }),
+                      }));
+
+                      toast.success("✅ Ficha rellenada — revisa y ajusta los datos", { duration: 5000 });
+                    } catch (err) {
+                      toast.error(`Error: ${err.message}`, { duration: 6000 });
+                    }
+                    setLeyendoImagen(false);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
+
             {/* Estado */}
             <div className="col-span-2 sm:col-span-3">
               <label className={labelClass}>Estado de la ficha</label>
@@ -451,6 +537,78 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         {/* Tab 1 - Ingredientes */}
         {tabActiva === 1 && (
           <>
+            {/* Banner IA ingredientes */}
+            <label className={`flex items-center justify-between gap-3 p-3 rounded-xl border cursor-pointer transition-all mb-4 ${
+              leyendoImagen
+                ? "bg-emerald-500/10 border-emerald-500/30 cursor-not-allowed"
+                : "bg-emerald-500/8 border-emerald-500/20 hover:bg-emerald-500/15 hover:border-emerald-500/40"
+            }`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-emerald-600/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  {leyendoImagen ? (
+                    <svg className="w-4 h-4 animate-spin text-emerald-400" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                    </svg>
+                  ) : (
+                    <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: 18 }}>auto_awesome</span>
+                  )}
+                </div>
+                <div>
+                  <p className="text-emerald-400 text-xs font-bold">{leyendoImagen ? "Analizando imagen..." : "Leer ingredientes con IA"}</p>
+                  <p className={`${t.textSecondary} text-[10px]`}>Sube una foto y se extraen los ingredientes con cantidades automáticamente</p>
+                </div>
+              </div>
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-lg flex-shrink-0 ${
+                leyendoImagen ? "bg-emerald-500/20 text-emerald-300" : "bg-emerald-600 text-white"
+              }`}>
+                {leyendoImagen ? "Procesando..." : "Subir imagen"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={leyendoImagen}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setLeyendoImagen(true);
+                  try {
+                    const base64 = await new Promise((res, rej) => {
+                      const reader = new FileReader();
+                      reader.onload = () => res(reader.result.split(",")[1]);
+                      reader.onerror = rej;
+                      reader.readAsDataURL(file);
+                    });
+                    const response = await fetch("/api/analizar-ficha", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ image: base64, mimeType: file.type || "image/jpeg", tipo: "ingredientes" }),
+                    });
+                    const data = await response.json();
+                    if (!response.ok) { toast.error(data.error || "Error al procesar"); return; }
+                    if (data.ingredientes?.length) {
+                      const nuevos = data.ingredientes.map(i => ({
+                        nombre: i.nombre?.toUpperCase() || "",
+                        cantidadBruta: i.cantidadBruta || "0.000",
+                        cantidadNeta: i.cantidadNeta || "0.000",
+                        unidad: i.unidad || "KG",
+                        codSap: i.codSap || "",
+                      }));
+                      update("materiasPrimas", nuevos);
+                      toast.success(`✅ ${nuevos.length} ingredientes extraídos`);
+                    } else {
+                      toast.error("No se encontraron ingredientes en la imagen");
+                    }
+                  } catch (err) {
+                    toast.error(`Error: ${err.message}`);
+                  }
+                  setLeyendoImagen(false);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+
             <TablaIngredientes
               titulo="🥩 Materia Prima"
               lista={form.materiasPrimas}
