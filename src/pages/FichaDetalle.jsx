@@ -501,6 +501,14 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
           </button>
         </div>
       )}
+
+      {/* Sello Documento Controlado */}
+      <div className="fixed bottom-6 right-6 pointer-events-none opacity-25 rotate-[-12deg] z-40">
+        <div className="border-2 border-red-500 px-4 py-2 rounded-lg">
+          <p className="text-red-500 font-black text-lg uppercase tracking-tighter text-center leading-tight">Documento<br/>Controlado</p>
+        </div>
+      </div>
+
     </div>
   );
 }
