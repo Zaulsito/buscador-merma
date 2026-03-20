@@ -35,6 +35,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const [loading, setLoading] = useState(false);
   const [tabActiva, setTabActiva] = useState(0);
   const [unidadDropdownIdx, setUnidadDropdownIdx] = useState(null);
+  const [seccionDropdownOpen, setSeccionDropdownOpen] = useState(false);
   const [unidadDropdownPos, setUnidadDropdownPos] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
@@ -45,6 +46,15 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [unidadDropdownIdx]);
+
+  useEffect(() => {
+    if (!seccionDropdownOpen) return;
+    const handler = (e) => {
+      if (!e.target.closest("[data-seccion-dropdown]")) setSeccionDropdownOpen(false);
+    };
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [seccionDropdownOpen]);
 
   // Componente selector de unidad estilo card
   const SelectorUnidad = ({ valor, lista, idx, color = "blue" }) => {
@@ -396,7 +406,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                   {/* Columna principal */}
                   <section className="lg:col-span-2 space-y-5">
                     {/* Datos generales */}
-                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="bg-slate-900/40 border border-white/5 rounded-3xl p-6 md:p-8 relative overflow-visible">
                       <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 rounded-r-full" />
                       <h2 className="text-lg font-bold mb-6 text-white flex items-center gap-2">
                         <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>description</span>
@@ -427,9 +437,36 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                         </div>
                         <div>
                           <label className={lbl}>Sección</label>
-                          <select value={form.seccion} onChange={(e) => update("seccion", e.target.value)} className={inp}>
-                            {secciones.map(s => <option key={s} value={s} className="bg-slate-800">{s}</option>)}
-                          </select>
+                          <div data-seccion-dropdown className="relative">
+                            <button type="button" data-seccion-dropdown
+                              onClick={(e) => { e.stopPropagation(); setSeccionDropdownOpen(o => !o); }}
+                              className={`${inp} flex items-center justify-between text-left`}>
+                              <span className={form.seccion ? "text-cyan-400 font-semibold" : "text-slate-500"}>
+                                {form.seccion || "Seleccionar sección..."}
+                              </span>
+                              <span className="material-symbols-outlined text-cyan-400 flex-shrink-0" style={{ fontSize: 18 }}>
+                                {seccionDropdownOpen ? "expand_less" : "expand_more"}
+                              </span>
+                            </button>
+                            {seccionDropdownOpen && (
+                              <div data-seccion-dropdown
+                                className="absolute z-[9999] top-full mt-1 left-0 right-0 bg-slate-900 border border-white/10 rounded-2xl shadow-2xl overflow-y-auto"
+                                style={{ maxHeight: "220px" }}
+                                onClick={e => e.stopPropagation()}>
+                                {secciones.map(s => (
+                                  <button key={s} type="button" data-seccion-dropdown
+                                    onClick={() => { update("seccion", s); setSeccionDropdownOpen(false); }}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left ${form.seccion === s ? "bg-cyan-500/10" : ""}`}>
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${form.seccion === s ? "bg-cyan-500/20" : "bg-white/5"}`}>
+                                      <span className={`material-symbols-outlined ${form.seccion === s ? "text-cyan-400" : "text-slate-500"}`} style={{ fontSize: 16 }}>domain</span>
+                                    </div>
+                                    <span className={`text-sm font-semibold ${form.seccion === s ? "text-cyan-400" : "text-white"}`}>{s}</span>
+                                    {form.seccion === s && <span className="material-symbols-outlined text-cyan-400 text-sm ml-auto" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="relative">
                           <label className={lbl}>Subcategoría</label>
@@ -970,7 +1007,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                 {/* Stats revisiones */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {[
-                    { color: "border-amber-500/50", label: "Última actualización", val: form.revisiones.filter(r => r.fecha).sort().at(-1)?.fecha || "No registrado" },
+                    { color: "border-amber-500/50", label: "Última actualización", val: (() => { const f = form.revisiones.filter(r => r.fecha).sort().at(-1)?.fecha; if (!f) return "No registrado"; const [y,m,d] = f.split("-"); return `${parseInt(d)}/${parseInt(m)}/${y}`; })() },
                     { color: "border-blue-500/50",  label: "Total de cambios",    val: `${form.revisiones.length} revisión${form.revisiones.length !== 1 ? "es" : ""}` },
                     { color: "border-emerald-500/50", label: "Estado de ficha",   val: form.estado.charAt(0).toUpperCase() + form.estado.slice(1), dot: true },
                   ].map((s, i) => (
