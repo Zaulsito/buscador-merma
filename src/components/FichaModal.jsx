@@ -21,6 +21,7 @@ const G = "bg-slate-800/60 backdrop-blur-sm border border-white/8 rounded-2xl";
 
 const UNIDADES_META = [
   { id: "UN",    label: "UN",    desc: "Unidad simple",        icon: "deployed_code",   esEntero: true  },
+  { id: "KG",    label: "KG",    desc: "Kilogramos",           icon: "weight",          esEntero: false },
   { id: "UN/KG", label: "UN/KG", desc: "Unidad por kilogramo", icon: "weight",          esEntero: false },
   { id: "L",     label: "L",     desc: "Litro",                icon: "water_drop",      esEntero: false },
   { id: "L/KG",  label: "L/KG",  desc: "Litro por kilogramo",  icon: "water",           esEntero: false },
