@@ -78,6 +78,42 @@ Reglas:
 - No incluyas filas vacías ni subtítulos, solo ingredientes reales
 Responde ÚNICAMENTE con el JSON, sin explicaciones.`;
 
+    } else if (tipo === "vida_util") {
+      prompt = `Eres un extractor de datos estricto. Analiza esta tabla de control de almacenamiento de insumos.
+
+La tabla tiene exactamente estas columnas (de izquierda a derecha):
+1. INSUMOS — nombre del producto
+2. CERRADO / Modo de Almacenamiento
+3. CERRADO / Retiro de Cámara y/o Bodega antes del Vencimiento
+4. ABIERTO / Duración (puede tener texto entre paréntesis como "(antes del vcto original)")
+5. ABIERTO / Modo de Almacenamiento
+
+Devuelve SOLO este JSON sin markdown ni texto adicional:
+[
+  {
+    "insumo": "NOMBRE EN MAYUSCULAS",
+    "cerrado_modo": "Refrigerado",
+    "cerrado_retiro": "4 días",
+    "abierto_duracion": "2 días",
+    "abierto_ejemplo": "antes del vcto original",
+    "abierto_modo": "Refrigerado"
+  }
+]
+
+REGLAS CRÍTICAS — lee celda por celda, NO combines columnas:
+- insumo: nombre exacto en MAYÚSCULAS
+- cerrado_modo: SOLO uno de: "Fresco y seco", "Refrigerado", "Congelado", "Refrigerado o Congelado", "N/A"
+- cerrado_retiro: texto de la columna 3 exactamente (ej: "4 días", "1 día (desde la recepción)", "N/A")
+- abierto_duracion: SOLO el número/días de la columna 4, SIN el texto entre paréntesis (ej: "2 días", "15 días")
+- abierto_ejemplo: SOLO el texto entre paréntesis de la columna 4 si existe (ej: "antes del vcto original", "desde que se congela"), si no hay → "N/A"
+- abierto_modo: SOLO uno de: "Fresco y seco", "Refrigerado", "Congelado", "N/A"
+- Si un insumo tiene 2 filas (ej: Refrigerado Y Congelado), crea 2 objetos separados con el mismo nombre
+- Celda vacía → "N/A"
+- Extrae TODOS los insumos sin omitir ninguno
+- NO inventes datos
+
+Responde ÚNICAMENTE con el JSON array. Sin explicaciones. Sin markdown.`;
+
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
 Mantén el formato original:
@@ -118,11 +154,13 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
     const texto = data.candidates[0].content?.parts?.[0]?.text?.trim() || "";
     if (!texto) return res.status(500).json({ error: "Gemini respondió vacío" });
 
-    if (tipo === "completa" || tipo === "ingredientes") {
+    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util") {
       try {
         const clean = texto.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
-        return res.status(200).json(tipo === "ingredientes" ? { ingredientes: parsed } : parsed);
+        if (tipo === "ingredientes") return res.status(200).json({ ingredientes: parsed });
+        if (tipo === "vida_util") return res.status(200).json({ insumos: parsed });
+        return res.status(200).json(parsed);
       } catch {
         return res.status(500).json({ error: "No se pudo parsear la respuesta", raw: texto });
       }

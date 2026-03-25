@@ -6,23 +6,26 @@ import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import toast, { Toaster } from "react-hot-toast";
 
-const MODOS = ["Fresco y seco", "Refrigerado", "Congelado", "N/A"];
+const MODOS = ["Fresco y seco", "Refrigerado", "Congelado", "Refrigerado o Congelado", "N/A"];
 
 const MODO_BADGE = {
-  "Refrigerado":  { cls: "bg-blue-500/10 text-blue-400 border-blue-500/20"     },
-  "Fresco y seco":{ cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-  "Congelado":    { cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"      },
-  "N/A":          { cls: "bg-slate-500/10 text-slate-400 border-slate-500/20"   },
+  "Refrigerado":           { cls: "bg-blue-500/10 text-blue-400 border-blue-500/20"     },
+  "Fresco y seco":         { cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  "Congelado":             { cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"      },
+  "Refrigerado o Congelado":{ cls: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" },
+  "N/A":                   { cls: "bg-slate-500/10 text-slate-400 border-slate-500/20"   },
 };
 
+// Estructura exacta del documento:
+// CERRADO: Modo de Almacenamiento | Retiro Cámara/Bodega antes del Vencimiento
+// ABIERTO: Duración | Modo de Almacenamiento
 const FILA_VACIA = {
   insumo: "",
   cerrado_modo: "Fresco y seco",
   cerrado_retiro: "",
-  cerrado_duracion: "",
-  abierto_modo: "Refrigerado",
-  abierto_retiro: "",
   abierto_duracion: "",
+  abierto_ejemplo: "",
+  abierto_modo: "Refrigerado",
 };
 
 export default function InformacionPage({ user, rol, onBack, onNavegar }) {
@@ -36,7 +39,60 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const [form, setForm] = useState({ ...FILA_VACIA });
   const [saving, setSaving] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
+  const [leyendoIA, setLeyendoIA] = useState(false);
+  const [resultadoIA, setResultadoIA] = useState(null); // { insumos, duplicados, nuevos }
+  const [modalIAOpen, setModalIAOpen] = useState(false);
   const POR_PAGINA = 15;
+
+  const leerConIA = async (file) => {
+    if (!file) return;
+    setLeyendoIA(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type || "image/jpeg", tipo: "vida_util" }),
+      });
+      const data = await response.json();
+      if (!response.ok) { toast.error(data.error || "Error al procesar la imagen"); return; }
+      if (!data.insumos?.length) { toast.error("No se encontraron insumos en la imagen"); return; }
+
+      // Detectar duplicados contra insumos existentes
+      const nombresExistentes = new Set(insumos.map(i => i.insumo?.trim().toLowerCase()));
+      const nuevos = data.insumos.filter(i => !nombresExistentes.has(i.insumo?.trim().toLowerCase()));
+      const duplicados = data.insumos.filter(i => nombresExistentes.has(i.insumo?.trim().toLowerCase()));
+
+      setResultadoIA({ todos: data.insumos, nuevos, duplicados });
+      setModalIAOpen(true);
+      toast.success(`✅ ${data.insumos.length} insumos detectados`);
+    } catch (err) {
+      toast.error(`Error: ${err.message}`);
+    }
+    setLeyendoIA(false);
+  };
+
+  const importarInsumosIA = async (lista) => {
+    if (!lista.length) return;
+    setSaving(true);
+    try {
+      for (const insumo of lista) {
+        await addDoc(collection(db, "vida_util_insumos"), {
+          ...insumo,
+          insumo: insumo.insumo?.toUpperCase() || "",
+          fechaCreacion: serverTimestamp(),
+        });
+      }
+      toast.success(`✅ ${lista.length} insumos importados`);
+      setModalIAOpen(false);
+    } catch { toast.error("Error al importar"); }
+    setSaving(false);
+  };
 
   const esAdmin = rol === "admin" || rol === "unico";
 
@@ -148,6 +204,16 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                   <p>Fecha: 22/07/2025</p>
                 </div>
                 {esAdmin && (
+                  <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${leyendoIA ? "bg-purple-700 opacity-70 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110"} text-white`}>
+                    {leyendoIA
+                      ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Analizando...</>
+                      : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Leer con IA</>
+                    }
+                    <input type="file" accept="image/*" className="hidden" disabled={leyendoIA}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) leerConIA(f); e.target.value = ""; }} />
+                  </label>
+                )}
+                {esAdmin && (
                   <button onClick={abrirNuevo}
                     className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition shadow-lg shadow-blue-500/20">
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
@@ -209,53 +275,58 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                   <thead>
                     <tr className={`${t.isDark ? "bg-slate-800/80" : "bg-slate-100"} text-xs font-black uppercase tracking-wider ${t.textSecondary}`}>
                       <th className={`p-4 border-b border-r ${t.border} min-w-[220px]`} rowSpan={2}>Insumos</th>
-                      <th className={`p-3 border-b border-r ${t.border} text-center bg-indigo-500/10 text-indigo-400`} colSpan={3}>Cerrado</th>
-                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={3}>Abierto</th>
+                      <th className={`p-3 border-b border-r ${t.border} text-center bg-indigo-500/10 text-indigo-400`} colSpan={2}>Cerrado</th>
+                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={2}>Abierto</th>
                       {esAdmin && <th className={`p-4 border-b border-l ${t.border} text-center w-20`} rowSpan={2}>Acciones</th>}
                     </tr>
                     <tr className={`${t.isDark ? "bg-slate-800/50" : "bg-slate-50"} text-[10px] font-bold uppercase ${t.textSecondary}`}>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Ejemplo en días.</th>
+                      <th className={`p-3 border-b border-r ${t.border} min-w-[140px]`}>Modo de Almacenamiento</th>
+                      <th className={`p-3 border-b border-r ${t.border} min-w-[180px]`}>Retiro Cámara/Bodega antes del Venc.</th>
+                      <th className={`p-3 border-b border-r ${t.border} min-w-[160px]`}>Duración</th>
+                      <th className={`p-3 border-b border-r ${t.border} min-w-[140px]`}>Modo de Almacenamiento</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${t.border}`}>
                     {loading ? (
-                      <tr><td colSpan={esAdmin ? 8 : 7} className={`p-8 text-center ${t.textSecondary} text-sm`}>Cargando...</td></tr>
+                      <tr><td colSpan={esAdmin ? 6 : 5} className={`p-8 text-center ${t.textSecondary} text-sm`}>Cargando...</td></tr>
                     ) : paginados.length === 0 ? (
-                      <tr><td colSpan={esAdmin ? 8 : 7} className={`p-8 text-center ${t.textSecondary} text-sm`}>Sin resultados</td></tr>
-                    ) : paginados.map((item, idx) => {
-                      const badge = MODO_BADGE[item.modo_final] || MODO_BADGE["N/A"];
-                      return (
-                        <tr key={item.id} className={`group transition-colors hover:bg-blue-500/5 ${idx % 2 === 1 ? (t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50") : ""}`}>
-                          <td className={`p-4 border-r ${t.border} font-medium ${t.text}`}>{item.insumo}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_modo}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_retiro || "N/A"}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_duracion || "N/A"}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_modo}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_retiro || "N/A"}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_duracion || "N/A"}</td>
-
-                          {esAdmin && (
-                            <td className={`p-3 text-center border-l ${t.border}`}>
-                              <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => abrirEditar(item)}
-                                  className={`w-7 h-7 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition`}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
-                                </button>
-                                <button onClick={() => eliminar(item.id)}
-                                  className={`w-7 h-7 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-red-400 transition`}>
-                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
-                                </button>
-                              </div>
-                            </td>
+                      <tr><td colSpan={esAdmin ? 6 : 5} className={`p-8 text-center ${t.textSecondary} text-sm`}>Sin resultados</td></tr>
+                    ) : paginados.map((item, idx) => (
+                      <tr key={item.id} className={`group transition-colors hover:bg-blue-500/5 ${idx % 2 === 1 ? (t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50") : ""}`}>
+                        <td className={`p-4 border-r ${t.border} font-medium ${t.text}`}>{item.insumo}</td>
+                        <td className={`p-4 border-r ${t.border} text-xs`}>
+                          <span className={`px-2 py-1 rounded-full border text-[10px] font-bold ${MODO_BADGE[item.cerrado_modo]?.cls || MODO_BADGE["N/A"].cls}`}>
+                            {item.cerrado_modo || "N/A"}
+                          </span>
+                        </td>
+                        <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_retiro || "N/A"}</td>
+                        <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>
+                          <span className={t.text}>{item.abierto_duracion || "N/A"}</span>
+                          {item.abierto_ejemplo && item.abierto_ejemplo !== "N/A" && (
+                            <span className={`block text-[10px] ${t.textSecondary} mt-0.5`}>({item.abierto_ejemplo})</span>
                           )}
-                        </tr>
-                      );
-                    })}
+                        </td>
+                        <td className={`p-4 border-r ${t.border} text-xs`}>
+                          <span className={`px-2 py-1 rounded-full border text-[10px] font-bold ${MODO_BADGE[item.abierto_modo]?.cls || MODO_BADGE["N/A"].cls}`}>
+                            {item.abierto_modo || "N/A"}
+                          </span>
+                        </td>
+                        {esAdmin && (
+                          <td className={`p-3 text-center border-l ${t.border}`}>
+                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => abrirEditar(item)}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition`}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
+                              </button>
+                              <button onClick={() => eliminar(item.id)}
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-red-400 transition`}>
+                                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
@@ -264,47 +335,51 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               <div className="md:hidden divide-y" style={{ borderColor: "inherit" }}>
                 {loading ? (
                   <p className={`${t.textSecondary} text-sm text-center p-8`}>Cargando...</p>
-                ) : paginados.map(item => {
-                  return (
-                    <div key={item.id} className="p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className={`${t.text} font-bold text-sm flex-1 pr-2`}>{item.insumo}</h3>
-
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-                        <div>
-                          <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider`}>Cerrado — Modo</p>
-                          <p className={t.text}>{item.cerrado_modo}</p>
-                        </div>
-                        <div>
-                          <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider`}>Cerrado — Duración</p>
-                          <p className={t.text}>{item.cerrado_duracion || "N/A"}</p>
-                        </div>
-                        <div>
-                          <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider`}>Abierto — Modo</p>
-                          <p className={t.text}>{item.abierto_modo}</p>
-                        </div>
-                        <div>
-                          <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider`}>Abierto — Duración</p>
-                          <p className={t.text}>{item.abierto_duracion || "N/A"}</p>
-                        </div>
-                      </div>
-                      {esAdmin && (
-                        <div className="flex gap-2 mt-3">
-                          <button onClick={() => abrirEditar(item)}
-                            className={`flex-1 flex items-center justify-center gap-1 ${t.bgInput} border ${t.border} ${t.textSecondary} text-xs py-2 rounded-lg hover:text-blue-400 transition`}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span> Editar
-                          </button>
-                          <button onClick={() => eliminar(item.id)}
-                            className={`flex-1 flex items-center justify-center gap-1 ${t.bgInput} border ${t.border} ${t.textSecondary} text-xs py-2 rounded-lg hover:text-red-400 transition`}>
-                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span> Eliminar
-                          </button>
-                        </div>
-                      )}
+                ) : paginados.map(item => (
+                  <div key={item.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <h3 className={`${t.text} font-bold text-sm flex-1 pr-2`}>{item.insumo}</h3>
                     </div>
-                  );
-                })}
-              </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                      <div>
+                        <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider mb-1`}>Cerrado — Modo</p>
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${MODO_BADGE[item.cerrado_modo]?.cls || MODO_BADGE["N/A"].cls}`}>
+                          {item.cerrado_modo || "N/A"}
+                        </span>
+                      </div>
+                      <div>
+                        <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider mb-1`}>Retiro antes del Venc.</p>
+                        <p className={t.text}>{item.cerrado_retiro || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider mb-1`}>Abierto — Duración</p>
+                        <p className={t.text}>{item.abierto_duracion || "N/A"}
+                          {item.abierto_ejemplo && item.abierto_ejemplo !== "N/A" && (
+                            <span className={`block text-[10px] ${t.textSecondary}`}>({item.abierto_ejemplo})</span>
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <p className={`${t.textSecondary} font-bold uppercase text-[9px] tracking-wider mb-1`}>Abierto — Modo</p>
+                        <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold ${MODO_BADGE[item.abierto_modo]?.cls || MODO_BADGE["N/A"].cls}`}>
+                          {item.abierto_modo || "N/A"}
+                        </span>
+                      </div>
+                    </div>
+                    {esAdmin && (
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => abrirEditar(item)}
+                          className={`flex-1 flex items-center justify-center gap-1 ${t.bgInput} border ${t.border} ${t.textSecondary} text-xs py-2 rounded-lg hover:text-blue-400 transition`}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span> Editar
+                        </button>
+                        <button onClick={() => eliminar(item.id)}
+                          className={`flex-1 flex items-center justify-center gap-1 ${t.bgInput} border ${t.border} ${t.textSecondary} text-xs py-2 rounded-lg hover:text-red-400 transition`}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
 
               {/* Footer paginación */}
               <div className={`px-5 py-3 border-t ${t.border} flex flex-col md:flex-row items-center justify-between gap-3 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50"}`}>
@@ -341,9 +416,9 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               </div>
             </div>
 
-          </div>
+          </div>{/* /main content */}
         </main>
-      </div>
+      </div>{/* /flex col */}
 
       {/* ── MODAL agregar/editar ── */}
       {modalOpen && (
@@ -361,28 +436,23 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               <div>
                 <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Nombre del Insumo *</label>
                 <input value={form.insumo} onChange={e => upd("insumo", e.target.value)}
-                  className={inputCls} placeholder="Ej: Leche líquida larga vida" autoFocus />
+                  className={inputCls} placeholder="Ej: LECHE LÍQUIDA LARGA VIDA" autoFocus />
               </div>
 
               {/* CERRADO */}
               <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4">
                 <p className="text-indigo-400 text-xs font-black uppercase tracking-widest mb-3">Cerrado</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo Almacenamiento</label>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo de Almacenamiento</label>
                     <select value={form.cerrado_modo} onChange={e => upd("cerrado_modo", e.target.value)} className={selectCls}>
                       {MODOS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Retiro Antes Venc.</label>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Retiro Cámara/Bodega antes del Venc.</label>
                     <input value={form.cerrado_retiro} onChange={e => upd("cerrado_retiro", e.target.value)}
-                      className={inputCls} placeholder="Ej: 10 días" />
-                  </div>
-                  <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
-                    <input value={form.cerrado_duracion} onChange={e => upd("cerrado_duracion", e.target.value)}
-                      className={inputCls} placeholder="Ej: 2 días" />
+                      className={inputCls} placeholder="Ej: 4 días, 1 día" />
                   </div>
                 </div>
               </div>
@@ -390,27 +460,25 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               {/* ABIERTO */}
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
                 <p className="text-amber-400 text-xs font-black uppercase tracking-widest mb-3">Abierto</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo Almacenamiento</label>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
+                    <input value={form.abierto_duracion} onChange={e => upd("abierto_duracion", e.target.value)}
+                      className={inputCls} placeholder="Ej: 2 días, 24 horas" />
+                  </div>
+                  <div>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo de Almacenamiento</label>
                     <select value={form.abierto_modo} onChange={e => upd("abierto_modo", e.target.value)} className={selectCls}>
                       {MODOS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
                   </div>
-                  <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración.</label>
-                    <input value={form.abierto_retiro || ""} onChange={e => upd("abierto_retiro", e.target.value)}
-                      className={inputCls} placeholder="Ej: 2 días" />
-                  </div>
-                  <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Días/Meses</label>
-                    <input value={form.abierto_duracion} onChange={e => upd("abierto_duracion", e.target.value)}
-                      className={inputCls} placeholder="Ej: 3 días" />
+                  <div className="col-span-2">
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Nota / condición (opcional)</label>
+                    <input value={form.abierto_ejemplo || ""} onChange={e => upd("abierto_ejemplo", e.target.value)}
+                      className={inputCls} placeholder="Ej: antes del vcto original, desde que se congela" />
                   </div>
                 </div>
               </div>
-
-
             </div>
 
             <div className={`flex gap-3 px-5 pb-5`}>
@@ -426,6 +494,119 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
           </div>
         </div>
       )}
+      {/* ── MODAL IA — previsualización y confirmación ── */}
+      {modalIAOpen && resultadoIA && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
+
+            {/* Header */}
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border} flex-shrink-0`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                </div>
+                <div>
+                  <h3 className={`${t.text} font-bold`}>Resultado del análisis IA</h3>
+                  <p className={`${t.textSecondary} text-xs`}>{resultadoIA.todos.length} insumos detectados en la imagen</p>
+                </div>
+              </div>
+              <button onClick={() => setModalIAOpen(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3 px-6 py-4 flex-shrink-0">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+                <p className="text-emerald-400 text-xl font-black">{resultadoIA.nuevos.length}</p>
+                <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-wider">Nuevos</p>
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                <p className="text-amber-400 text-xl font-black">{resultadoIA.duplicados.length}</p>
+                <p className="text-amber-400 text-[10px] font-bold uppercase tracking-wider">Duplicados</p>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-center">
+                <p className="text-blue-400 text-xl font-black">{resultadoIA.todos.length}</p>
+                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-wider">Total</p>
+              </div>
+            </div>
+
+            {/* Lista previsualización */}
+            <div className="flex-1 overflow-y-auto px-6 pb-2">
+              {resultadoIA.duplicados.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>warning</span>
+                    Ya existen en el sistema — se omitirán
+                  </p>
+                  <div className="space-y-1">
+                    {resultadoIA.duplicados.map((item, i) => (
+                      <div key={i} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl ${t.bgInput} opacity-50`}>
+                        <span className="material-symbols-outlined text-amber-400" style={{ fontSize: 16 }}>block</span>
+                        <span className={`${t.text} text-sm font-medium flex-1`}>{item.insumo}</span>
+                        <span className={`${t.textSecondary} text-xs`}>{item.abierto_modo}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {resultadoIA.nuevos.length > 0 && (
+                <div>
+                  <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add_circle</span>
+                    Se importarán
+                  </p>
+                  <div className="space-y-1">
+                    {resultadoIA.nuevos.map((item, i) => (
+                      <div key={i} className={`px-4 py-3 rounded-xl ${t.bgInput} border ${t.border}`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`${t.text} text-sm font-bold`}>{item.insumo}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${MODO_BADGE[item.abierto_modo]?.cls || MODO_BADGE["N/A"].cls}`}>
+                              {item.abierto_modo}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-x-4 text-[10px]">
+                          <span className={t.textSecondary}>Cerrado: {item.cerrado_modo} · Retiro: {item.cerrado_retiro || "N/A"}</span>
+                          <span className={t.textSecondary}>Abierto: {item.abierto_duracion || "N/A"}{item.abierto_ejemplo && item.abierto_ejemplo !== "N/A" ? ` (${item.abierto_ejemplo})` : ""} · {item.abierto_modo}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {resultadoIA.nuevos.length === 0 && (
+                <div className="py-8 text-center">
+                  <span className="material-symbols-outlined text-amber-400 text-4xl">info</span>
+                  <p className={`${t.text} font-bold mt-2`}>Todos los insumos ya existen</p>
+                  <p className={`${t.textSecondary} text-sm mt-1`}>No hay nada nuevo para importar.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`flex gap-3 px-6 py-4 border-t ${t.border} flex-shrink-0`}>
+              <button onClick={() => setModalIAOpen(false)}
+                className={`flex-1 ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>
+                Cancelar
+              </button>
+              {resultadoIA.nuevos.length > 0 && (
+                <button onClick={() => importarInsumosIA(resultadoIA.nuevos)} disabled={saving}
+                  className="flex-[2] bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
+                  {saving
+                    ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Importando...</>
+                    : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Importar {resultadoIA.nuevos.length} insumos nuevos</>
+                  }
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
