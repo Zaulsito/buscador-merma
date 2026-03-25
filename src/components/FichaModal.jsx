@@ -1,4 +1,13 @@
 import { useState, useEffect, useRef } from "react";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor,
+  useSensor, useSensors, DragOverlay,
+} from "@dnd-kit/core";
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  useSortable, verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { db } from "../firebase/config";
 import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -20,16 +29,61 @@ const TABS = [
 const G = "bg-slate-800/60 backdrop-blur-sm border border-white/8 rounded-2xl";
 
 const UNIDADES_META = [
-  { id: "UN",    label: "UN",    desc: "Unidad simple",        icon: "deployed_code",   esEntero: true  },
-  { id: "KG",    label: "KG",    desc: "Kilogramos",           icon: "weight",          esEntero: false },
-  { id: "UN/KG", label: "UN/KG", desc: "Unidad por kilogramo", icon: "weight",          esEntero: false },
-  { id: "L",     label: "L",     desc: "Litro",                icon: "water_drop",      esEntero: false },
-  { id: "L/KG",  label: "L/KG",  desc: "Litro por kilogramo",  icon: "water",           esEntero: false },
+  { id: "UN",    label: "UN",    desc: "Unidad simple",        icon: "deployed_code",   esEntero: true,  esFraccion: false },
+  { id: "KG",    label: "KG",    desc: "Kilogramos",           icon: "weight",          esEntero: false, esFraccion: false },
+  { id: "UN/KG", label: "UN/KG", desc: "Unidad por kilogramo", icon: "weight",          esEntero: false, esFraccion: true  },
+  { id: "L",     label: "L",     desc: "Litro",                icon: "water_drop",      esEntero: false, esFraccion: false },
+  { id: "L/KG",  label: "L/KG",  desc: "Litro por kilogramo",  icon: "water",           esEntero: false, esFraccion: true  },
 ];
 const UNIDADES = UNIDADES_META.map(u => u.id);
-const defaultCantidad = (u) => UNIDADES_META.find(m => m.id === u)?.esEntero ? "0" : "0.000";
+const defaultCantidad = (u) => {
+  const meta = UNIDADES_META.find(m => m.id === u);
+  if (meta?.esEntero) return "0";
+  if (meta?.esFraccion) return "0/0.000";
+  return "0.000";
+};
 
+// ── Componentes sortables ──
+function SortableTr({ id, children, esSeparador }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    background: isDragging ? "rgba(59,130,246,0.05)" : undefined,
+  };
+  return (
+    <tr ref={setNodeRef} style={style} className={`group ${esSeparador ? "" : "hover:bg-white/[0.02]"} transition-colors`}>
+      <td className="px-3 py-3">
+        <button {...attributes} {...listeners} className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing touch-none">
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>drag_indicator</span>
+        </button>
+      </td>
+      {children}
+    </tr>
+  );
+}
 
+function SortableCard({ id, children, className = "" }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+  return (
+    <div ref={setNodeRef} style={style} className={`relative ${className}`}>
+      <button
+        {...attributes} {...listeners}
+        className="absolute top-3 left-3 z-10 text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing touch-none"
+        style={{ lineHeight: 1 }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>drag_indicator</span>
+      </button>
+      {children}
+    </div>
+  );
+}
 
 export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const { t } = useTheme();
@@ -56,6 +110,21 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     document.addEventListener("click", handler);
     return () => document.removeEventListener("click", handler);
   }, [seccionDropdownOpen]);
+
+  // ── DnD helpers ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDndEnd = (lista) => (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const items = form[lista];
+    const oldIdx = items.findIndex((_, i) => `${lista}-${i}` === active.id);
+    const newIdx = items.findIndex((_, i) => `${lista}-${i}` === over.id);
+    if (oldIdx !== -1 && newIdx !== -1) update(lista, arrayMove(items, oldIdx, newIdx));
+  };
 
   // Componente selector de unidad estilo card
   const SelectorUnidad = ({ valor, lista, idx, color = "blue" }) => {
@@ -251,8 +320,19 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const agregarFila = (lista, modelo) => update(lista, [...form[lista], { ...modelo }]);
   const eliminarFila = (lista, idx) => update(lista, form[lista].filter((_, i) => i !== idx));
   const agregarVariasFila = (lista, cantidad, modelo) => update(lista, [...form[lista], ...Array.from({ length: cantidad }, () => ({ ...modelo }))]);
-  const formatearCantidad = (valor, unidad = "L") => {
-    const esEntero = UNIDADES_META.find(m => m.id === unidad)?.esEntero;
+  const formatearCantidad = (valor, unidad = "KG") => {
+    const meta = UNIDADES_META.find(m => m.id === unidad);
+    if (meta?.esFraccion) {
+      // formato UN/KG o L/KG → "entero/0.000"
+      const partes = valor.split("/");
+      const p1 = partes[0]?.replace(/\D/g, "") || "0";
+      const raw2 = (partes[1] ?? "").replace(/\D/g, "").slice(0, 6);
+      if (!raw2) return (parseInt(p1) || 0) + "/0.000";
+      const pad = raw2.padStart(4, "0");
+      const dec = parseFloat(pad.slice(0, -3) + "." + pad.slice(-3)).toFixed(3);
+      return (parseInt(p1) || 0) + "/" + dec;
+    }
+    const esEntero = meta?.esEntero;
     const soloNumeros = valor.replace(/\D/g, "").slice(0, 6);
     if (!soloNumeros) return esEntero ? "0" : "0.000";
     if (esEntero) return String(parseInt(soloNumeros, 10));
@@ -637,73 +717,137 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-white/5 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-white/10">
-                          <th className="px-6 py-4">Nombre del Ingrediente</th>
-                          <th className="px-6 py-4 text-center">Cant. Bruta</th>
-                          <th className="px-6 py-4 text-center">Cant. Neta</th>
-                          <th className="px-6 py-4 text-center">Unidad</th>
-                          <th className="px-6 py-4 text-right">Acciones</th>
+                          <th className="px-3 py-4 w-6"></th>
+                          <th className="px-4 py-4">Nombre del Ingrediente</th>
+                          <th className="px-4 py-4 text-center">Cant. Bruta</th>
+                          <th className="px-4 py-4 text-center">Cant. Neta</th>
+                          <th className="px-4 py-4 text-center">Unidad</th>
+                          <th className="px-4 py-4 text-right">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-white/5">
-                        {form.materiasPrimas.map((mp, i) => (
-                          <tr key={i} className="group hover:bg-white/[0.02] transition-colors">
-                            <td className="px-6 py-3"><input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-medium text-sm focus:ring-0 outline-none w-full" placeholder="NOMBRE INGREDIENTE" /></td>
-                            <td className="px-6 py-3"><input value={mp.cantidadBruta} onChange={e => updateLista("materiasPrimas", i, "cantidadBruta", formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-center text-white text-sm focus:ring-0 outline-none w-full" /></td>
-                            <td className="px-6 py-3"><input value={mp.cantidadNeta} onChange={e => updateLista("materiasPrimas", i, "cantidadNeta", formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-center text-white text-sm focus:ring-0 outline-none w-full" /></td>
-                            <td className="px-6 py-3 text-center"><SelectorUnidad valor={mp.unidad} lista="materiasPrimas" idx={i} color="blue" /></td>
-                            <td className="px-6 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <input value={mp.codSap || ""} onChange={e => updateLista("materiasPrimas", i, "codSap", e.target.value)}
-                                  className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-1.5 text-slate-400 font-mono text-xs focus:ring-1 focus:ring-blue-500 outline-none w-24"
-                                  placeholder="SAP (opc.)" />
-                                <button onClick={() => eliminarFila("materiasPrimas", i)} className="text-slate-500 hover:text-red-400 transition-colors p-1">
-                                  <span className="material-symbols-outlined text-lg">delete</span>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
+                      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndEnd("materiasPrimas")}>
+                        <SortableContext items={form.materiasPrimas.map((_, i) => `materiasPrimas-${i}`)} strategy={verticalListSortingStrategy}>
+                          <tbody className="divide-y divide-white/5">
+                            {form.materiasPrimas.map((mp, i) => {
+                              const id = `materiasPrimas-${i}`;
+                              const esSeparador = mp._tipo === "separador";
+                              const meta = UNIDADES_META.find(m => m.id === mp.unidad);
+                              const esFraccion = meta?.esFraccion;
+                              const esEntero = meta?.esEntero;
+                              return (
+                                <SortableTr key={id} id={id} esSeparador={esSeparador}>
+                                  {esSeparador ? (
+                                    <>
+                                      <td colSpan={4} className="px-4 py-2">
+                                        <div className="flex items-center gap-3 bg-slate-800/60 border border-white/10 rounded-xl px-4 py-2">
+                                          <span className="material-symbols-outlined text-teal-400" style={{ fontSize: 16 }}>format_list_bulleted</span>
+                                          <input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-teal-300 font-bold text-sm focus:ring-0 outline-none flex-1" placeholder="NOMBRE DE SECCIÓN / PASO..." />
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-2 text-right">
+                                        <button onClick={() => eliminarFila("materiasPrimas", i)} className="text-slate-500 hover:text-red-400 transition-colors p-1">
+                                          <span className="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                      </td>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <td className="px-4 py-3"><input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-medium text-sm focus:ring-0 outline-none w-full" placeholder="NOMBRE INGREDIENTE" /></td>
+                                      <td className="px-4 py-3"><input value={mp.cantidadBruta} onChange={e => updateLista("materiasPrimas", i, "cantidadBruta", formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-center text-white text-sm focus:ring-0 outline-none w-full" placeholder={esFraccion ? "0/0.000" : esEntero ? "0" : "0.000"} /></td>
+                                      <td className="px-4 py-3"><input value={mp.cantidadNeta} onChange={e => updateLista("materiasPrimas", i, "cantidadNeta", formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-center text-white text-sm focus:ring-0 outline-none w-full" placeholder={esFraccion ? "0/0.000" : esEntero ? "0" : "0.000"} /></td>
+                                      <td className="px-4 py-3 text-center"><SelectorUnidad valor={mp.unidad} lista="materiasPrimas" idx={i} color="blue" /></td>
+                                      <td className="px-4 py-3 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                          <input value={mp.codSap || ""} onChange={e => updateLista("materiasPrimas", i, "codSap", e.target.value)} className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-1.5 text-slate-400 font-mono text-xs focus:ring-1 focus:ring-blue-500 outline-none w-24 opacity-0 group-hover:opacity-100 transition-opacity" placeholder="SAP (opc.)" />
+                                          <button onClick={() => eliminarFila("materiasPrimas", i)} className="text-slate-500 hover:text-red-400 transition-colors p-1">
+                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                          </button>
+                                        </div>
+                                      </td>
+                                    </>
+                                  )}
+                                </SortableTr>
+                              );
+                            })}
+                          </tbody>
+                        </SortableContext>
+                      </DndContext>
                     </table>
-                    <div className="p-4">
+                    <div className="p-4 flex gap-3">
                       <button onClick={() => agregarFila("materiasPrimas", { nombre: "", unidad: "UN", cantidadBruta: "0", cantidadNeta: "0", codSap: "" })}
-                        className="w-full py-4 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 hover:border-blue-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 font-bold group">
+                        className="flex-1 py-4 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 hover:border-blue-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 font-bold group">
                         <span className="material-symbols-outlined group-hover:scale-110 transition-transform">add_circle</span>+ Agregar ingrediente
+                      </button>
+                      <button onClick={() => agregarFila("materiasPrimas", { nombre: "", _tipo: "separador" })}
+                        className="px-5 py-4 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 hover:border-teal-500 hover:text-teal-400 transition-all flex items-center justify-center gap-2 font-bold group"
+                        title="Agregar separador de sección">
+                        <span className="material-symbols-outlined group-hover:scale-110 transition-transform" style={{ fontSize: 18 }}>format_list_bulleted</span>— Sección
                       </button>
                     </div>
                   </div>
                   {/* Cards móvil */}
-                  <div className="md:hidden space-y-3">
-                    {form.materiasPrimas.map((mp, i) => (
-                      <div key={i} className={`${G} p-4 relative`}>
-                        <button onClick={() => eliminarFila("materiasPrimas", i)} className="absolute top-3 right-3 text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
-                        <div className="mb-3">
-                          {mp.codSap && <span className="text-[10px] text-blue-400 font-bold tracking-widest uppercase block mb-1">SAP: {mp.codSap}</span>}
-                          <input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-bold text-base focus:ring-0 outline-none w-full pr-8" placeholder="NOMBRE INGREDIENTE" />
-                        </div>
-                        <div className="grid grid-cols-3 gap-2">
-                          {[["cantidadBruta","Bruta"],["cantidadNeta","Neta"]].map(([c, l]) => (
-                            <div key={c} className="bg-white/5 p-2 rounded-lg">
-                              <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">{l}</p>
-                              <input value={mp[c] || ""} onChange={e => updateLista("materiasPrimas", i, c, formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-blue-300 font-mono text-xs focus:ring-0 outline-none w-full" />
-                            </div>
-                          ))}
-                          <div className="bg-white/5 p-2 rounded-lg">
-                            <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">Unidad</p>
-                            <SelectorUnidad valor={mp.unidad} lista="materiasPrimas" idx={i} color="blue" />
-                          </div>
-                        </div>
-                        <div className="mt-2 pt-2 border-t border-white/5">
-                          <p className="text-[9px] text-slate-600 uppercase font-bold mb-1">Código SAP (opcional, solo para Merma)</p>
-                          <input value={mp.codSap || ""} onChange={e => updateLista("materiasPrimas", i, "codSap", e.target.value)} className="bg-transparent border-none p-0 text-slate-500 font-mono text-xs focus:ring-0 outline-none w-full" placeholder="Sin código SAP" />
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndEnd("materiasPrimas")}>
+                    <SortableContext items={form.materiasPrimas.map((_, i) => `mp-mob-${i}`)} strategy={verticalListSortingStrategy}>
+                      <div className="md:hidden space-y-3">
+                        {form.materiasPrimas.map((mp, i) => {
+                          const id = `mp-mob-${i}`;
+                          const esSeparador = mp._tipo === "separador";
+                          const meta = UNIDADES_META.find(m => m.id === mp.unidad);
+                          const esFraccion = meta?.esFraccion;
+                          const esEntero = meta?.esEntero;
+                          return (
+                            <SortableCard key={id} id={id}>
+                              {esSeparador ? (
+                                <div className="flex items-center gap-3 bg-slate-800/60 border border-teal-500/30 rounded-xl px-4 py-3">
+                                  <span className="material-symbols-outlined text-slate-500 cursor-grab active:cursor-grabbing" style={{ fontSize: 18 }}>drag_indicator</span>
+                                  <span className="material-symbols-outlined text-teal-400" style={{ fontSize: 16 }}>format_list_bulleted</span>
+                                  <input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-teal-300 font-bold text-sm focus:ring-0 outline-none flex-1" placeholder="NOMBRE DE SECCIÓN / PASO..." />
+                                  <button onClick={() => eliminarFila("materiasPrimas", i)} className="text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
+                                </div>
+                              ) : (
+                                <div className={`${G} p-4 relative`}>
+                                  <div className="absolute top-3 right-3 flex items-center gap-1">
+                                    <button onClick={() => eliminarFila("materiasPrimas", i)} className="text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
+                                  </div>
+                                  <div className="mb-3">
+                                    {mp.codSap && <span className="text-[10px] text-blue-400 font-bold tracking-widest uppercase block mb-1">SAP: {mp.codSap}</span>}
+                                    <input value={mp.nombre} onChange={e => updateLista("materiasPrimas", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-bold text-base focus:ring-0 outline-none w-full pr-8" placeholder="NOMBRE INGREDIENTE" />
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {[["cantidadBruta","Bruta"],["cantidadNeta","Neta"]].map(([c, l]) => (
+                                      <div key={c} className="bg-white/5 p-2 rounded-lg">
+                                        <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">{l}</p>
+                                        <input value={mp[c] || ""} onChange={e => updateLista("materiasPrimas", i, c, formatearCantidad(e.target.value, mp.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-blue-300 font-mono text-xs focus:ring-0 outline-none w-full" placeholder={esFraccion ? "0/0.000" : esEntero ? "0" : "0.000"} />
+                                      </div>
+                                    ))}
+                                    <div className="bg-white/5 p-2 rounded-lg">
+                                      <p className="text-[9px] text-slate-500 uppercase font-bold mb-1">Unidad</p>
+                                      <SelectorUnidad valor={mp.unidad} lista="materiasPrimas" idx={i} color="blue" />
+                                    </div>
+                                  </div>
+                                  <div className="mt-2 pt-2 border-t border-white/5">
+                                    <p className="text-[9px] text-slate-600 uppercase font-bold mb-1">Código SAP (opcional)</p>
+                                    <input value={mp.codSap || ""} onChange={e => updateLista("materiasPrimas", i, "codSap", e.target.value)} className="bg-transparent border-none p-0 text-slate-500 font-mono text-xs focus:ring-0 outline-none w-full" placeholder="Sin código SAP" />
+                                  </div>
+                                </div>
+                              )}
+                            </SortableCard>
+                          );
+                        })}
+                        <div className="flex gap-2">
+                          <button onClick={() => agregarFila("materiasPrimas", { nombre: "", unidad: "UN", cantidadBruta: "0", cantidadNeta: "0", codSap: "" })}
+                            className="flex-1 py-3 rounded-xl border-2 border-dashed border-slate-700 hover:border-blue-500 text-slate-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 text-sm font-bold">
+                            <span className="material-symbols-outlined text-sm">add</span>+ Agregar ingrediente
+                          </button>
+                          <button onClick={() => agregarFila("materiasPrimas", { nombre: "", _tipo: "separador" })}
+                            className="px-4 py-3 rounded-xl border-2 border-dashed border-slate-700 hover:border-teal-500 text-slate-500 hover:text-teal-400 transition-all flex items-center justify-center gap-2 text-sm font-bold"
+                            title="Agregar separador">
+                            <span className="material-symbols-outlined text-sm">format_list_bulleted</span>—
+                          </button>
                         </div>
                       </div>
-                    ))}
-                    <button onClick={() => agregarFila("materiasPrimas", { nombre: "", unidad: "UN", cantidadBruta: "0", cantidadNeta: "0", codSap: "" })}
-                      className="w-full py-3 rounded-xl border-2 border-dashed border-slate-700 hover:border-blue-500 text-slate-500 hover:text-blue-400 transition-all flex items-center justify-center gap-2 text-sm font-bold">
-                      <span className="material-symbols-outlined text-sm">add</span>+ Agregar ingrediente
-                    </button>
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 </section>
 
                 {/* ELEMENTOS DECORATIVOS */}
@@ -712,42 +856,70 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                     <div className="h-8 w-1.5 bg-amber-500 rounded-full" />
                     <h2 className="text-lg font-bold tracking-tight text-white uppercase">Elementos Decorativos / Montaje</h2>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {form.elementosDecorativos.map((el, i) => (
-                      <div key={i} className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 border-l-4 border-amber-500 relative">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            {el.codSap && <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded block mb-1">SAP: {el.codSap}</span>}
-                            <input value={el.nombre} onChange={e => updateLista("elementosDecorativos", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-bold text-base focus:ring-0 outline-none" placeholder="NOMBRE ELEMENTO" />
-                          </div>
-                          <button onClick={() => eliminarFila("elementosDecorativos", i)} className="text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 border-t border-white/5 pt-4">
-                          {[["cantidadBruta","C. Bruta"],["cantidadNeta","Neta"]].map(([c, l]) => (
-                            <div key={c}>
-                              <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">{l}</p>
-                              <input value={el[c] || ""} onChange={e => updateLista("elementosDecorativos", i, c, formatearCantidad(e.target.value, el.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-lg font-bold text-amber-400 focus:ring-0 outline-none w-full" placeholder="—" />
-                            </div>
-                          ))}
-                          <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Unidad</p>
-                            <SelectorUnidad valor={el.unidad} lista="elementosDecorativos" idx={i} color="amber" />
-                          </div>
-                        </div>
-                        {/* SAP oculto — solo para sincronización con Merma */}
-                        <div className="mt-3 pt-3 border-t border-white/5">
-                          <p className="text-[9px] text-slate-600 uppercase font-bold mb-1">Código SAP (opcional, solo para Merma)</p>
-                          <input value={el.codSap || ""} onChange={e => updateLista("elementosDecorativos", i, "codSap", e.target.value)} className="bg-transparent border-none p-0 text-slate-500 font-mono text-xs focus:ring-0 outline-none w-full" placeholder="Sin código SAP" />
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDndEnd("elementosDecorativos")}>
+                    <SortableContext items={form.elementosDecorativos.map((_, i) => `el-${i}`)} strategy={verticalListSortingStrategy}>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {form.elementosDecorativos.map((el, i) => {
+                          const id = `el-${i}`;
+                          const esSeparador = el._tipo === "separador";
+                          const meta = UNIDADES_META.find(m => m.id === el.unidad);
+                          const esFraccion = meta?.esFraccion;
+                          const esEntero = meta?.esEntero;
+                          return (
+                            <SortableCard key={id} id={id} className={esSeparador ? "md:col-span-2" : ""}>
+                              {esSeparador ? (
+                                <div className="flex items-center gap-3 bg-slate-800/60 border border-teal-500/30 rounded-xl px-4 py-3">
+                                  <span className="material-symbols-outlined text-slate-500 cursor-grab active:cursor-grabbing" style={{ fontSize: 18 }}>drag_indicator</span>
+                                  <span className="material-symbols-outlined text-teal-400" style={{ fontSize: 16 }}>format_list_bulleted</span>
+                                  <input value={el.nombre} onChange={e => updateLista("elementosDecorativos", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-teal-300 font-bold text-sm focus:ring-0 outline-none flex-1" placeholder="NOMBRE DE SECCIÓN / PASO..." />
+                                  <button onClick={() => eliminarFila("elementosDecorativos", i)} className="text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
+                                </div>
+                              ) : (
+                                <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-6 border-l-4 border-amber-500 relative">
+                                  <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                      {el.codSap && <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded block mb-1">SAP: {el.codSap}</span>}
+                                      <input value={el.nombre} onChange={e => updateLista("elementosDecorativos", i, "nombre", e.target.value.toUpperCase())} className="bg-transparent border-none p-0 text-white font-bold text-base focus:ring-0 outline-none" placeholder="NOMBRE ELEMENTO" />
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => eliminarFila("elementosDecorativos", i)} className="text-slate-500 hover:text-red-400 transition-colors"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span></button>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-3 border-t border-white/5 pt-4">
+                                    {[["cantidadBruta","C. Bruta"],["cantidadNeta","Neta"]].map(([c, l]) => (
+                                      <div key={c}>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">{l}</p>
+                                        <input value={el[c] || ""} onChange={e => updateLista("elementosDecorativos", i, c, formatearCantidad(e.target.value, el.unidad))} onFocus={e => setTimeout(() => e.target.select(), 0)} className="bg-transparent border-none p-0 text-lg font-bold text-amber-400 focus:ring-0 outline-none w-full" placeholder={esFraccion ? "0/0.000" : esEntero ? "0" : "—"} />
+                                      </div>
+                                    ))}
+                                    <div>
+                                      <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Unidad</p>
+                                      <SelectorUnidad valor={el.unidad} lista="elementosDecorativos" idx={i} color="amber" />
+                                    </div>
+                                  </div>
+                                  <div className="mt-3 pt-3 border-t border-white/5">
+                                    <p className="text-[9px] text-slate-600 uppercase font-bold mb-1">Código SAP (opcional)</p>
+                                    <input value={el.codSap || ""} onChange={e => updateLista("elementosDecorativos", i, "codSap", e.target.value)} className="bg-transparent border-none p-0 text-slate-500 font-mono text-xs focus:ring-0 outline-none w-full" placeholder="Sin código SAP" />
+                                  </div>
+                                </div>
+                              )}
+                            </SortableCard>
+                          );
+                        })}
+                        <div className="md:col-span-2 flex gap-3">
+                          <button onClick={() => agregarFila("elementosDecorativos", { nombre: "", cantidadBruta: "0", cantidadNeta: "0", unidad: "UN", codSap: "" })}
+                            className="flex-1 py-6 border-2 border-dashed border-slate-700 rounded-2xl text-slate-500 hover:border-amber-500 hover:text-amber-400 transition-all flex items-center justify-center gap-3 font-bold group bg-white/[0.01]">
+                            <span className="material-symbols-outlined group-hover:scale-110 transition-transform">add_circle</span>+ Agregar elemento decorativo
+                          </button>
+                          <button onClick={() => agregarFila("elementosDecorativos", { nombre: "", _tipo: "separador" })}
+                            className="px-6 py-6 border-2 border-dashed border-slate-700 rounded-2xl text-slate-500 hover:border-teal-500 hover:text-teal-400 transition-all flex items-center justify-center gap-2 font-bold group bg-white/[0.01]"
+                            title="Agregar separador de sección">
+                            <span className="material-symbols-outlined group-hover:scale-110 transition-transform" style={{ fontSize: 18 }}>format_list_bulleted</span>— Sección
+                          </button>
                         </div>
                       </div>
-                    ))}
-                    <div className="md:col-span-2">
-                      <button onClick={() => agregarFila("elementosDecorativos", { nombre: "", cantidadBruta: "0", cantidadNeta: "0", unidad: "UN", codSap: "" })}
-                        className="w-full py-6 border-2 border-dashed border-slate-700 rounded-2xl text-slate-500 hover:border-amber-500 hover:text-amber-400 transition-all flex items-center justify-center gap-3 font-bold group bg-white/[0.01]">
-                        <span className="material-symbols-outlined group-hover:scale-110 transition-transform">add_circle</span>+ Agregar elemento decorativo
-                      </button>
-                    </div>
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 </section>
               </>
             )}
