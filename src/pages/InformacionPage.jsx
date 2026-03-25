@@ -218,8 +218,8 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                       <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
+                      <th className={`p-3 border-b border-r ${t.border}`}>Ejemplo en días.</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${t.border}`}>
@@ -398,12 +398,12 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                     </select>
                   </div>
                   <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Retiro Antes Venc.</label>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración.</label>
                     <input value={form.abierto_retiro || ""} onChange={e => upd("abierto_retiro", e.target.value)}
                       className={inputCls} placeholder="Ej: 2 días" />
                   </div>
                   <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
+                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Días/Meses</label>
                     <input value={form.abierto_duracion} onChange={e => upd("abierto_duracion", e.target.value)}
                       className={inputCls} placeholder="Ej: 3 días" />
                   </div>
