@@ -34,6 +34,29 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const [form, setForm] = useState({ ...FILA_VACIA });
   const [saving, setSaving] = useState(false);
   const [leyendoIA, setLeyendoIA] = useState(false);
+  const [leyendoTablaIA, setLeyendoTablaIA] = useState(false);
+  const [modalImportIA, setModalImportIA] = useState(false);
+  const [resultadoIA, setResultadoIA] = useState(null); // { nuevos, duplicados, todos }
+  const [importando, setImportando] = useState(false);
+
+  // Ctrl+V global para importar tabla con IA
+  useEffect(() => {
+    const handler = (e) => {
+      if (modalOpen || modalImportIA) return; // no interferir con modales activos
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) leerTablaConIA(file);
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, [modalOpen, modalImportIA]);
   const [paginaActual, setPaginaActual] = useState(1);
   const POR_PAGINA = 15;
 
@@ -130,6 +153,58 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
     }
   };
 
+  const leerTablaConIA = async (file) => {
+    if (!file) return;
+    setLeyendoTablaIA(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type, tipo: "vida_util" }),
+      });
+      const data = await response.json();
+      if (!response.ok) { toast.error(data.error || "Error al procesar"); return; }
+      if (!data.insumos?.length) { toast.error("No se detectaron insumos en la imagen"); return; }
+
+      const nombresExistentes = new Set(insumos.map(i => i.insumo?.trim().toLowerCase()));
+      const todos = data.insumos;
+      const duplicados = todos.filter(r => nombresExistentes.has(r.insumo?.trim().toLowerCase()));
+      const nuevos = todos.filter(r => !nombresExistentes.has(r.insumo?.trim().toLowerCase()));
+      setResultadoIA({ todos, nuevos, duplicados });
+      setModalImportIA(true);
+    } catch (err) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setLeyendoTablaIA(false);
+    }
+  };
+
+  const importarTodos = async (lista) => {
+    setImportando(true);
+    try {
+      for (const item of lista) {
+        await addDoc(collection(db, "vida_util_insumos"), {
+          insumo: item.insumo || "",
+          cerrado_modo: item.cerrado_modo || "N/A",
+          cerrado_retiro: item.cerrado_retiro || "N/A",
+          abierto_modo: item.abierto_modo || "N/A",
+          abierto_duracion: item.abierto_duracion || "N/A",
+          fechaCreacion: serverTimestamp(),
+        });
+      }
+      toast.success(`${lista.length} insumo(s) importados ✅`);
+      setModalImportIA(false);
+      setResultadoIA(null);
+    } catch { toast.error("Error al importar"); }
+    setImportando(false);
+  };
+
   const upd = (campo, valor) => setForm(p => ({ ...p, [campo]: valor }));
 
   const inputCls = `w-full ${t.bgInput} border ${t.border} ${t.text} px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`;
@@ -157,9 +232,19 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
           </button>
           <h2 className={`${t.text} text-base font-bold flex-1 truncate`}>Manual Vida Útil</h2>
           {esAdmin && (
-            <button onClick={abrirNuevo} className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white">
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <label className={`w-10 h-10 flex items-center justify-center rounded-full text-white ${leyendoTablaIA ? "bg-purple-700 opacity-60" : "bg-gradient-to-r from-purple-600 to-indigo-600"} cursor-pointer`}>
+                {leyendoTablaIA
+                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  : <span className="material-symbols-outlined" style={{ fontSize: 20 }}>table_view</span>
+                }
+                <input type="file" accept="image/*" className="hidden" disabled={leyendoTablaIA}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) leerTablaConIA(f); e.target.value = ""; }} />
+              </label>
+              <button onClick={abrirNuevo} className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-600 text-white">
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
+              </button>
+            </div>
           )}
         </header>
 
@@ -182,11 +267,21 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                   <p>Fecha: 22/07/2025</p>
                 </div>
                 {esAdmin && (
-                  <button onClick={abrirNuevo}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition shadow-lg shadow-blue-500/20">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                    Agregar Insumo
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl font-bold text-sm transition shadow-lg ${leyendoTablaIA ? "bg-purple-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 shadow-purple-500/20"} text-white`}>
+                      {leyendoTablaIA
+                        ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Leyendo tabla...</>
+                        : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>table_view</span> Importar con IA</>
+                      }
+                      <input type="file" accept="image/*" className="hidden" disabled={leyendoTablaIA}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) leerTablaConIA(f); e.target.value = ""; }} />
+                    </label>
+                    <button onClick={abrirNuevo}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2.5 rounded-xl font-bold text-sm transition shadow-lg shadow-blue-500/20">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                      Agregar
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -216,6 +311,18 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                   Registro de Control de Almacenamiento
                 </h3>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* Zona paste Ctrl+V — solo admins */}
+                  {esAdmin && (
+                    <div
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border border-dashed text-xs transition-all cursor-default ${leyendoTablaIA ? "border-purple-500/50 bg-purple-500/5 text-purple-400" : `border-white/10 ${t.textSecondary}`}`}
+                      title="Pega una imagen con Ctrl+V para importar con IA"
+                    >
+                      {leyendoTablaIA
+                        ? <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Leyendo...</>
+                        : <><span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_paste</span> <kbd className="px-1 py-0.5 rounded bg-white/10 font-mono text-[10px]">Ctrl+V</kbd></>
+                      }
+                    </div>
+                  )}
                   {/* Buscador */}
                   <div className="relative">
                     <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 16 }}>search</span>
@@ -375,6 +482,109 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
         </main>
       </div>
 
+      {/* ── MODAL importación masiva IA ── */}
+      {modalImportIA && resultadoIA && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
+
+            {/* Header */}
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border} flex-shrink-0`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                </div>
+                <div>
+                  <p className={`${t.text} font-bold text-sm`}>Importación con IA</p>
+                  <p className={`${t.textSecondary} text-xs`}>{resultadoIA.todos.length} insumo(s) detectados en la imagen</p>
+                </div>
+              </div>
+              <button onClick={() => { setModalImportIA(false); setResultadoIA(null); }}
+                className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3 px-6 py-4 flex-shrink-0">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3 text-center">
+                <p className="text-emerald-400 text-xl font-black">{resultadoIA.nuevos.length}</p>
+                <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">Nuevos</p>
+              </div>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
+                <p className="text-amber-400 text-xl font-black">{resultadoIA.duplicados.length}</p>
+                <p className="text-amber-400 text-[10px] font-bold uppercase tracking-widest">Ya existen</p>
+              </div>
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-3 text-center">
+                <p className="text-blue-400 text-xl font-black">{resultadoIA.todos.length}</p>
+                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Total</p>
+              </div>
+            </div>
+
+            {/* Lista previsualización */}
+            <div className="flex-1 overflow-y-auto px-6 pb-2">
+              {resultadoIA.nuevos.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+                    Se importarán ({resultadoIA.nuevos.length})
+                  </p>
+                  <div className="space-y-1.5">
+                    {resultadoIA.nuevos.map((r, i) => (
+                      <div key={i} className={`${t.bgInput} border border-emerald-500/20 rounded-xl px-4 py-3`}>
+                        <p className={`${t.text} font-bold text-sm mb-1.5`}>{r.insumo}</p>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
+                          <span className={t.textSecondary}>Cerrado: <span className="text-indigo-400 font-semibold">{r.cerrado_modo}</span> — {r.cerrado_retiro}</span>
+                          <span className={t.textSecondary}>Abierto: <span className="text-amber-400 font-semibold">{r.abierto_modo}</span> — {r.abierto_duracion}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {resultadoIA.duplicados.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-1">
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>warning</span>
+                    Ya existen — se omitirán ({resultadoIA.duplicados.length})
+                  </p>
+                  <div className="space-y-1">
+                    {resultadoIA.duplicados.map((r, i) => (
+                      <div key={i} className={`${t.bgInput} border ${t.border} rounded-lg px-3 py-2 opacity-50`}>
+                        <p className={`${t.textSecondary} text-xs`}>{r.insumo}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {resultadoIA.nuevos.length === 0 && (
+                <div className="py-8 text-center">
+                  <span className="material-symbols-outlined text-amber-400 text-4xl">info</span>
+                  <p className={`${t.text} font-bold mt-2`}>Todos los insumos ya existen</p>
+                  <p className={`${t.textSecondary} text-sm mt-1`}>No hay nuevos para importar.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`flex gap-3 px-6 py-4 border-t ${t.border} flex-shrink-0`}>
+              <button onClick={() => { setModalImportIA(false); setResultadoIA(null); }}
+                className={`flex-1 ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>
+                Cancelar
+              </button>
+              {resultadoIA.nuevos.length > 0 && (
+                <button onClick={() => importarTodos(resultadoIA.nuevos)} disabled={importando}
+                  className="flex-[2] bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 text-white font-bold py-2.5 rounded-xl text-sm transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/20">
+                  {importando
+                    ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Importando...</>
+                    : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Importar {resultadoIA.nuevos.length} insumo(s)</>
+                  }
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── MODAL agregar/editar ── */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
@@ -431,6 +641,32 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               </div>
 
 
+            </div>
+
+            {/* Zona paste Ctrl+V dentro del modal */}
+            <div className="px-5 pb-1">
+              <div
+                className={`flex items-center justify-center gap-2 border border-dashed rounded-xl px-4 py-2.5 text-xs transition-all ${leyendoIA ? "border-purple-500/40 bg-purple-500/5 text-purple-400" : `border-white/10 ${t.textSecondary} hover:border-purple-500/30 hover:text-purple-400 cursor-pointer`}`}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  for (const item of items) {
+                    if (item.type.startsWith("image/")) {
+                      e.preventDefault();
+                      const file = item.getAsFile();
+                      if (file) leerConIA(file);
+                      break;
+                    }
+                  }
+                }}
+                tabIndex={0}
+                title="Haz clic aquí y pega con Ctrl+V"
+              >
+                {leyendoIA
+                  ? <><svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Analizando...</>
+                  : <><span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_paste</span> Clic aquí y pega con <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[10px]">Ctrl+V</kbd></>
+                }
+              </div>
             </div>
 
             {/* Botón IA */}

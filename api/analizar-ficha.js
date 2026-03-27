@@ -79,40 +79,40 @@ Reglas:
 Responde ÚNICAMENTE con el JSON, sin explicaciones.`;
 
     } else if (tipo === "vida_util") {
-      prompt = `Eres un extractor de datos estricto. Analiza esta tabla de control de almacenamiento de insumos.
+      prompt = `Eres un extractor de datos de tablas. Analizarás una tabla de control de vida útil de insumos de cocina industrial.
 
-La tabla tiene exactamente estas columnas (de izquierda a derecha):
-1. INSUMOS — nombre del producto
-2. CERRADO / Modo de Almacenamiento
-3. CERRADO / Retiro de Cámara y/o Bodega antes del Vencimiento
-4. ABIERTO / Duración (puede tener texto entre paréntesis como "(antes del vcto original)")
-5. ABIERTO / Modo de Almacenamiento
+ESTRUCTURA EXACTA DE LA TABLA que debes leer:
+| INSUMOS | CERRADO: Modo de Almacenamiento | CERRADO: Retiro Cámara/Bodega antes del Vencimiento | ABIERTO: Modo de Almacenamiento | ABIERTO: Duración |
 
-Devuelve SOLO este JSON sin markdown ni texto adicional:
+TAREA: Lee cada fila de la tabla y extrae los datos. Devuelve SOLO este JSON array sin markdown, sin explicaciones:
 [
   {
-    "insumo": "NOMBRE EN MAYUSCULAS",
-    "cerrado_modo": "Refrigerado",
-    "cerrado_retiro": "4 días",
-    "abierto_duracion": "2 días",
-    "abierto_ejemplo": "antes del vcto original",
-    "abierto_modo": "Refrigerado"
+    "insumo": "NOMBRE EXACTO EN MAYUSCULAS",
+    "cerrado_modo": "Fresco y seco",
+    "cerrado_retiro": "2 meses",
+    "abierto_modo": "Fresco y seco",
+    "abierto_duracion": "30 días"
   }
 ]
 
-REGLAS CRÍTICAS — lee celda por celda, NO combines columnas:
-- insumo: nombre exacto en MAYÚSCULAS
-- cerrado_modo: SOLO uno de: "Fresco y seco", "Refrigerado", "Congelado", "Refrigerado o Congelado", "N/A"
-- cerrado_retiro: texto de la columna 3 exactamente (ej: "4 días", "1 día (desde la recepción)", "N/A")
-- abierto_duracion: SOLO el número/días de la columna 4, SIN el texto entre paréntesis (ej: "2 días", "15 días")
-- abierto_ejemplo: SOLO el texto entre paréntesis de la columna 4 si existe (ej: "antes del vcto original", "desde que se congela"), si no hay → "N/A"
-- abierto_modo: SOLO uno de: "Fresco y seco", "Refrigerado", "Congelado", "N/A"
-- Si un insumo tiene 2 filas (ej: Refrigerado Y Congelado), crea 2 objetos separados con el mismo nombre
-- Celda vacía → "N/A"
-- Extrae TODOS los insumos sin omitir ninguno
-- NO inventes datos
+REGLAS ABSOLUTAS — NO NEGOCIABLES:
+1. "insumo": copia el texto EXACTO de la columna INSUMOS en MAYÚSCULAS
+2. "cerrado_modo": lee la columna "Modo de Almacenamiento" del bloque CERRADO. Usa EXACTAMENTE uno de: "Fresco y seco" | "Refrigerado" | "Congelado" | "N/A"
+3. "cerrado_retiro": lee la columna "Retiro Cámara/Bodega antes del Vencimiento" del bloque CERRADO. Copia el texto tal cual (ej: "4 días", "2 meses", "1 día desde la recepción", "N/A"). Si dice "N/A" o está vacío → "N/A"
+4. "abierto_modo": lee la columna "Modo de Almacenamiento" del bloque ABIERTO. Usa EXACTAMENTE uno de: "Fresco y seco" | "Refrigerado" | "Congelado" | "N/A"
+5. "abierto_duracion": lee la columna "Duración" del bloque ABIERTO. Copia el valor NUMÉRICO con unidad (ej: "30 días", "2 días", "15 días"). Si hay texto entre paréntesis IGNORARLO completamente. Si vacío → "N/A"
 
-Responde ÚNICAMENTE con el JSON array. Sin explicaciones. Sin markdown.`;
+ERRORES QUE DEBES EVITAR:
+- NO confundas "Retiro antes del vencimiento" (cerrado_retiro) con "Duración abierto" (abierto_duracion)
+- NO mezcles datos entre columnas
+- NO inventes valores que no están en la imagen
+- NO omitas filas aunque el insumo tenga nombre largo o difícil
+- Si un insumo tiene múltiples filas (Refrigerado Y Congelado), crea un objeto por cada fila con el mismo nombre
+- Una celda vacía o con "—" → "N/A"
+- Los valores de días SIEMPRE en formato "X días" o "X meses" con tilde en días
+
+Extrae ABSOLUTAMENTE TODOS los insumos de la tabla. No omitas ninguno.
+Responde ÚNICAMENTE con el JSON array. Sin texto adicional. Sin markdown.`;
 
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
