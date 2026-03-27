@@ -19,9 +19,7 @@ const FILA_VACIA = {
   insumo: "",
   cerrado_modo: "Fresco y seco",
   cerrado_retiro: "",
-  cerrado_duracion: "",
   abierto_modo: "Refrigerado",
-  abierto_retiro: "",
   abierto_duracion: "",
 };
 
@@ -35,6 +33,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const [editando, setEditando] = useState(null); // null = nuevo
   const [form, setForm] = useState({ ...FILA_VACIA });
   const [saving, setSaving] = useState(false);
+  const [leyendoIA, setLeyendoIA] = useState(false);
   const [paginaActual, setPaginaActual] = useState(1);
   const POR_PAGINA = 15;
 
@@ -94,6 +93,41 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
     if (!confirm("¿Eliminar este insumo?")) return;
     await deleteDoc(doc(db, "vida_util_insumos", id));
     toast.success("Eliminado ✅");
+  };
+
+  const leerConIA = async (file) => {
+    if (!file) return;
+    setLeyendoIA(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type, tipo: "vida_util" }),
+      });
+      const data = await response.json();
+      if (!response.ok) { toast.error(data.error || "Error al procesar"); return; }
+      if (!data.insumos?.length) { toast.error("No se encontraron datos"); return; }
+      const r = data.insumos[0];
+      setForm(p => ({
+        ...p,
+        insumo:        r.insumo        || p.insumo,
+        cerrado_modo:  r.cerrado_modo  || p.cerrado_modo,
+        cerrado_retiro:r.cerrado_retiro|| p.cerrado_retiro,
+        abierto_modo:  r.abierto_modo  || p.abierto_modo,
+        abierto_duracion: r.abierto_duracion || p.abierto_duracion,
+      }));
+      toast.success("Campos rellenados con IA ✅");
+    } catch (err) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setLeyendoIA(false);
+    }
   };
 
   const upd = (campo, valor) => setForm(p => ({ ...p, [campo]: valor }));
@@ -209,24 +243,22 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                   <thead>
                     <tr className={`${t.isDark ? "bg-slate-800/80" : "bg-slate-100"} text-xs font-black uppercase tracking-wider ${t.textSecondary}`}>
                       <th className={`p-4 border-b border-r ${t.border} min-w-[220px]`} rowSpan={2}>Insumos</th>
-                      <th className={`p-3 border-b border-r ${t.border} text-center bg-indigo-500/10 text-indigo-400`} colSpan={3}>Cerrado</th>
-                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={3}>Abierto</th>
+                      <th className={`p-3 border-b border-r ${t.border} text-center bg-indigo-500/10 text-indigo-400`} colSpan={2}>Cerrado</th>
+                      <th className={`p-3 border-b border-r ${t.border} text-center bg-amber-500/10 text-amber-400`} colSpan={2}>Abierto</th>
                       {esAdmin && <th className={`p-4 border-b border-l ${t.border} text-center w-20`} rowSpan={2}>Acciones</th>}
                     </tr>
                     <tr className={`${t.isDark ? "bg-slate-800/50" : "bg-slate-50"} text-[10px] font-bold uppercase ${t.textSecondary}`}>
                       <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Modo de Almacenamiento</th>
-                      <th className={`p-3 border-b border-r ${t.border}`}>Retiro Antes del Vencimiento</th>
                       <th className={`p-3 border-b border-r ${t.border}`}>Duración</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${t.border}`}>
                     {loading ? (
-                      <tr><td colSpan={esAdmin ? 8 : 7} className={`p-8 text-center ${t.textSecondary} text-sm`}>Cargando...</td></tr>
+                      <tr><td colSpan={esAdmin ? 6 : 5} className={`p-8 text-center ${t.textSecondary} text-sm`}>Cargando...</td></tr>
                     ) : paginados.length === 0 ? (
-                      <tr><td colSpan={esAdmin ? 8 : 7} className={`p-8 text-center ${t.textSecondary} text-sm`}>Sin resultados</td></tr>
+                      <tr><td colSpan={esAdmin ? 6 : 5} className={`p-8 text-center ${t.textSecondary} text-sm`}>Sin resultados</td></tr>
                     ) : paginados.map((item, idx) => {
                       const badge = MODO_BADGE[item.modo_final] || MODO_BADGE["N/A"];
                       return (
@@ -234,9 +266,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                           <td className={`p-4 border-r ${t.border} font-medium ${t.text}`}>{item.insumo}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_modo}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_retiro || "N/A"}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.cerrado_duracion || "N/A"}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_modo}</td>
-                          <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_retiro || "N/A"}</td>
                           <td className={`p-4 border-r ${t.border} ${t.textSecondary} text-xs`}>{item.abierto_duracion || "N/A"}</td>
 
                           {esAdmin && (
@@ -367,7 +397,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               {/* CERRADO */}
               <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4">
                 <p className="text-indigo-400 text-xs font-black uppercase tracking-widest mb-3">Cerrado</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo Almacenamiento</label>
                     <select value={form.cerrado_modo} onChange={e => upd("cerrado_modo", e.target.value)} className={selectCls}>
@@ -379,28 +409,18 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                     <input value={form.cerrado_retiro} onChange={e => upd("cerrado_retiro", e.target.value)}
                       className={inputCls} placeholder="Ej: 10 días" />
                   </div>
-                  <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
-                    <input value={form.cerrado_duracion} onChange={e => upd("cerrado_duracion", e.target.value)}
-                      className={inputCls} placeholder="Ej: 2 días" />
-                  </div>
                 </div>
               </div>
 
               {/* ABIERTO */}
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4">
                 <p className="text-amber-400 text-xs font-black uppercase tracking-widest mb-3">Abierto</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Modo Almacenamiento</label>
                     <select value={form.abierto_modo} onChange={e => upd("abierto_modo", e.target.value)} className={selectCls}>
                       {MODOS.map(m => <option key={m} value={m}>{m}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Retiro Antes Venc.</label>
-                    <input value={form.abierto_retiro || ""} onChange={e => upd("abierto_retiro", e.target.value)}
-                      className={inputCls} placeholder="Ej: 2 días" />
                   </div>
                   <div>
                     <label className={`${t.textSecondary} text-[10px] font-bold mb-1 block`}>Duración</label>
@@ -411,6 +431,18 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
               </div>
 
 
+            </div>
+
+            {/* Botón IA */}
+            <div className="px-5 pb-3">
+              <label className={`w-full flex items-center justify-center gap-2 cursor-pointer py-2.5 rounded-xl font-bold text-sm transition ${leyendoIA ? "bg-purple-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110"} text-white shadow-lg shadow-purple-500/20`}>
+                {leyendoIA
+                  ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Analizando...</>
+                  : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Rellenar con IA</>
+                }
+                <input type="file" accept="image/*" className="hidden" disabled={leyendoIA}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) leerConIA(f); e.target.value = ""; }} />
+              </label>
             </div>
 
             <div className={`flex gap-3 px-5 pb-5`}>
