@@ -12,8 +12,18 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
   const [seleccionados, setSeleccionados] = useState([]);
   const [cantidades, setCantidades] = useState({});
   const [listaGenerada, setListaGenerada] = useState(null);
+  const [modalLista, setModalLista] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
+  const [flotanteVisible, setFlotanteVisible] = useState(true);
   const { t } = useTheme();
+
+  // Ocultar botón flotante después de 3s de inactividad
+  useEffect(() => {
+    setFlotanteVisible(true);
+    const timer = setTimeout(() => setFlotanteVisible(false), 3000);
+    return () => clearTimeout(timer);
+  }, [seleccionados, busqueda, catActiva]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "merma"), (snap) => {
@@ -31,7 +41,13 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
     return () => unsub();
   }, []);
 
-  const filtered = products.filter(p => catActiva === "" || p.categoria === catActiva);
+  const filtered = products.filter(p => {
+    const matchCat = catActiva === "" || p.categoria === catActiva;
+    const matchBusqueda = !busqueda || 
+      p.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      p.codigo?.toLowerCase().includes(busqueda.toLowerCase());
+    return matchCat && matchBusqueda;
+  });
 
   const toggleSeleccion = (producto) => {
     setListaGenerada(null);
@@ -57,6 +73,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
       unidad: p.unidadMedida || "—",
     }));
     setListaGenerada(lista);
+    setModalLista(true);
   };
 
   return (
@@ -130,6 +147,22 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
               ))}
             </div>
 
+            {/* Buscador */}
+            <div className="relative mb-5">
+              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar por nombre o código SAP..."
+                className={`w-full ${t.bgCard} border ${t.border} ${t.text} pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white transition`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                </button>
+              )}
+            </div>
+
             {/* Grid productos */}
             {loading ? (
               <div className="flex items-center justify-center py-20">
@@ -198,44 +231,65 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
               </div>
             )}
 
-            {/* Lista generada */}
-            {listaGenerada && (
-              <div className={`${t.bgCard} border ${t.border} rounded-2xl overflow-hidden shadow-sm`}>
-                <div className={`px-6 py-4 border-b ${t.border} flex items-center justify-between`}>
-                  <h3 className={`${t.text} font-bold text-lg flex items-center gap-2`}>
-                    <span className="material-symbols-outlined text-blue-400">receipt_long</span>
-                    Lista de Pedido
-                  </h3>
-                  <span className={`${t.textSecondary} text-xs`}>{listaGenerada.length} productos</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className={`${t.isDark ? "bg-white/5" : "bg-slate-50"} border-b ${t.border}`}>
-                      <tr>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Código</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Producto</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Categoría</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Cantidad</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Unidad</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${t.border}`}>
-                      {listaGenerada.map((item, i) => (
-                        <tr key={i} className={`${t.hover} transition-colors`}>
-                          <td className="px-6 py-3 font-mono text-xs text-blue-400">{item.codigo}</td>
-                          <td className={`${t.text} px-6 py-3 font-medium`}>{item.nombre}</td>
-                          <td className={`${t.textSecondary} px-6 py-3`}>{item.categoria}</td>
-                          <td className="px-6 py-3 text-blue-400 font-bold">{item.cantidad}</td>
-                          <td className={`${t.textSecondary} px-6 py-3`}>{item.unidad}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* Modal lista generada */}
+            {modalLista && listaGenerada && (
+              <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4" onClick={() => setModalLista(false)}>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]`} onClick={e => e.stopPropagation()}>
+                  {/* Header */}
+                  <div className={`flex items-center justify-between px-5 py-4 border-b ${t.border} flex-shrink-0`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>checklist</span>
+                      </div>
+                      <div>
+                        <p className={`${t.text} font-bold text-sm`}>Lista de Pedido</p>
+                        <p className={`${t.textSecondary} text-xs`}>{listaGenerada.length} productos seleccionados</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setModalLista(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                    </button>
+                  </div>
+                  {/* Lista */}
+                  <div className="flex-1 overflow-y-auto">
+                    {listaGenerada.map((item, i) => (
+                      <div key={i} className={`flex items-center justify-between px-5 py-3 border-b ${t.border} last:border-0 ${t.hover} transition-colors`}>
+                        <div className="min-w-0">
+                          <p className={`${t.text} text-sm font-medium truncate`}>{item.nombre}</p>
+                          {item.codigo !== "—" && <p className="text-blue-400 font-mono text-xs">{item.codigo}</p>}
+                        </div>
+                        {item.cantidad !== "—" && (
+                          <span className="bg-blue-500/15 text-blue-400 text-xs font-black px-2.5 py-1 rounded-full border border-blue-500/20 flex-shrink-0 ml-3">
+                            {item.cantidad} {item.unidad !== "—" ? item.unidad : ""}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {/* Footer */}
+                  <div className={`px-5 py-3 border-t ${t.border} flex-shrink-0`}>
+                    <button onClick={() => setModalLista(false)} className={`w-full ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
           </div>
         </main>
+
+        {/* Botón flotante generar lista */}
+        {seleccionados.length > 0 && (
+          <button
+            onClick={() => { generarLista(); document.querySelector("main")?.scrollTo({ top: 99999, behavior: "smooth" }); }}
+            onMouseEnter={() => setFlotanteVisible(true)}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>checklist</span>
+            <span>Generar lista</span>
+            <span className="bg-white/20 text-white text-xs font-black px-2 py-0.5 rounded-full">{seleccionados.length}</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { db } from "../firebase/config";
+import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
@@ -74,24 +76,88 @@ const moduloAdmin = {
   borderB: "border-b-purple-500",
 };
 
-const actividadReciente = [
-  { icon: "add_task", color: "bg-blue-500/10 text-blue-400", titulo: "Nueva ficha técnica cargada", desc: "Se agregó una nueva ficha al sistema", tiempo: "Hace 5m" },
-  { icon: "warning", color: "bg-red-500/10 text-red-400", titulo: "Alerta de merma crítica", desc: "Se detectó exceso en línea de producción B", tiempo: "Hace 1h" },
-  { icon: "check_circle", color: "bg-emerald-500/10 text-emerald-400", titulo: "Planificación completada", desc: "Se generó lista de ingredientes para producción", tiempo: "Hace 3h" },
-];
 
-const proximosEventos = [
-  { fecha: "Hoy • 14:00", titulo: "Reunión de Sincronización", lugar: "Sala de conferencias B", activo: true },
-  { fecha: "Mañana • 09:00", titulo: "Auditoría de Calidad", lugar: "Planta de Manufactura", activo: false },
-  { fecha: "Próximamente", titulo: "Lanzamiento Módulo IA", lugar: "Despliegue General", activo: false },
-];
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem("rinfo_tutorial_visto");
   });
+  const [actividadReal, setActividadReal] = useState([]);
+  const esAdmin = rol === "admin" || rol === "unico";
   const { t } = useTheme();
+
+  // Función para calcular tiempo relativo
+  const tiempoRelativo = (ts) => {
+    if (!ts) return "Ahora";
+    const fecha = ts?.toDate ? ts.toDate() : new Date(ts);
+    const diff = Math.floor((Date.now() - fecha.getTime()) / 1000);
+    if (diff < 60) return "Ahora mismo";
+    if (diff < 3600) return `Hace ${Math.floor(diff/60)}m`;
+    if (diff < 86400) return `Hace ${Math.floor(diff/3600)}h`;
+    if (diff < 604800) return `Hace ${Math.floor(diff/86400)}d`;
+    return fecha.toLocaleDateString("es-CL", { day: "numeric", month: "short" });
+  };
+
+  // Escuchar actividad real en Firestore — solo para admins
+  useEffect(() => {
+    if (!esAdmin) return;
+
+    const eventos = {};
+    const actualizar = () => {
+      const todos = Object.values(eventos).flat()
+        .sort((a, b) => (b._ts || 0) - (a._ts || 0))
+        .slice(0, 12);
+      setActividadReal(todos);
+    };
+
+    const unsubFichas = onSnapshot(
+      query(collection(db, "fichas"), orderBy("fechaCreacion", "desc"), limit(6)),
+      (snap) => {
+        eventos.fichas = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "description",
+          color: "bg-orange-500/10 text-orange-400",
+          titulo: `Ficha: ${d.data().nombre || "Sin nombre"}`,
+          desc: `Sección: ${d.data().seccion || "—"} · Estado: ${d.data().estado || "activa"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
+        actualizar();
+      }
+    );
+
+    const unsubMerma = onSnapshot(
+      query(collection(db, "merma"), orderBy("fechaCreacion", "desc"), limit(6)),
+      (snap) => {
+        eventos.merma = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "search",
+          color: "bg-blue-500/10 text-blue-400",
+          titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
+          desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
+        actualizar();
+      }
+    );
+
+    const unsubInsumos = onSnapshot(
+      query(collection(db, "vida_util_insumos"), orderBy("fechaCreacion", "desc"), limit(4)),
+      (snap) => {
+        eventos.insumos = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "inventory_2",
+          color: "bg-emerald-500/10 text-emerald-400",
+          titulo: `Insumo: ${d.data().insumo || "Sin nombre"}`,
+          desc: `Cerrado: ${d.data().cerrado_modo || "—"} · Abierto: ${d.data().abierto_duracion || "—"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
+        actualizar();
+      }
+    );
+
+    return () => { unsubFichas(); unsubMerma(); unsubInsumos(); };
+  }, [esAdmin]);
 
   useEffect(() => {
     const handleHash = () => setModulo(window.location.hash.replace("#", "") || null);
@@ -259,49 +325,44 @@ export default function DashboardPage({ user, rol }) {
             {/* Actividad Reciente + Próximos Eventos */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
+              {esAdmin && (
               <div className={`lg:col-span-2 ${t.bgCard} border ${t.border} rounded-2xl p-6`}>
                 <div className="flex items-center justify-between mb-5">
                   <h4 className={`${t.text} font-bold flex items-center gap-2`}>
                     <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>history</span>
-                    Actividad Reciente (Modo prueba)
+                    Actividad Reciente
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-full border border-blue-500/20">EN VIVO</span>
                   </h4>
-                  <button className={`p-1.5 ${t.hover} rounded-lg`}>
-                    <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 20 }}>more_vert</span>
-                  </button>
                 </div>
-                <div className="space-y-2">
-                  {actividadReciente.map((a, i) => (
-                    <div key={i} className={`flex items-start gap-4 p-3 ${t.hover} rounded-xl transition-colors`}>
-                      <div className={`w-10 h-10 rounded-full ${a.color} flex items-center justify-center flex-shrink-0`}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{a.icon}</span>
+                {actividadReal.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 gap-3">
+                    <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 36 }}>hourglass_empty</span>
+                    <p className={`${t.textSecondary} text-sm`}>Sin actividad reciente registrada</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+                    {actividadReal.map((a, i) => (
+                      <div key={i} className={`flex items-start gap-3 p-3 ${t.hover} rounded-xl transition-colors`}>
+                        <div className={`w-9 h-9 rounded-xl ${a.color} flex items-center justify-center flex-shrink-0`}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 17 }}>{a.icon}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`${t.text} text-sm font-semibold truncate`}>{a.titulo}</p>
+                          <p className={`${t.textSecondary} text-xs mt-0.5 truncate`}>{a.desc}</p>
+                        </div>
+                        <span className={`${t.textSecondary} text-xs whitespace-nowrap flex-shrink-0`}>{a.tiempo}</span>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={`${t.text} text-sm font-semibold`}>{a.titulo}</p>
-                        <p className={`${t.textSecondary} text-xs mt-0.5`}>{a.desc}</p>
-                      </div>
-                      <span className={`${t.textSecondary} text-xs whitespace-nowrap`}>{a.tiempo}</span>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
+              )}
 
-              <div className={`${t.bgCard} border ${t.border} rounded-2xl p-6`}>
-                <h4 className={`${t.text} font-bold mb-5 flex items-center gap-2`}>
-                  <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>event</span>
-                  Próximos Eventos (Modo prueba)
-                </h4>
-                <div className="space-y-5">
-                  {proximosEventos.map((e, i) => (
-                    <div key={i} className={`border-l-4 pl-4 ${e.activo ? "border-blue-500" : "border-slate-600"}`}>
-                      <p className={`text-xs font-bold uppercase ${e.activo ? "text-blue-400" : t.textSecondary}`}>{e.fecha}</p>
-                      <p className={`${t.text} text-sm font-bold mt-1`}>{e.titulo}</p>
-                      <p className={`${t.textSecondary} text-xs mt-0.5`}>{e.lugar}</p>
-                    </div>
-                  ))}
-                </div>
-                <button className={`w-full mt-6 py-2.5 border ${t.border} ${t.hover} ${t.text} rounded-xl text-sm font-bold transition-colors`}>
-                  Ver Calendario Completo
-                </button>
+              <div className={`${t.bgCard} border ${t.border} rounded-2xl p-6 flex flex-col items-center justify-center text-center`}>
+                <span className="material-symbols-outlined text-slate-600 mb-3" style={{ fontSize: 40 }}>event</span>
+                <p className={`${t.text} font-bold text-sm mb-1`}>Próximos Eventos</p>
+                <p className={`${t.textSecondary} text-xs leading-relaxed`}>Módulo de calendario en desarrollo. Pronto podrás ver y gestionar eventos del equipo desde aquí.</p>
+                <span className="mt-4 text-[10px] font-bold px-3 py-1 bg-slate-500/10 text-slate-400 rounded-full border border-slate-500/20">Próximamente</span>
               </div>
 
             </section>

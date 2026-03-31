@@ -10,9 +10,19 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
   const [secciones, setSecciones] = useState([]);
   const [seccionActiva, setSeccionActiva] = useState(null);
   const [seleccionadas, setSeleccionadas] = useState([]);
+  const [porciones, setPorciones] = useState({}); // { id: número de veces }
   const [listaGenerada, setListaGenerada] = useState(null);
+  const [modalLista, setModalLista] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
+  const [flotanteVisible, setFlotanteVisible] = useState(true);
   const { t } = useTheme();
+
+  useEffect(() => {
+    setFlotanteVisible(true);
+    const timer = setTimeout(() => setFlotanteVisible(false), 3000);
+    return () => clearTimeout(timer);
+  }, [seleccionadas, busqueda, seccionActiva]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "fichas"), (snap) => {
@@ -31,15 +41,29 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
     return () => unsub();
   }, []);
 
-  const fichasFiltradas = fichas.filter((f) => f.seccion === seccionActiva);
+  const fichasFiltradas = fichas.filter((f) => {
+    const matchSec = f.seccion === seccionActiva;
+    const matchBusqueda = !busqueda ||
+      f.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
+      f.codigo?.toLowerCase().includes(busqueda.toLowerCase());
+    return matchSec && matchBusqueda;
+  });
 
   const toggleSeleccion = (ficha) => {
     setListaGenerada(null);
-    setSeleccionadas((prev) =>
-      prev.find((f) => f.id === ficha.id)
-        ? prev.filter((f) => f.id !== ficha.id)
-        : [...prev, ficha]
-    );
+    const yaEsta = seleccionadas.some((f) => f.id === ficha.id);
+    if (yaEsta) {
+      setSeleccionadas(prev => prev.filter((f) => f.id !== ficha.id));
+      setPorciones(prev => { const n = { ...prev }; delete n[ficha.id]; return n; });
+    } else {
+      setSeleccionadas(prev => [...prev, ficha]);
+      setPorciones(prev => ({ ...prev, [ficha.id]: 1 }));
+    }
+  };
+
+  const setPorcion = (id, valor) => {
+    const n = parseInt(valor) || 1;
+    setPorciones(prev => ({ ...prev, [id]: Math.max(1, n) }));
   };
 
   const estaSeleccionada = (id) => seleccionadas.some((f) => f.id === id);
@@ -47,21 +71,23 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
   const generarLista = () => {
     const mapa = {};
     seleccionadas.forEach((ficha) => {
+      const mult = porciones[ficha.id] || 1;
       (ficha.materiasPrimas || []).forEach((mp) => {
         if (!mp.nombre?.trim()) return;
-        const key = mp.nombre.trim().toLowerCase();
+        const key = mp.nombre.trim().toUpperCase();
+        const cantNeta = parseFloat(mp.cantidadNeta) || 0;
+        const unidad = mp.unidad || "";
         if (mapa[key]) {
-          mapa[key].cantidad += parseFloat(mp.cantidadNeta) || 0;
+          mapa[key].total += cantNeta * mult;
         } else {
-          mapa[key] = {
-            nombre: mp.nombre.trim(),
-            cantidad: parseFloat(mp.cantidadNeta) || 0,
-            unidad: mp.unidad || "",
-          };
+          mapa[key] = { nombre: key, total: cantNeta * mult, unidad };
         }
       });
     });
-    setListaGenerada(Object.values(mapa).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    const lista = Object.values(mapa)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+    setListaGenerada(lista);
+    setModalLista(true);
   };
 
   return (
@@ -145,6 +171,22 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
             </div>
 
             {/* Grid fichas */}
+            {/* Buscador */}
+            <div className="relative mb-5">
+              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
+              <input
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                placeholder="Buscar ficha por nombre o código..."
+                className={`w-full ${t.bgCard} border ${t.border} ${t.text} pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              />
+              {busqueda && (
+                <button onClick={() => setBusqueda("")} className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white transition`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                </button>
+              )}
+            </div>
+
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <p className={`${t.textSecondary} text-sm`}>Cargando fichas...</p>
@@ -181,6 +223,31 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                         {estaSeleccionada(f.id) && <span className="material-symbols-outlined text-white" style={{ fontSize: 14 }}>check</span>}
                       </div>
                     </div>
+                    {estaSeleccionada(f.id) && (
+                      <div className={`px-3 pb-3 border-t ${t.border} pt-2`} onClick={e => e.stopPropagation()}>
+                        <label className={`${t.textSecondary} text-[10px] font-bold uppercase tracking-wider mb-1 block`}>Cantidad de veces</label>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setPorcion(f.id, (porciones[f.id] || 1) - 1)}
+                            className={`w-7 h-7 rounded-lg ${t.bgInput} border ${t.border} ${t.textSecondary} hover:text-white flex items-center justify-center transition flex-shrink-0`}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>remove</span>
+                          </button>
+                          <input
+                            type="number" min="1"
+                            value={porciones[f.id] || 1}
+                            onChange={e => setPorcion(f.id, e.target.value)}
+                            className={`flex-1 ${t.bgInput} border ${t.border} ${t.text} px-2 py-1 rounded-lg text-sm text-center outline-none focus:ring-2 focus:ring-blue-500`}
+                          />
+                          <button
+                            onClick={() => setPorcion(f.id, (porciones[f.id] || 1) + 1)}
+                            className={`w-7 h-7 rounded-lg ${t.bgInput} border ${t.border} ${t.textSecondary} hover:text-white flex items-center justify-center transition flex-shrink-0`}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -233,6 +300,19 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
             )}
           </div>
         </main>
+
+        {/* Botón flotante generar lista */}
+        {seleccionadas.length > 0 && (
+          <button
+            onClick={() => { generarLista(); document.querySelector("main")?.scrollTo({ top: 99999, behavior: "smooth" }); }}
+            onMouseEnter={() => setFlotanteVisible(true)}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>checklist</span>
+            <span>Generar lista</span>
+            <span className="bg-white/20 text-white text-xs font-black px-2 py-0.5 rounded-full">{seleccionadas.length}</span>
+          </button>
+        )}
       </div>
     </div>
   );
