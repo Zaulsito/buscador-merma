@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, query, limit, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
@@ -11,7 +11,6 @@ import AppSidebar from "../components/AppSidebar";
 import PlanogramaPage from "./PlanogramaPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
-import BottomNav from "../components/BottomNav";
 
 const modulos = [
   {
@@ -112,57 +111,47 @@ export default function DashboardPage({ user, rol }) {
       setActividadReal(todos);
     };
 
-    // Sin orderBy para evitar requerir índice — ordenamos en cliente
     const unsubFichas = onSnapshot(
-      query(collection(db, "fichas"), limit(20)),
+      query(collection(db, "fichas"), orderBy("fechaCreacion", "desc"), limit(6)),
       (snap) => {
-        eventos.fichas = snap.docs
-          .map(d => ({
-            _ts: d.data().fechaCreacion?.seconds || 0,
-            icon: "description",
-            color: "bg-orange-500/10 text-orange-400",
-            titulo: `Ficha: ${d.data().nombre || "Sin nombre"}`,
-            desc: `Sección: ${d.data().seccion || "—"} · Estado: ${d.data().estado || "activa"}`,
-            tiempo: tiempoRelativo(d.data().fechaCreacion),
-          }))
-          .sort((a, b) => b._ts - a._ts)
-          .slice(0, 6);
+        eventos.fichas = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "description",
+          color: "bg-orange-500/10 text-orange-400",
+          titulo: `Ficha: ${d.data().nombre || "Sin nombre"}`,
+          desc: `Sección: ${d.data().seccion || "—"} · Estado: ${d.data().estado || "activa"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
         actualizar();
       }
     );
 
     const unsubMerma = onSnapshot(
-      query(collection(db, "merma"), limit(20)),
+      query(collection(db, "merma"), orderBy("fechaCreacion", "desc"), limit(6)),
       (snap) => {
-        eventos.merma = snap.docs
-          .map(d => ({
-            _ts: d.data().fechaCreacion?.seconds || 0,
-            icon: "search",
-            color: "bg-blue-500/10 text-blue-400",
-            titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
-            desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
-            tiempo: tiempoRelativo(d.data().fechaCreacion),
-          }))
-          .sort((a, b) => b._ts - a._ts)
-          .slice(0, 6);
+        eventos.merma = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "search",
+          color: "bg-blue-500/10 text-blue-400",
+          titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
+          desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
         actualizar();
       }
     );
 
     const unsubInsumos = onSnapshot(
-      query(collection(db, "vida_util_insumos"), limit(10)),
+      query(collection(db, "vida_util_insumos"), orderBy("fechaCreacion", "desc"), limit(4)),
       (snap) => {
-        eventos.insumos = snap.docs
-          .map(d => ({
-            _ts: d.data().fechaCreacion?.seconds || 0,
-            icon: "inventory_2",
-            color: "bg-emerald-500/10 text-emerald-400",
-            titulo: `Insumo: ${d.data().insumo || "Sin nombre"}`,
-            desc: `Cerrado: ${d.data().cerrado_modo || "—"} · Abierto: ${d.data().abierto_duracion || "—"}`,
-            tiempo: tiempoRelativo(d.data().fechaCreacion),
-          }))
-          .sort((a, b) => b._ts - a._ts)
-          .slice(0, 4);
+        eventos.insumos = snap.docs.map(d => ({
+          _ts: d.data().fechaCreacion?.seconds || 0,
+          icon: "inventory_2",
+          color: "bg-emerald-500/10 text-emerald-400",
+          titulo: `Insumo: ${d.data().insumo || "Sin nombre"}`,
+          desc: `Cerrado: ${d.data().cerrado_modo || "—"} · Abierto: ${d.data().abierto_duracion || "—"}`,
+          tiempo: tiempoRelativo(d.data().fechaCreacion),
+        }));
         actualizar();
       }
     );
@@ -385,7 +374,32 @@ export default function DashboardPage({ user, rol }) {
           </div>
         </main>
       </div>
-      <BottomNav moduloActivo={null} onNavegar={navegarA} />
+
+      {/* ── BOTTOM NAV mobile ── */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-50 ${t.bgNav} border-t ${t.border} flex justify-around items-center px-2 py-2`}
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+      >
+        <button onClick={() => navegarA(null)} className="flex flex-col items-center gap-0.5 p-2 text-blue-400">
+          <span className="material-symbols-outlined" style={{ fontSize: 22, fontVariationSettings: "'FILL' 1" }}>home</span>
+          <span className="font-bold" style={{ fontSize: 10 }}>INICIO</span>
+        </button>
+        <button onClick={() => navegarA("merma")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>search</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>MERMA</span>
+        </button>
+        <button onClick={() => navegarA("fichas")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>description</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>FICHAS</span>
+        </button>
+        <button onClick={() => navegarA("planificador")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>account_tree</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>PLAN.</span>
+        </button>
+        <button onClick={() => navegarA("perfil")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>person</span>
+          <span className="font-medium" style={{ fontSize: 10 }}>PERFIL</span>
+        </button>
+      </nav>
 
       {/* Tutorial */}
       {showTutorial && (

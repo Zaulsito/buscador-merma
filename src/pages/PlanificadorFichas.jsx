@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
-import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 
@@ -315,7 +314,6 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
           </button>
         )}
       </div>
-      <BottomNav moduloActivo="planificador" onNavegar={onNavegar} />
     </div>
   );
 }
