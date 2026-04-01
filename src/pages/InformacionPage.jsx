@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
+import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import toast, { Toaster } from "react-hot-toast";
@@ -694,6 +695,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
           </div>
         </div>
       )}
+      <BottomNav moduloActivo="informacion" onNavegar={onNavegar} />
     </div>
   );
 }

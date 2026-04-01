@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTheme } from "../context/ThemeContext";
+import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import PlanificadorFichas from "./PlanificadorFichas";
@@ -274,6 +275,7 @@ export default function Planificador({ user, rol, onBack, onNavegar }) {
 
         </main>
       </div>
+      <BottomNav moduloActivo="planificador" onNavegar={onNavegar} />
     </div>
   );
 }
