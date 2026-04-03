@@ -7,6 +7,7 @@ import AddCategoriaModal from "../components/AddCategoriaModal";
 import ImportExportModal from "../components/ImportExportModal";
 import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
+import Navbar from "../components/Navbar";
 
 const POR_PAGINA = 50;
 const MAX_BOTONES = 5;
@@ -111,6 +112,7 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
 
       {/* Columna principal */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} /></div>
         <main className="flex-1 overflow-y-auto flex flex-col">
 
           {/* ── HEADER ── */}

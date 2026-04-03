@@ -23,7 +23,7 @@ export default function Navbar({ user, rol, onPerfil, onConfig }) {
     .join("")
     .toUpperCase();
 
-  const rolLabel = rol === "admin" || rol === "unico" ? "Admin" : rol || "Usuario";
+  const rolLabel = rol === "unico" ? "Programador" : rol === "admin" ? "Admin" : rol || "Usuario";
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -89,7 +89,7 @@ export default function Navbar({ user, rol, onPerfil, onConfig }) {
               {/* Nombre y rol (desktop) */}
               <div className="text-right hidden sm:block">
                 <p className="text-xs font-bold text-slate-100 leading-tight">{nombre.split(" ")[0]}</p>
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest leading-tight">{rolLabel}</p>
+                <p className={`text-[10px] uppercase tracking-widest leading-tight font-bold ${rol === "unico" ? "text-emerald-400" : rol === "admin" ? "text-amber-400" : "text-blue-400"}`}>{rolLabel}</p>
               </div>
               {/* Avatar */}
               <div className="w-9 h-9 rounded-full bg-blue-600/30 border-2 border-blue-500/40 flex items-center justify-center flex-shrink-0">

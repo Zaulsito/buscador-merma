@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, limit, onSnapshot, getDocs } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import BuscadorMerma from "./BuscadorMerma";
 import GestionUsuarios from "./GestionUsuarios";
@@ -11,6 +11,7 @@ import AppSidebar from "../components/AppSidebar";
 import PlanogramaPage from "./PlanogramaPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
+import BottomNav from "../components/BottomNav";
 
 const modulos = [
   {
@@ -80,6 +81,7 @@ const moduloAdmin = {
 
 export default function DashboardPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem("rinfo_tutorial_visto");
   });
@@ -111,47 +113,57 @@ export default function DashboardPage({ user, rol }) {
       setActividadReal(todos);
     };
 
+    // Sin orderBy para evitar requerir índice — ordenamos en cliente
     const unsubFichas = onSnapshot(
-      query(collection(db, "fichas"), orderBy("fechaCreacion", "desc"), limit(6)),
+      query(collection(db, "fichas"), limit(20)),
       (snap) => {
-        eventos.fichas = snap.docs.map(d => ({
-          _ts: d.data().fechaCreacion?.seconds || 0,
-          icon: "description",
-          color: "bg-orange-500/10 text-orange-400",
-          titulo: `Ficha: ${d.data().nombre || "Sin nombre"}`,
-          desc: `Sección: ${d.data().seccion || "—"} · Estado: ${d.data().estado || "activa"}`,
-          tiempo: tiempoRelativo(d.data().fechaCreacion),
-        }));
+        eventos.fichas = snap.docs
+          .map(d => ({
+            _ts: d.data().fechaCreacion?.seconds || 0,
+            icon: "description",
+            color: "bg-orange-500/10 text-orange-400",
+            titulo: `Ficha: ${d.data().nombre || "Sin nombre"}`,
+            desc: `Sección: ${d.data().seccion || "—"} · Estado: ${d.data().estado || "activa"}`,
+            tiempo: tiempoRelativo(d.data().fechaCreacion),
+          }))
+          .sort((a, b) => b._ts - a._ts)
+          .slice(0, 6);
         actualizar();
       }
     );
 
     const unsubMerma = onSnapshot(
-      query(collection(db, "merma"), orderBy("fechaCreacion", "desc"), limit(6)),
+      query(collection(db, "merma"), limit(20)),
       (snap) => {
-        eventos.merma = snap.docs.map(d => ({
-          _ts: d.data().fechaCreacion?.seconds || 0,
-          icon: "search",
-          color: "bg-blue-500/10 text-blue-400",
-          titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
-          desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
-          tiempo: tiempoRelativo(d.data().fechaCreacion),
-        }));
+        eventos.merma = snap.docs
+          .map(d => ({
+            _ts: d.data().fechaCreacion?.seconds || 0,
+            icon: "search",
+            color: "bg-blue-500/10 text-blue-400",
+            titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
+            desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
+            tiempo: tiempoRelativo(d.data().fechaCreacion),
+          }))
+          .sort((a, b) => b._ts - a._ts)
+          .slice(0, 6);
         actualizar();
       }
     );
 
     const unsubInsumos = onSnapshot(
-      query(collection(db, "vida_util_insumos"), orderBy("fechaCreacion", "desc"), limit(4)),
+      query(collection(db, "vida_util_insumos"), limit(10)),
       (snap) => {
-        eventos.insumos = snap.docs.map(d => ({
-          _ts: d.data().fechaCreacion?.seconds || 0,
-          icon: "inventory_2",
-          color: "bg-emerald-500/10 text-emerald-400",
-          titulo: `Insumo: ${d.data().insumo || "Sin nombre"}`,
-          desc: `Cerrado: ${d.data().cerrado_modo || "—"} · Abierto: ${d.data().abierto_duracion || "—"}`,
-          tiempo: tiempoRelativo(d.data().fechaCreacion),
-        }));
+        eventos.insumos = snap.docs
+          .map(d => ({
+            _ts: d.data().fechaCreacion?.seconds || 0,
+            icon: "inventory_2",
+            color: "bg-emerald-500/10 text-emerald-400",
+            titulo: `Insumo: ${d.data().insumo || "Sin nombre"}`,
+            desc: `Cerrado: ${d.data().cerrado_modo || "—"} · Abierto: ${d.data().abierto_duracion || "—"}`,
+            tiempo: tiempoRelativo(d.data().fechaCreacion),
+          }))
+          .sort((a, b) => b._ts - a._ts)
+          .slice(0, 4);
         actualizar();
       }
     );
@@ -237,10 +249,45 @@ export default function DashboardPage({ user, rol }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 22 }}>help</span>
               </button>
               <div className={`h-6 w-px ${t.bgInput}`}></div>
-              <button onClick={() => navegarA("perfil")} className="flex items-center gap-2 group">
-                <span className={`${t.text} text-sm font-semibold group-hover:text-blue-400 transition-colors`}>{nombre}</span>
-                <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">{iniciales}</div>
-              </button>
+              <div className="relative">
+                <button onClick={() => setUserMenuOpen(o => !o)} className="flex items-center gap-2 group">
+                  <span className={`${t.text} text-sm font-semibold group-hover:text-blue-400 transition-colors`}>{nombre}</span>
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">{iniciales}</div>
+                </button>
+                {userMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                    <div className={`absolute right-0 top-full mt-2 z-50 w-52 ${t.bgCard} border ${t.border} rounded-2xl shadow-2xl overflow-hidden`}>
+                      {/* Header */}
+                      <div className={`px-4 py-3 border-b ${t.border}`}>
+                        <p className={`${t.text} text-sm font-bold`}>{nombre}</p>
+                        <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
+                        <span className="text-[10px] font-black px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-full border border-blue-500/20 mt-1 inline-block uppercase">
+                          {rol === "admin" || rol === "unico" ? "Admin" : "Usuario"}
+                        </span>
+                      </div>
+                      {/* Opciones */}
+                      <button onClick={() => { setUserMenuOpen(false); navegarA("perfil"); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} ${t.text} text-sm transition-colors`}>
+                        <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>person</span>
+                        Mi Perfil
+                      </button>
+                      <button onClick={() => { setUserMenuOpen(false); setShowTutorial(true); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} ${t.text} text-sm transition-colors`}>
+                        <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: 18 }}>help</span>
+                        Ver Tutorial
+                      </button>
+                      <div className={`border-t ${t.border} mx-3`} />
+                      <button
+                        onClick={() => { setUserMenuOpen(false); import("firebase/auth").then(({ getAuth, signOut }) => signOut(getAuth())); }}
+                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} text-red-400 text-sm transition-colors`}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </header>
 
@@ -375,31 +422,7 @@ export default function DashboardPage({ user, rol }) {
         </main>
       </div>
 
-      {/* ── BOTTOM NAV mobile ── */}
-      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-50 ${t.bgNav} border-t ${t.border} flex justify-around items-center px-2 py-2`}
-        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
-      >
-        <button onClick={() => navegarA(null)} className="flex flex-col items-center gap-0.5 p-2 text-blue-400">
-          <span className="material-symbols-outlined" style={{ fontSize: 22, fontVariationSettings: "'FILL' 1" }}>home</span>
-          <span className="font-bold" style={{ fontSize: 10 }}>INICIO</span>
-        </button>
-        <button onClick={() => navegarA("merma")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>search</span>
-          <span className="font-medium" style={{ fontSize: 10 }}>MERMA</span>
-        </button>
-        <button onClick={() => navegarA("fichas")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>description</span>
-          <span className="font-medium" style={{ fontSize: 10 }}>FICHAS</span>
-        </button>
-        <button onClick={() => navegarA("planificador")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>account_tree</span>
-          <span className="font-medium" style={{ fontSize: 10 }}>PLAN.</span>
-        </button>
-        <button onClick={() => navegarA("perfil")} className={`flex flex-col items-center gap-0.5 p-2 ${t.textSecondary}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>person</span>
-          <span className="font-medium" style={{ fontSize: 10 }}>PERFIL</span>
-        </button>
-      </nav>
+      <BottomNav moduloActivo={null} onNavegar={navegarA} />
 
       {/* Tutorial */}
       {showTutorial && (

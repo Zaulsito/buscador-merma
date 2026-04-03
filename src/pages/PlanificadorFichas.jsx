@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
+import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 
@@ -266,35 +267,39 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
               </div>
             )}
 
-            {/* Lista generada */}
-            {listaGenerada && (
-              <div className={`${t.bgCard} border ${t.border} rounded-2xl overflow-hidden shadow-sm`}>
-                <div className={`px-6 py-4 border-b ${t.border} flex items-center justify-between`}>
-                  <h3 className={`${t.text} font-bold text-lg flex items-center gap-2`}>
-                    <span className="material-symbols-outlined text-blue-400">receipt_long</span>
-                    Lista de Ingredientes
-                  </h3>
-                  <span className={`${t.textSecondary} text-xs`}>{listaGenerada.length} ingredientes</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className={`${t.isDark ? "bg-white/5" : "bg-slate-50"} border-b ${t.border}`}>
-                      <tr>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Ingrediente</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Cantidad Total</th>
-                        <th className={`text-left px-6 py-3 text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Unidad</th>
-                      </tr>
-                    </thead>
-                    <tbody className={`divide-y ${t.border}`}>
-                      {listaGenerada.map((ing, i) => (
-                        <tr key={i} className={`${t.hover} transition-colors`}>
-                          <td className={`${t.text} px-6 py-3 font-medium`}>{ing.nombre}</td>
-                          <td className="px-6 py-3 text-blue-400 font-bold">{ing.cantidad > 0 ? ing.cantidad.toFixed(3) : "—"}</td>
-                          <td className={`${t.textSecondary} px-6 py-3`}>{ing.unidad || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            {/* Modal lista generada */}
+            {modalLista && listaGenerada && (
+              <div className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4" onClick={() => setModalLista(false)}>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[85vh]`} onClick={e => e.stopPropagation()}>
+                  <div className={`flex items-center justify-between px-5 py-4 border-b ${t.border} flex-shrink-0`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>receipt_long</span>
+                      </div>
+                      <div>
+                        <p className={`${t.text} font-bold text-sm`}>Lista de Pedido</p>
+                        <p className={`${t.textSecondary} text-xs`}>{listaGenerada.length} ingredientes · {seleccionadas.map(f => porciones[f.id] || 1).reduce((a,b)=>a+b,0)} porciones</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setModalLista(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {listaGenerada.map((item, i) => (
+                      <div key={i} className={`flex items-center justify-between px-5 py-3 border-b ${t.border} last:border-0 ${t.hover} transition-colors`}>
+                        <span className={`${t.text} text-sm font-medium`}>{item.nombre}</span>
+                        <span className="bg-blue-500/15 text-blue-400 text-xs font-black px-2.5 py-1 rounded-full border border-blue-500/20 flex-shrink-0 ml-3">
+                          {item.total % 1 === 0 ? item.total : item.total.toFixed(3)} {item.unidad || ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className={`px-5 py-3 border-t ${t.border} flex-shrink-0`}>
+                    <button onClick={() => setModalLista(false)} className={`w-full ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>
+                      Cerrar
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -304,7 +309,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
         {/* Botón flotante generar lista */}
         {seleccionadas.length > 0 && (
           <button
-            onClick={() => { generarLista(); document.querySelector("main")?.scrollTo({ top: 99999, behavior: "smooth" }); }}
+            onClick={() => generarLista()}
             onMouseEnter={() => setFlotanteVisible(true)}
             className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
           >
@@ -314,6 +319,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
           </button>
         )}
       </div>
+      <BottomNav moduloActivo="planificador" onNavegar={onNavegar} />
     </div>
   );
 }

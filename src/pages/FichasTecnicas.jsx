@@ -306,7 +306,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
       {/* Columna principal */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="hidden md:block flex-shrink-0">
-          <Navbar user={user} />
+          <Navbar user={user} rol={rol} />
         </div>
         <main className="flex-1 overflow-y-auto">
     <div className={`min-h-full ${t.bg}`}>
