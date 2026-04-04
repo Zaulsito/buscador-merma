@@ -114,6 +114,47 @@ ERRORES QUE DEBES EVITAR:
 Extrae ABSOLUTAMENTE TODOS los insumos de la tabla. No omitas ninguno.
 Responde ÚNICAMENTE con el JSON array. Sin texto adicional. Sin markdown.`;
 
+    } else if (tipo === "planograma") {
+      prompt = `Eres un extractor de datos estricto. Analizarás la foto de un planograma mensual de cocina.
+
+El planograma muestra una tabla con:
+- Filas = categorías de platos (Entradas, Principal, Parrilla, Sopa, Acompañamiento, Ensaladas, Postres, u otras)
+- Columnas = días del mes (1, 2, 3... hasta 28/29/30/31)
+- En la imagen también aparece el MES y AÑO
+
+Tu tarea: extraer todos los platos de cada día y devolverlos en JSON.
+
+Devuelve SOLO este JSON sin markdown:
+{
+  "mes": 3,
+  "anio": 2025,
+  "dias": [
+    {
+      "dia": 1,
+      "entradas": ["NOMBRE PLATO"],
+      "principal": ["NOMBRE PLATO"],
+      "parrilla": [],
+      "sopa": ["NOMBRE PLATO"],
+      "acompanamiento": ["NOMBRE PLATO"],
+      "ensaladas": ["NOMBRE PLATO"],
+      "postres": ["NOMBRE PLATO"]
+    }
+  ]
+}
+
+REGLAS CRÍTICAS:
+- mes: número del mes (1=Enero, 2=Febrero, ..., 12=Diciembre)
+- anio: año con 4 dígitos
+- dia: número del día (1 al 31)
+- Nombres de platos SIEMPRE en MAYÚSCULAS exactamente como aparecen
+- Si una celda está vacía → array vacío []
+- Si no puedes leer bien un plato, escríbelo lo más aproximado posible
+- Incluye TODOS los días que aparezcan en el planograma
+- Categorías que no existan en el planograma → array vacío []
+- NO inventes platos que no estén visibles
+
+Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
+
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
 Mantén el formato original:
@@ -154,12 +195,13 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
     const texto = data.candidates[0].content?.parts?.[0]?.text?.trim() || "";
     if (!texto) return res.status(500).json({ error: "Gemini respondió vacío" });
 
-    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util") {
+    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util" || tipo === "planograma") {
       try {
         const clean = texto.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
         if (tipo === "ingredientes") return res.status(200).json({ ingredientes: parsed });
         if (tipo === "vida_util") return res.status(200).json({ insumos: parsed });
+        if (tipo === "planograma") return res.status(200).json({ planograma: parsed });
         return res.status(200).json(parsed);
       } catch {
         return res.status(500).json({ error: "No se pudo parsear la respuesta", raw: texto });
