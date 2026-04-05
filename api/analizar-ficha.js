@@ -117,43 +117,52 @@ Responde ÚNICAMENTE con el JSON array. Sin texto adicional. Sin markdown.`;
     } else if (tipo === "planograma") {
       prompt = `Eres un extractor de datos estricto. Analizarás la foto de un planograma mensual de cocina.
 
-El planograma muestra una tabla con:
-- Filas = categorías de platos (Entradas, Principal, Parrilla, Sopa, Acompañamiento, Ensaladas, Postres, u otras)
-- Columnas = días del mes (1, 2, 3... hasta 28/29/30/31)
-- En la imagen también aparece el MES y AÑO
+ESTRUCTURA DEL PLANOGRAMA:
+- Es una tabla rectangular
+- Las FILAS son categorías de platos (Entradas, Principal, Parrilla, Sopa, Acompañamiento, Ensaladas, Postres, etc.)
+- Las COLUMNAS son los días del mes: la primera columna de datos es el DÍA 1, la segunda es el DÍA 2, etc.
+- Los encabezados de columna muestran números (1, 2, 3...) o iniciales de días de semana (L, M, X, J, V, S, D)
+- La imagen también muestra el MES y AÑO del planograma
 
-Tu tarea: extraer todos los platos de cada día y devolverlos en JSON.
+TAREA: Lee cada celda de la tabla y extrae los platos. El campo "dia" es el NÚMERO CALENDARIO del día (1 al 31), NO el índice de columna ni el día de la semana.
 
-Devuelve SOLO este JSON sin markdown:
+INSTRUCCIÓN CRÍTICA SOBRE EL DÍA:
+- Si la columna tiene el encabezado "1" o es el primer día del mes → dia: 1
+- Si la columna tiene el encabezado "2" o es el segundo día del mes → dia: 2
+- Si el encabezado muestra "L" (lunes), "M", "X", "J", etc., IGNORA eso y usa el NÚMERO que aparezca debajo o el orden de la columna
+- NUNCA uses 0 como valor de dia. El primer día siempre es dia: 1
+- Los días van de 1 hasta el último día del mes (28, 29, 30 o 31 según corresponda)
+
+Devuelve SOLO este JSON sin markdown ni texto adicional:
 {
-  "mes": 3,
+  "mes": 4,
   "anio": 2025,
   "dias": [
     {
       "dia": 1,
-      "entradas": ["NOMBRE PLATO"],
-      "principal": ["NOMBRE PLATO"],
+      "entradas": ["NOMBRE PLATO EN MAYUSCULAS"],
+      "principal": ["NOMBRE PLATO EN MAYUSCULAS"],
       "parrilla": [],
-      "sopa": ["NOMBRE PLATO"],
-      "acompanamiento": ["NOMBRE PLATO"],
-      "ensaladas": ["NOMBRE PLATO"],
-      "postres": ["NOMBRE PLATO"]
+      "sopa": ["NOMBRE PLATO EN MAYUSCULAS"],
+      "acompanamiento": ["NOMBRE PLATO EN MAYUSCULAS"],
+      "ensaladas": ["NOMBRE PLATO EN MAYUSCULAS"],
+      "postres": ["NOMBRE PLATO EN MAYUSCULAS"]
     }
   ]
 }
 
-REGLAS CRÍTICAS:
-- mes: número del mes (1=Enero, 2=Febrero, ..., 12=Diciembre)
-- anio: año con 4 dígitos
-- dia: número del día (1 al 31)
-- Nombres de platos SIEMPRE en MAYÚSCULAS exactamente como aparecen
-- Si una celda está vacía → array vacío []
-- Si no puedes leer bien un plato, escríbelo lo más aproximado posible
-- Incluye TODOS los días que aparezcan en el planograma
-- Categorías que no existan en el planograma → array vacío []
-- NO inventes platos que no estén visibles
+REGLAS ABSOLUTAS:
+1. "mes": número del mes (1=Enero, 2=Febrero, ..., 12=Diciembre). Léelo del encabezado de la imagen.
+2. "anio": año con 4 dígitos. Léelo del encabezado de la imagen.
+3. "dia": NÚMERO CALENDARIO del día del mes (1 a 31). NO es el día de la semana. NO empieces desde 0.
+4. Nombres de platos SIEMPRE en MAYÚSCULAS tal como aparecen en la imagen
+5. Celda vacía → array vacío []
+6. Incluye ABSOLUTAMENTE TODOS los días del mes que aparezcan, aunque estén vacíos
+7. Si hay múltiples platos en una celda, ponlos como elementos separados del array
+8. NO inventes datos que no estén en la imagen
+9. Categorías inexistentes en el planograma → array vacío []
 
-Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
+Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown. Sin bloques de código.`;
 
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.

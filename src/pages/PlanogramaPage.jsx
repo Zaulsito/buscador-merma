@@ -22,27 +22,33 @@ const DIAS_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 // ── Helpers de fecha ──
+// ── Todas las fechas usan NOON local (12:00) para evitar desfase por timezone ──
+function fechaLocal(year, month, day) {
+  // month es 0-indexed. Usamos noon para evitar cambios de día por DST/UTC
+  return new Date(year, month, day, 12, 0, 0, 0);
+}
 function getLunes(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const y = date.getFullYear(), mo = date.getMonth(), d = date.getDate();
+  const base = fechaLocal(y, mo, d);
+  const day = base.getDay(); // 0=Dom, 1=Lun, ..., 6=Sab
+  const diff = day === 0 ? -6 : 1 - day; // retroceder hasta el Lunes
+  return fechaLocal(y, mo, d + diff);
 }
 function addDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
+  return fechaLocal(date.getFullYear(), date.getMonth(), date.getDate() + n);
 }
 function toKey(date) {
-  return date.toISOString().split("T")[0]; // YYYY-MM-DD
+  // Siempre usar componentes locales — nunca toISOString()
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 function formatFecha(date) {
   return `${date.getDate()} ${MESES[date.getMonth()].slice(0, 3).toUpperCase()}`;
 }
 function getPrimerDiaMes(year, month) {
-  return new Date(year, month, 1);
+  return fechaLocal(year, month, 1);
 }
 function getDiasEnMes(year, month) {
   return new Date(year, month + 1, 0).getDate();
@@ -60,9 +66,29 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
   const [busquedaFicha, setBusquedaFicha] = useState("");
   const [saving, setSaving] = useState(false);
   const [leyendoIA, setLeyendoIA] = useState(false);
+
+  // Ctrl+V global — pegar imagen directamente
   const [modalIAOpen, setModalIAOpen] = useState(false);
   const [previewIA, setPreviewIA] = useState(null); // { mes, anio, dias: [...] }
   const [guardandoIA, setGuardandoIA] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (modalIAOpen || modalOpen) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) leerPlanogramaConIA(file);
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handler);
+    return () => document.removeEventListener("paste", handler);
+  }, [modalIAOpen, modalOpen]);
   const inputRef = useRef(null);
 
   // ── Cargar fichas técnicas para el selector ──
@@ -85,7 +111,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       const year = fechaBase.getFullYear();
       const month = fechaBase.getMonth();
       const dias = getDiasEnMes(year, month);
-      keys = Array.from({ length: dias }, (_, i) => toKey(new Date(year, month, i + 1)));
+      keys = Array.from({ length: dias }, (_, i) => toKey(fechaLocal(year, month, i + 1)));
     }
 
     const unsubs = keys.map(key => {
@@ -187,7 +213,10 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       const { mes, anio, dias } = previewIA;
       for (const diaData of dias) {
         const { dia, ...categorias } = diaData;
-        const fecha = new Date(anio, mes - 1, dia);
+        // Validar que el día sea un número válido (1-31)
+        const diaNum = parseInt(dia);
+        if (!diaNum || diaNum < 1 || diaNum > 31) continue;
+        const fecha = fechaLocal(anio, mes - 1, diaNum);
         const key = toKey(fecha);
         const ref = doc(db, "planograma", key);
         const snap = await getDoc(ref);
@@ -269,7 +298,8 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
     key: toKey(addDays(lunes, i)),
     date: addDays(lunes, i),
   }));
-  const hoy = toKey(new Date());
+  const hoyDate = new Date();
+  const hoy = toKey(fechaLocal(hoyDate.getFullYear(), hoyDate.getMonth(), hoyDate.getDate()));
 
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
@@ -310,14 +340,20 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
               <div className="flex items-center gap-3">
                 {/* Botón leer con IA — solo admins */}
                 {(rol === "admin" || rol === "unico") && (
-                  <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-xl font-bold text-sm transition shadow-lg ${leyendoIA ? "bg-purple-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 shadow-purple-500/20"} text-white`}>
-                    {leyendoIA
-                      ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Leyendo...</>
-                      : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Leer con IA</>
-                    }
-                    <input type="file" accept="image/*" className="hidden" disabled={leyendoIA}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) leerPlanogramaConIA(f); e.target.value = ""; }} />
-                  </label>
+                  <div className="flex items-center gap-2">
+                    <label className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-xl font-bold text-sm transition shadow-lg ${leyendoIA ? "bg-purple-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-110 shadow-purple-500/20"} text-white`}>
+                      {leyendoIA
+                        ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Leyendo...</>
+                        : <><span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>auto_awesome</span> Leer con IA</>
+                      }
+                      <input type="file" accept="image/*" className="hidden" disabled={leyendoIA}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) leerPlanogramaConIA(f); e.target.value = ""; }} />
+                    </label>
+                    <span className={`${t.textSecondary} text-xs flex items-center gap-1`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>content_paste</span>
+                      <kbd className={`px-1.5 py-0.5 rounded ${t.bgCard} border ${t.border} font-mono text-[10px]`}>Ctrl+V</kbd>
+                    </span>
+                  </div>
                 )}
 
               {/* Selector vista */}
@@ -460,12 +496,12 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                     <div key={w} className={`grid grid-cols-7 border-b ${t.border} last:border-0`}>
                       {celdas.slice(w * 7, w * 7 + 7).map((dia, di) => {
                         if (!dia) return <div key={di} className={`min-h-[100px] border-r ${t.border} last:border-0 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50"}`} />;
-                        const key = toKey(new Date(year, month, dia));
+                        const key = toKey(fechaLocal(year, month, dia));
                         const esHoy = key === hoy;
                         const totalPlatos = CATEGORIAS.reduce((acc, cat) => acc + (datos[key]?.[cat.id]?.length || 0), 0);
                         return (
                           <div key={di} className={`min-h-[100px] border-r ${t.border} last:border-0 p-2 cursor-pointer hover:bg-blue-500/5 transition-colors ${esHoy ? "bg-blue-500/8" : ""}`}
-                            onClick={() => { setFechaBase(new Date(year, month, dia)); setVista("diaria"); }}>
+                            onClick={() => { setFechaBase(fechaLocal(year, month, dia)); setVista("diaria"); }}>
                             <div className="flex items-center justify-between mb-1">
                               <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${esHoy ? "bg-blue-600 text-white" : t.text}`}>{dia}</span>
                               {totalPlatos > 0 && (
