@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { db } from "../firebase/config";
-import { collection, onSnapshot, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, setDoc, getDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
@@ -71,6 +71,13 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
   const [modalIAOpen, setModalIAOpen] = useState(false);
   const [previewIA, setPreviewIA] = useState(null); // { mes, anio, dias: [...] }
   const [guardandoIA, setGuardandoIA] = useState(false);
+
+  // ── Eliminación ──
+  const [modalDiaOpen, setModalDiaOpen] = useState(false);
+  const [modalDiaKey, setModalDiaKey] = useState(null);
+  const [eliminando, setEliminando] = useState(false);
+  const [modoSeleccion, setModoSeleccion] = useState(false);
+  const [diasSeleccionados, setDiasSeleccionados] = useState(new Set());
 
   useEffect(() => {
     const handler = (e) => {
@@ -156,7 +163,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       const ref = doc(db, "planograma", key);
       const snap = await getDoc(ref);
       const prev = snap.exists() ? snap.data() : {};
-      await setDoc(ref, { ...prev, [catId]: lineas, fecha: key });
+      await setDoc(ref, { ...prev, [catId]: lineas, fecha: key, _modifiedAt: serverTimestamp(), _modifiedBy: user?.displayName || user?.email || "Usuario" });
       toast.success("Guardado ✅");
       setModalOpen(false);
       setEditando(null);
@@ -196,7 +203,13 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       const data = await response.json();
       if (!response.ok) { toast.error(data.error || "Error al procesar"); return; }
       if (!data.planograma?.dias?.length) { toast.error("No se detectaron días en la imagen"); return; }
-      setPreviewIA(data.planograma);
+      // Sanitizar año: si la IA devuelve null, 0 o un año inválido (<2000), usar el actual
+      const anioActual = new Date().getFullYear();
+      const planograma = {
+        ...data.planograma,
+        anio: (data.planograma.anio && data.planograma.anio >= 2000) ? data.planograma.anio : anioActual,
+      };
+      setPreviewIA(planograma);
       setModalIAOpen(true);
     } catch (err) {
       toast.error(`Error: ${err.message}`);
@@ -234,7 +247,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
         // Solo guardar días con al menos un plato
         const tieneAlgo = Object.values(mapeo).some(arr => arr.length > 0);
         if (tieneAlgo) {
-          await setDoc(ref, { ...prev, ...mapeo, fecha: key });
+          await setDoc(ref, { ...prev, ...mapeo, fecha: key, _modifiedAt: serverTimestamp(), _modifiedBy: user?.displayName || user?.email || "Usuario" });
         }
       }
       toast.success(`Planograma de ${MESES[previewIA.mes - 1]} ${previewIA.anio} cargado ✅`);
@@ -247,6 +260,64 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       toast.error("Error al guardar: " + err.message);
     }
     setGuardandoIA(false);
+  };
+
+  // ── Abrir modal de detalle del día ──
+  const abrirModalDia = (key, e) => {
+    e.stopPropagation();
+    setModalDiaKey(key);
+    setModalDiaOpen(true);
+  };
+
+  // ── Eliminar categoría individual de un día ──
+  const eliminarCategoria = async (key, catId) => {
+    setEliminando(true);
+    try {
+      const ref = doc(db, "planograma", key);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return;
+      const prev = snap.data();
+      await setDoc(ref, { ...prev, [catId]: [] });
+      // Si el día queda sin platos, eliminarlo
+      const updated = { ...prev, [catId]: [] };
+      const tieneAlgo = CATEGORIAS.some(c => (updated[c.id] || []).length > 0);
+      if (!tieneAlgo) await deleteDoc(ref);
+      toast.success("Categoría eliminada");
+    } catch { toast.error("Error al eliminar"); }
+    setEliminando(false);
+  };
+
+  // ── Eliminar día completo ──
+  const eliminarDia = async (key) => {
+    setEliminando(true);
+    try {
+      await deleteDoc(doc(db, "planograma", key));
+      toast.success("Día eliminado");
+      setModalDiaOpen(false);
+      setModalDiaKey(null);
+    } catch { toast.error("Error al eliminar"); }
+    setEliminando(false);
+  };
+
+  // ── Eliminar días seleccionados ──
+  const eliminarDiasSeleccionados = async () => {
+    if (!diasSeleccionados.size) return;
+    setEliminando(true);
+    try {
+      await Promise.all([...diasSeleccionados].map(key => deleteDoc(doc(db, "planograma", key))));
+      toast.success(`${diasSeleccionados.size} día(s) eliminado(s)`);
+      setDiasSeleccionados(new Set());
+      setModoSeleccion(false);
+    } catch { toast.error("Error al eliminar"); }
+    setEliminando(false);
+  };
+
+  const toggleSeleccion = (key) => {
+    setDiasSeleccionados(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
   };
 
   // ── Render celda ──
@@ -355,6 +426,22 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                     </span>
                   </div>
                 )}
+
+              {/* Botón seleccionar — solo vista mensual */}
+              {vista === "mensual" && (
+                <button
+                  onClick={() => { setModoSeleccion(m => !m); setDiasSeleccionados(new Set()); }}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition ${
+                    modoSeleccion
+                      ? "bg-red-500/10 border-red-500/40 text-red-400"
+                      : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`
+                  }`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>
+                    {modoSeleccion ? "close" : "checklist"}
+                  </span>
+                  {modoSeleccion ? "Cancelar" : "Seleccionar"}
+                </button>
+              )}
 
               {/* Selector vista */}
                 <div className={`flex ${t.bgCard} border ${t.border} rounded-xl overflow-hidden`}>
@@ -499,13 +586,42 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                         const key = toKey(fechaLocal(year, month, dia));
                         const esHoy = key === hoy;
                         const totalPlatos = CATEGORIAS.reduce((acc, cat) => acc + (datos[key]?.[cat.id]?.length || 0), 0);
+                        const seleccionado = diasSeleccionados.has(key);
                         return (
-                          <div key={di} className={`min-h-[100px] border-r ${t.border} last:border-0 p-2 cursor-pointer hover:bg-blue-500/5 transition-colors ${esHoy ? "bg-blue-500/8" : ""}`}
-                            onClick={() => { setFechaBase(fechaLocal(year, month, dia)); setVista("diaria"); }}>
+                          <div key={di}
+                            className={`min-h-[100px] border-r ${t.border} last:border-0 p-2 cursor-pointer transition-colors relative group ${
+                              esHoy ? "bg-blue-500/8" : ""
+                            } ${seleccionado ? "bg-red-500/10 ring-2 ring-inset ring-red-500/40" : "hover:bg-blue-500/5"}`}
+                            onClick={() => {
+                              if (modoSeleccion) {
+                                if (totalPlatos > 0) toggleSeleccion(key);
+                              } else if (totalPlatos > 0) {
+                                abrirModalDia(key, { stopPropagation: () => {} });
+                              } else {
+                                setFechaBase(fechaLocal(year, month, dia)); setVista("diaria");
+                              }
+                            }}>
                             <div className="flex items-center justify-between mb-1">
-                              <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${esHoy ? "bg-blue-600 text-white" : t.text}`}>{dia}</span>
-                              {totalPlatos > 0 && (
-                                <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">{totalPlatos}</span>
+                              <span className={`text-sm font-bold w-7 h-7 flex items-center justify-center rounded-full ${
+                                esHoy ? "bg-blue-600 text-white" : t.text
+                              } ${seleccionado ? "!bg-red-500 !text-white" : ""}`}>{dia}</span>
+                              {modoSeleccion && totalPlatos > 0 && (
+                                <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition ${
+                                  seleccionado ? "bg-red-500 border-red-500" : `${t.border} border-current ${t.textSecondary}`
+                                }`}>
+                                  {seleccionado && <span className="material-symbols-outlined text-white" style={{ fontSize: 11 }}>check</span>}
+                                </span>
+                              )}
+                              {!modoSeleccion && totalPlatos > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">{totalPlatos}</span>
+                                  <button
+                                    onClick={e => abrirModalDia(key, e)}
+                                    className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-red-400 hover:bg-red-500/10 transition"
+                                    title="Eliminar platos">
+                                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>delete</span>
+                                  </button>
+                                </div>
                               )}
                             </div>
                             <div className="space-y-0.5">
@@ -614,6 +730,92 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
           </div>
         </div>
       )}
+      {/* ══ BARRA SELECCIÓN MÚLTIPLE ══ */}
+      {modoSeleccion && (
+        <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border ${t.border} ${t.bgCard}`}
+          style={{ minWidth: 280 }}>
+          <span className="material-symbols-outlined text-red-400" style={{ fontSize: 20 }}>checklist</span>
+          <span className={`${t.text} text-sm font-bold flex-1`}>
+            {diasSeleccionados.size === 0 ? "Toca un día para seleccionar" : `${diasSeleccionados.size} día(s) seleccionado(s)`}
+          </span>
+          <button
+            onClick={eliminarDiasSeleccionados}
+            disabled={diasSeleccionados.size === 0 || eliminando}
+            className="flex items-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white text-xs font-bold px-3 py-2 rounded-xl transition">
+            <span className="material-symbols-outlined" style={{ fontSize: 15 }}>delete</span>
+            Eliminar
+          </button>
+        </div>
+      )}
+
+      {/* ══ MODAL DETALLE DÍA ══ */}
+      {modalDiaOpen && modalDiaKey && (() => {
+        const diaLabel = (() => {
+          const d = new Date(modalDiaKey + "T12:00:00");
+          return `${DIAS[(d.getDay() + 6) % 7]} ${d.getDate()} de ${MESES[d.getMonth()]} ${d.getFullYear()}`;
+        })();
+        const catsConDatos = CATEGORIAS.filter(cat => (datos[modalDiaKey]?.[cat.id] || []).length > 0);
+        return (
+          <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+            <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-md shadow-2xl`}>
+              {/* Header */}
+              <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border}`}>
+                <div>
+                  <p className={`${t.text} font-bold`}>{diaLabel}</p>
+                  <p className={`${t.textSecondary} text-xs mt-0.5`}>{catsConDatos.length} categoría(s) con platos</p>
+                </div>
+                <button onClick={() => { setModalDiaOpen(false); setModalDiaKey(null); }}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                </button>
+              </div>
+
+              {/* Lista de categorías */}
+              <div className="px-4 py-3 space-y-2 max-h-80 overflow-y-auto">
+                {catsConDatos.length === 0 ? (
+                  <p className={`${t.textSecondary} text-sm text-center py-4`}>Este día no tiene platos.</p>
+                ) : catsConDatos.map(cat => {
+                  const platos = datos[modalDiaKey]?.[cat.id] || [];
+                  return (
+                    <div key={cat.id} className={`flex items-start gap-3 p-3 rounded-xl ${t.bgInput} border ${t.border}`}>
+                      <span className="material-symbols-outlined text-blue-400 mt-0.5 flex-shrink-0" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider mb-0.5`}>{cat.label}</p>
+                        <p className={`${t.text} text-xs`}>{platos.join(", ")}</p>
+                      </div>
+                      <button
+                        onClick={() => eliminarCategoria(modalDiaKey, cat.id)}
+                        disabled={eliminando}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10 transition flex-shrink-0 disabled:opacity-40"
+                        title={`Eliminar ${cat.label}`}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className={`flex gap-3 px-5 pb-5 pt-2 border-t ${t.border} mt-2`}>
+                <button
+                  onClick={() => { setModalDiaOpen(false); setFechaBase(new Date(modalDiaKey + "T12:00:00")); setVista("diaria"); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>open_in_full</span>
+                  Ver día
+                </button>
+                <button
+                  onClick={() => eliminarDia(modalDiaKey)}
+                  disabled={eliminando || catsConDatos.length === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white font-bold py-2.5 rounded-xl text-sm transition">
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>delete_forever</span>
+                  {eliminando ? "Eliminando..." : "Eliminar día"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       <BottomNav moduloActivo="planograma" onNavegar={onNavegar} />
 
       {/* ══ MODAL IA — previsualización planograma ══ */}
@@ -641,14 +843,16 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
             {/* Preview días */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {previewIA.dias.filter(d => {
-                const { dia, ...cats } = d;
+                const { dia, diaSemana, ...cats } = d;
                 return Object.values(cats).some(v => Array.isArray(v) && v.length > 0);
               }).map((diaData, i) => {
-                const { dia, ...cats } = diaData;
+                const { dia, diaSemana, ...cats } = diaData;
+                // Usar diaSemana de la IA (fuente de verdad), con cálculo como fallback
+                const labelDia = diaSemana || DIAS[(new Date(previewIA.anio, previewIA.mes - 1, dia).getDay() + 6) % 7];
                 return (
                   <div key={i} className={`${t.bgInput} border ${t.border} rounded-xl p-4`}>
                     <p className="text-blue-400 font-black text-sm mb-2">
-                      Día {dia} — {DIAS[(new Date(previewIA.anio, previewIA.mes - 1, dia).getDay() + 6) % 7]}
+                      Día {dia} — {labelDia}
                     </p>
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                       {CATEGORIAS.map(cat => {

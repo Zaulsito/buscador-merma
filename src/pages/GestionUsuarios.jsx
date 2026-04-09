@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BottomNav from "../components/BottomNav";
 import { db, auth } from "../firebase/config";
 import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
@@ -905,6 +906,8 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
           </div>
         </div>
       )}
+    
+      <BottomNav moduloActivo="usuarios" onNavegar={onNavegar} />
     </div>
   );
 }

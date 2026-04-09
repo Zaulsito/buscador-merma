@@ -9,7 +9,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { db } from "../firebase/config";
-import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, serverTimestamp, getDocs, onSnapshot, setDoc, query, where } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
@@ -222,6 +222,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     fotosExtra: ficha?.fotosExtra || [""],
     revisiones: ficha?.revisiones || [{ numero: "000", fecha: "", descripcion: "Versión inicial" }],
     estado: ficha?.estado || "activa",
+    precio: ficha?.precio ?? "",
   });
 
   // ── IA ──
@@ -356,6 +357,36 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     try {
       if (ficha) { await updateDoc(doc(db, "fichas", ficha.id), { ...form }); toast.success("Ficha actualizada ✅"); }
       else { await addDoc(collection(db, "fichas"), { ...form, fechaCreacion: serverTimestamp() }); toast.success("Ficha creada ✅"); }
+      // ── Sync precio en lista_precios ──
+      const precioNum = form.precio !== "" ? parseFloat(form.precio) : null;
+      const fichaId = ficha?.id || null;
+      // Buscar si ya existe un producto en lista_precios vinculado a esta ficha
+      if (fichaId) {
+        const snapLP = await getDocs(query(collection(db, "lista_precios"), where("fichaId", "==", fichaId)));
+        if (!snapLP.empty) {
+          // Actualizar el precio en el documento existente
+          for (const docLP of snapLP.docs) {
+            await setDoc(doc(db, "lista_precios", docLP.id), {
+              precio: precioNum,
+              nombre: form.nombre,
+              updatedAt: serverTimestamp(),
+            }, { merge: true });
+          }
+        } else if (precioNum !== null) {
+          // Crear nuevo registro en lista_precios vinculado a la ficha
+          const sap = form.formatosVenta?.find(fv => fv.codSap?.trim())?.codSap || null;
+          await addDoc(collection(db, "lista_precios"), {
+            nombre: form.nombre,
+            precio: precioNum,
+            fichaId,
+            codSap: sap,
+            tipo: "ficha",
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+          });
+        }
+      }
+
       const formatosConSap = [
         ...(form.formatosVenta || []).filter(f => f.codSap?.trim()),
         ...(form.materiasPrimas || []).filter(f => f.codSap?.trim()).map(f => ({ codSap: f.codSap, descripcion: f.nombre })),
@@ -571,6 +602,25 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                             <input value={form.tiempoPreparacion} onChange={e => update("tiempoPreparacion", e.target.value)} className={inp} placeholder="Ej: 45 min" />
                             <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" style={{ fontSize: 18 }}>schedule</span>
                           </div>
+                        </div>
+                        <div>
+                          <label className={lbl}>Precio de venta ($)</label>
+                          <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold">$</span>
+                            <input
+                              type="number" min="0"
+                              value={form.precio}
+                              onChange={e => update("precio", e.target.value)}
+                              className={inp + " pl-8"}
+                              placeholder="0"
+                            />
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-amber-400" style={{ fontSize: 18 }}>sell</span>
+                          </div>
+                          {form.precio !== "" && (
+                            <p className="text-[10px] text-amber-400/70 mt-1 font-medium">
+                              Se sincronizará con Lista de Precios al guardar
+                            </p>
+                          )}
                         </div>
                         <div className="md:col-span-2">
                           <label className={lbl}>URL Foto Principal</label>

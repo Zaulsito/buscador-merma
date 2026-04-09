@@ -1,4 +1,5 @@
 import { useState } from "react";
+import BottomNav from "../components/BottomNav";
 import { auth, db } from "../firebase/config";
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
@@ -7,7 +8,7 @@ import { useTheme } from "../context/ThemeContext";
 
 const DIAS_LIMITE = 14;
 
-export default function PerfilPage({ user, rol, onBack }) {
+export default function PerfilPage({ user, rol, onBack, onNavegar }) {
   const [nombre, setNombre] = useState(user.displayName || "");
   const [passwordActual, setPasswordActual] = useState("");
   const [passwordNueva, setPasswordNueva] = useState("");
@@ -186,6 +187,8 @@ export default function PerfilPage({ user, rol, onBack }) {
           </div>
         )}
       </div>
+    
+      <BottomNav moduloActivo="perfil" onNavegar={onNavegar} />
     </div>
   );
 }

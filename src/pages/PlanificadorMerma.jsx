@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BottomNav from "../components/BottomNav";
 import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -291,6 +292,8 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
           </button>
         )}
       </div>
+    
+      <BottomNav moduloActivo="planificador" onNavegar={onNavegar} />
     </div>
   );
 }

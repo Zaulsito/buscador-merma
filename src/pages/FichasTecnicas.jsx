@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import BottomNav from "../components/BottomNav";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import Navbar from "../components/Navbar";
@@ -113,6 +114,7 @@ function FichaCard({ f, rol, onDetalle, onEditar, onEliminar, t }) {
           </div>
         )}
       </div>
+    
     </div>
   );
 }
@@ -487,6 +489,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
     </div>{/* /min-h-full */}
         </main>
       </div>{/* /columna principal */}
+      <BottomNav moduloActivo="fichas" onNavegar={onNavegar} />
     </div>
   );
 }

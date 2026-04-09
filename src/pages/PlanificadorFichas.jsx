@@ -9,13 +9,15 @@ import Navbar from "../components/Navbar";
 export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
   const [fichas, setFichas] = useState([]);
   const [secciones, setSecciones] = useState([]);
-  const [seccionActiva, setSeccionActiva] = useState(null);
+  const [seccionActiva, setSeccionActiva] = useState("todas");
   const [seleccionadas, setSeleccionadas] = useState([]);
   const [porciones, setPorciones] = useState({}); // { id: número de veces }
   const [listaGenerada, setListaGenerada] = useState(null);
   const [modalLista, setModalLista] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 25;
   const [flotanteVisible, setFlotanteVisible] = useState(true);
   const { t } = useTheme();
 
@@ -24,6 +26,9 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
     const timer = setTimeout(() => setFlotanteVisible(false), 3000);
     return () => clearTimeout(timer);
   }, [seleccionadas, busqueda, seccionActiva]);
+
+  // Resetear página al cambiar filtros
+  useEffect(() => { setPagina(1); }, [busqueda, seccionActiva]);
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "fichas"), (snap) => {
@@ -37,18 +42,21 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
     const unsub = onSnapshot(collection(db, "secciones"), (snap) => {
       const data = snap.docs.map(d => d.data().nombre).sort();
       setSecciones(data);
-      if (!seccionActiva && data.length > 0) setSeccionActiva(data[0]);
+      // No sobreescribir si ya hay selección
     });
     return () => unsub();
   }, []);
 
   const fichasFiltradas = fichas.filter((f) => {
-    const matchSec = f.seccion === seccionActiva;
+    const matchSec = seccionActiva === "todas" || f.seccion === seccionActiva;
     const matchBusqueda = !busqueda ||
       f.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
       f.codigo?.toLowerCase().includes(busqueda.toLowerCase());
     return matchSec && matchBusqueda;
   });
+
+  const totalPaginas = Math.ceil(fichasFiltradas.length / POR_PAGINA);
+  const fichasPaginadas = fichasFiltradas.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
 
   const toggleSeleccion = (ficha) => {
     setListaGenerada(null);
@@ -156,19 +164,40 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
 
             {/* Chips secciones */}
             <div className="flex gap-2 flex-wrap mb-6">
-              {secciones.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => setSeccionActiva(s)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                    seccionActiva === s
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                      : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
+              <button
+                onClick={() => setSeccionActiva("todas")}
+                className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                  seccionActiva === "todas"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                    : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  Todos
+                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${seccionActiva === "todas" ? "bg-white/20 text-white" : `${t.bgInput} ${t.textSecondary}`}`}>
+                    {fichas.length}
+                  </span>
+                </span>
+              </button>
+              {secciones.map((s) => {
+                const count = fichas.filter(f => f.seccion === s).length;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => setSeccionActiva(s)}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold transition flex items-center gap-1.5 ${
+                      seccionActiva === s
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
+                        : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                    }`}
+                  >
+                    {s}
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${seccionActiva === s ? "bg-white/20 text-white" : `${t.bgInput} ${t.textSecondary}`}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* Grid fichas */}
@@ -197,8 +226,8 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                 <p className={`${t.textSecondary} text-sm`}>No hay fichas en esta sección</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {fichasFiltradas.map((f) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                {fichasPaginadas.map((f) => (
                   <div
                     key={f.id}
                     onClick={() => toggleSeleccion(f)}
@@ -251,6 +280,46 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Paginación */}
+            {totalPaginas > 1 && (
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <button
+                  onClick={() => setPagina(p => Math.max(1, p - 1))}
+                  disabled={pagina === 1}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl border transition ${pagina === 1 ? `${t.border} ${t.textSecondary} opacity-30` : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+                </button>
+
+                {Array.from({ length: totalPaginas }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPaginas || Math.abs(p - pagina) <= 1)
+                  .reduce((acc, p, idx, arr) => {
+                    if (idx > 0 && p - arr[idx - 1] > 1) acc.push("...");
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) => p === "..." ? (
+                    <span key={`ellipsis-${i}`} className={`${t.textSecondary} text-xs px-1`}>···</span>
+                  ) : (
+                    <button key={`page-${p}`} onClick={() => setPagina(p)}
+                      className={`w-9 h-9 rounded-xl text-sm font-bold border transition ${pagina === p ? "bg-blue-600 border-blue-600 text-white" : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`}`}>
+                      {p}
+                    </button>
+                  ))
+                }
+
+                <button
+                  onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+                  disabled={pagina === totalPaginas}
+                  className={`w-9 h-9 flex items-center justify-center rounded-xl border transition ${pagina === totalPaginas ? `${t.border} ${t.textSecondary} opacity-30` : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+                </button>
+
+                <span className={`${t.textSecondary} text-xs ml-2`}>
+                  {(pagina - 1) * POR_PAGINA + 1}–{Math.min(pagina * POR_PAGINA, fichasFiltradas.length)} de {fichasFiltradas.length}
+                </span>
               </div>
             )}
 

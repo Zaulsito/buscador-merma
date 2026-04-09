@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import BottomNav from "../components/BottomNav";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import ProductCard from "../components/ProductCard";
@@ -318,6 +319,8 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
           categoriasDocs={categoriasDocs}
         />
       )}
+    
+      <BottomNav moduloActivo="merma" onNavegar={onNavegar} />
     </div>
   );
 }

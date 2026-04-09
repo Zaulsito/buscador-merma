@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BottomNav from "../components/BottomNav";
 import { db } from "../firebase/config";
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -694,6 +695,8 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
           </div>
         </div>
       )}
+    
+      <BottomNav moduloActivo="informacion" onNavegar={onNavegar} />
     </div>
   );
 }

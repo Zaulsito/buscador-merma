@@ -46,11 +46,10 @@ export default function Navbar({ user, rol, onPerfil, onConfig }) {
           className="flex items-center gap-3 cursor-pointer flex-shrink-0"
           onClick={() => { window.location.hash = ""; window.location.reload(); }}
         >
-          <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <img src="/icon-192.png" className="w-6 h-6 rounded" alt="logo" />
-          </div>
-          <h1 className={`${t.text} font-black text-lg tracking-tight italic hidden sm:block`}>
-            R.info
+          <img src="/icon-192.png" className="w-9 h-9 rounded-lg object-contain flex-shrink-0" alt="logo"
+            onError={e => { e.target.style.display = "none"; }} />
+          <h1 className={`${t.text} font-bold text-sm tracking-tight leading-tight hidden sm:block`}>
+            Rincon Belloto<br/>Informaciones
           </h1>
         </div>
 

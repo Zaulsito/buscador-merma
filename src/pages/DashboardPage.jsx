@@ -9,6 +9,7 @@ import FichasTecnicas from "./FichasTecnicas";
 import Planificador from "./Planificador";
 import AppSidebar from "../components/AppSidebar";
 import PlanogramaPage from "./PlanogramaPage";
+import ListaPreciosPage from "./ListaPreciosPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
 import BottomNav from "../components/BottomNav";
@@ -49,6 +50,18 @@ const modulos = [
     bg: "bg-emerald-500/10",
     hoverBg: "group-hover:bg-emerald-500",
     borderB: "border-b-emerald-500",
+  },
+  {
+    id: "precios",
+    nombre: "Lista de Precios",
+    descripcion: "Gestiona precios de productos y fichas técnicas con SAP vigente.",
+    icon: "sell",
+    accion: "Ver precios",
+    color: "#f59e0b",
+    colorClass: "text-amber-400",
+    bg: "bg-amber-500/10",
+    hoverBg: "group-hover:bg-amber-500",
+    borderB: "border-b-amber-500",
   },
   {
     id: "informacion",
@@ -168,7 +181,26 @@ export default function DashboardPage({ user, rol }) {
       }
     );
 
-    return () => { unsubFichas(); unsubMerma(); unsubInsumos(); };
+    const unsubPlanograma = onSnapshot(
+      query(collection(db, "planograma"), limit(20)),
+      (snap) => {
+        eventos.planograma = snap.docs
+          .filter(d => d.data()._modifiedAt)
+          .map(d => ({
+            _ts: d.data()._modifiedAt?.seconds || 0,
+            icon: "calendar_month",
+            color: "bg-purple-500/10 text-purple-400",
+            titulo: `Planograma: ${d.id}`,
+            desc: `Modificado por ${d.data()._modifiedBy || "—"}`,
+            tiempo: tiempoRelativo(d.data()._modifiedAt),
+          }))
+          .sort((a, b) => b._ts - a._ts)
+          .slice(0, 6);
+        actualizar();
+      }
+    );
+
+    return () => { unsubFichas(); unsubMerma(); unsubInsumos(); unsubPlanograma(); };
   }, [esAdmin]);
 
   useEffect(() => {
@@ -188,10 +220,11 @@ export default function DashboardPage({ user, rol }) {
 
   if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} />;
+  if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "informacion") return <InformacionPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "planograma")  return <PlanogramaPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "planograma")  return <PlanogramaPage   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";

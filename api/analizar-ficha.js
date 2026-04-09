@@ -115,31 +115,47 @@ Extrae ABSOLUTAMENTE TODOS los insumos de la tabla. No omitas ninguno.
 Responde ÚNICAMENTE con el JSON array. Sin texto adicional. Sin markdown.`;
 
     } else if (tipo === "planograma") {
-      prompt = `Eres un extractor de datos estricto. Analizarás la foto de un planograma mensual de cocina.
+      prompt = `Eres un extractor de datos ESTRICTO. Analizarás la foto de un planograma semanal o mensual de cocina.
 
 ESTRUCTURA DEL PLANOGRAMA:
 - Es una tabla rectangular
 - Las FILAS son categorías de platos (Entradas, Principal, Parrilla, Sopa, Acompañamiento, Ensaladas, Postres, etc.)
-- Las COLUMNAS son los días del mes: la primera columna de datos es el DÍA 1, la segunda es el DÍA 2, etc.
-- Los encabezados de columna muestran números (1, 2, 3...) o iniciales de días de semana (L, M, X, J, V, S, D)
-- La imagen también muestra el MES y AÑO del planograma
+- Las COLUMNAS son los días: cada columna tiene un encabezado con el NOMBRE DEL DÍA DE SEMANA (LUNES, MARTES, MIÉRCOLES, JUEVES, VIERNES, SÁBADO, DOMINGO) y un NÚMERO de día del mes
+- El encabezado de la imagen muestra el rango de fechas (ej: "06 AL 12 DE ABRIL") y/o el MES y AÑO
 
-TAREA: Lee cada celda de la tabla y extrae los platos. El campo "dia" es el NÚMERO CALENDARIO del día (1 al 31), NO el índice de columna ni el día de la semana.
+═══════════════════════════════════════════════
+REGLA CRÍTICA N°1 — AÑO:
+Lee el año CON EXACTITUD ABSOLUTA desde el encabezado de la imagen.
+- Si el encabezado dice "2026" → anio: 2026
+- Si el encabezado dice "2025" → anio: 2025
+- NO asumas ni inventes el año. Léelo tal cual aparece en la imagen.
+- Si no aparece explícitamente, deja anio: null.
+═══════════════════════════════════════════════
 
-INSTRUCCIÓN CRÍTICA SOBRE EL DÍA:
-- Si la columna tiene el encabezado "1" o es el primer día del mes → dia: 1
-- Si la columna tiene el encabezado "2" o es el segundo día del mes → dia: 2
-- Si el encabezado muestra "L" (lunes), "M", "X", "J", etc., IGNORA eso y usa el NÚMERO que aparezca debajo o el orden de la columna
-- NUNCA uses 0 como valor de dia. El primer día siempre es dia: 1
-- Los días van de 1 hasta el último día del mes (28, 29, 30 o 31 según corresponda)
+═══════════════════════════════════════════════
+REGLA CRÍTICA N°2 — DÍA DE SEMANA:
+Lee el nombre del día de la semana del ENCABEZADO DE CADA COLUMNA.
+- Ese encabezado es la fuente de verdad absoluta. Si dice "LUNES", ese día ES lunes.
+- Incluye "diaSemana" en cada objeto con el valor exacto leído del encabezado.
+- Valores válidos: "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
+- NO calcules el día de semana a partir del número: léelo directamente de la columna.
+═══════════════════════════════════════════════
+
+═══════════════════════════════════════════════
+REGLA CRÍTICA N°3 — NÚMERO DE DÍA:
+El campo "dia" es el NÚMERO CALENDARIO del día (1 a 31).
+- Léelo del número visible en el encabezado de columna, o del rango en el título (ej: "06 AL 12" → días 6,7,8,9,10,11,12).
+- NUNCA uses 0. NUNCA uses el índice de columna como número de día.
+═══════════════════════════════════════════════
 
 Devuelve SOLO este JSON sin markdown ni texto adicional:
 {
   "mes": 4,
-  "anio": 2025,
+  "anio": 2026,
   "dias": [
     {
-      "dia": 1,
+      "dia": 6,
+      "diaSemana": "Lunes",
       "entradas": ["NOMBRE PLATO EN MAYUSCULAS"],
       "principal": ["NOMBRE PLATO EN MAYUSCULAS"],
       "parrilla": [],
@@ -151,19 +167,16 @@ Devuelve SOLO este JSON sin markdown ni texto adicional:
   ]
 }
 
-REGLAS ABSOLUTAS:
-1. "mes": número del mes (1=Enero, 2=Febrero, ..., 12=Diciembre). Léelo del encabezado de la imagen.
-2. "anio": año con 4 dígitos. Léelo del encabezado de la imagen.
-3. "dia": NÚMERO CALENDARIO del día del mes (1 a 31). NO es el día de la semana. NO empieces desde 0.
-4. Nombres de platos SIEMPRE en MAYÚSCULAS tal como aparecen en la imagen
-5. Celda vacía → array vacío []
-6. Incluye ABSOLUTAMENTE TODOS los días del mes que aparezcan, aunque estén vacíos
-7. Si hay múltiples platos en una celda, ponlos como elementos separados del array
-8. NO inventes datos que no estén en la imagen
-9. Categorías inexistentes en el planograma → array vacío []
+REGLAS ADICIONALES:
+- "mes": número del mes (1=Enero ... 12=Diciembre). Léelo del encabezado.
+- Nombres de platos SIEMPRE en MAYÚSCULAS tal como aparecen en la imagen.
+- Celda vacía → array vacío []
+- Incluye TODOS los días que aparezcan en la imagen.
+- Si hay múltiples platos en una celda, ponlos como elementos separados del array.
+- NO inventes datos que no estén visibles en la imagen.
+- Categorías inexistentes en el planograma → array vacío []
 
 Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown. Sin bloques de código.`;
-
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
 Mantén el formato original:

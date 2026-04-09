@@ -6,6 +6,7 @@ const navItems = [
   { id: "merma",        label: "Buscador de Merma",  icon: "search"         },
   { id: "fichas",       label: "Fichas Técnicas",     icon: "description"    },
   { id: "planificador", label: "Planificador",        icon: "account_tree"   },
+  { id: "precios",       label: "Lista de Precios",    icon: "sell"           },
 ];
 
 const adminItem = { id: "usuarios",     label: "Gestionamiento",    icon: "manage_accounts" };
@@ -31,13 +32,16 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
         className="p-6 flex items-center gap-3 cursor-pointer flex-shrink-0"
         onClick={() => onNavegar(null)}
       >
-        <div className="w-10 h-10 flex items-center justify-center">
-          <img src="/icon-192.png" className="w-10 h-10 rounded-xl" alt="logo" />
-        </div>
+        <img
+            src="/icon-192.png"
+            className="w-10 h-10 rounded-xl object-contain flex-shrink-0"
+            alt="logo"
+            onError={e => { e.target.style.display = "none"; }}
+          />
         <div>
-          <h1 className={`${t.text} font-black text-base tracking-tight italic leading-none`}>R.info</h1>
+          <h1 className={`${t.text} font-bold text-sm tracking-tight leading-tight`}>Rincon Belloto<br/>Informaciones</h1>
           <p className={`${t.textSecondary} text-[10px] uppercase tracking-widest`}>
-            {rol === "admin" || rol === "unico" ? "Admin" : "Usuario"}
+            {rol === "unico" ? "Programador" : rol === "admin" ? "Admin" : rol || "Usuario"}
           </p>
         </div>
       </div>
