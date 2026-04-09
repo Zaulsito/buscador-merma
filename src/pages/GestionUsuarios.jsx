@@ -223,7 +223,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} /></div>
+        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} /></div>
 
         {/* ════════════ MOBILE ════════════ */}
         <div className="md:hidden flex flex-col flex-1 overflow-hidden">

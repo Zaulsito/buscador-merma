@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { db } from "../firebase/config";
 import { collection, query, limit, onSnapshot, getDocs } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -99,6 +99,82 @@ export default function DashboardPage({ user, rol }) {
     return !localStorage.getItem("rinfo_tutorial_visto");
   });
   const [actividadReal, setActividadReal] = useState([]);
+  // ── Búsqueda global (misma lógica que Navbar) ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [searchResultados, setSearchResultados] = useState([]);
+  const [searchBuscando, setSearchBuscando] = useState(false);
+  const [searchCache, setSearchCache] = useState({});
+  const searchDebounceRef = useRef(null);
+  const mobileSearchInputRef = useRef(null);
+
+  const SEARCH_GRUPOS = [
+    {
+      id: "fichas", label: "Fichas Técnicas", icon: "description",
+      color: "text-orange-400", bg: "bg-orange-500/10", modulo: "fichas",
+      buscar: (docs, q) => docs
+        .filter(d => [d.nombre, d.codigo, d.seccion].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .slice(0, 4).map(d => ({ id: d.id, titulo: d.nombre, sub: d.seccion || "—", modulo: "fichas" })),
+    },
+    {
+      id: "merma", label: "Buscador de Merma", icon: "search",
+      color: "text-blue-400", bg: "bg-blue-500/10", modulo: "merma",
+      buscar: (docs, q) => docs
+        .filter(d => [d.nombre, d.codigo, d.categoria].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .slice(0, 4).map(d => ({ id: d.id, titulo: d.nombre || d.codigo, sub: d.categoria || "—", modulo: "merma" })),
+    },
+    {
+      id: "precios", label: "Lista de Precios", icon: "sell",
+      color: "text-amber-400", bg: "bg-amber-500/10", modulo: "precios",
+      buscar: (docs, q) => docs
+        .filter(d => [d.nombre, d.codSap].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .slice(0, 4).map(d => ({
+          id: d.id, titulo: d.nombre,
+          sub: d.precio != null ? `$${Number(d.precio).toLocaleString("es-CL")}` : "Sin precio",
+          modulo: "precios",
+        })),
+    },
+  ];
+
+  // Cargar cache de colecciones una sola vez
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const [snapF, snapM, snapP] = await Promise.all([
+          getDocs(collection(db, "fichas")),
+          getDocs(collection(db, "merma")),
+          getDocs(collection(db, "lista_precios")),
+        ]);
+        setSearchCache({
+          fichas:  snapF.docs.map(d => ({ id: d.id, ...d.data() })),
+          merma:   snapM.docs.map(d => ({ id: d.id, ...d.data() })),
+          precios: snapP.docs.map(d => ({ id: d.id, ...d.data() })),
+        });
+      } catch { /* continuar sin cache */ }
+    };
+    cargar();
+  }, []);
+
+  // Debounce búsqueda
+  useEffect(() => {
+    clearTimeout(searchDebounceRef.current);
+    if (!searchQuery.trim() || searchQuery.length < 2) {
+      setSearchResultados([]);
+      setSearchBuscando(false);
+      return;
+    }
+    setSearchBuscando(true);
+    searchDebounceRef.current = setTimeout(() => {
+      const grupos = SEARCH_GRUPOS
+        .map(g => ({ ...g, items: g.buscar(searchCache[g.id] || [], searchQuery) }))
+        .filter(g => g.items.length > 0);
+      setSearchResultados(grupos);
+      setSearchBuscando(false);
+    }, 250);
+    return () => clearTimeout(searchDebounceRef.current);
+  }, [searchQuery, searchCache]);
+
+  const searchTotalResultados = searchResultados.reduce((acc, g) => acc + g.items.length, 0);
   const esAdmin = rol === "admin" || rol === "unico";
   const { t } = useTheme();
 
@@ -230,28 +306,120 @@ export default function DashboardPage({ user, rol }) {
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
   const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const todosModulos = (rol === "admin" || rol === "unico") ? [...modulos, moduloAdmin] : modulos;
+  const modulosFiltrados = searchQuery.trim()
+    ? todosModulos.filter(m =>
+        m.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : todosModulos;
 
   return (
     // ✅ h-screen + overflow-hidden en el root — el scroll ocurre solo en main
     <div className={`h-screen overflow-hidden ${t.bg} flex flex-col`}>
 
       {/* ── TOP NAV mobile ── */}
-      <header className={`md:hidden w-full border-b ${t.border} ${t.bgNav} px-4 py-3 flex items-center justify-between flex-shrink-0`}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-white" style={{ fontSize: 16 }}>monitoring</span>
+      <header className={`md:hidden w-full ${t.bgNav} flex-shrink-0`}>
+        {/* Fila principal */}
+        <div className={`flex items-center justify-between px-4 py-3 border-b ${t.border}`}>
+          <div className="flex items-center gap-3">
+            <img src="/icon-192.png" className="w-9 h-9 rounded-xl object-contain flex-shrink-0" alt="logo"
+              onError={e => { e.target.style.display = "none"; }} />
+            <h1 className={`${t.text} text-sm font-bold tracking-tight leading-tight`}>Rincon<br/>Informaciones</h1>
           </div>
-          <h1 className={`${t.text} text-lg font-black tracking-tight uppercase`}>R.info</h1>
+          <div className="flex items-center gap-2">
+            {/* Botón búsqueda móvil */}
+            <button
+              onClick={() => { setMobileSearchOpen(o => !o); setSearchQuery(""); }}
+              className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} transition ${mobileSearchOpen ? "bg-blue-500/20 text-blue-400" : t.textSecondary}`}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
+                {mobileSearchOpen ? "close" : "search"}
+              </span>
+            </button>
+            <button className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} relative`}>
+              <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>notifications</span>
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
+            </button>
+            <button onClick={() => navegarA("perfil")} className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">
+              {iniciales}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} relative`}>
-            <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>notifications</span>
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
-          </button>
-          <button onClick={() => navegarA("perfil")} className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">
-            {iniciales}
-          </button>
-        </div>
+
+        {/* Barra de búsqueda expandible móvil */}
+        {mobileSearchOpen && (
+          <div className={`px-4 py-3 border-b ${t.border}`}>
+            {/* Input */}
+            <div className="relative mb-2">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
+                {searchBuscando
+                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  : <span className="material-symbols-outlined" style={{ fontSize: 18 }}>search</span>
+                }
+              </span>
+              <input
+                ref={mobileSearchInputRef}
+                autoFocus
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === "Escape" && setMobileSearchOpen(false)}
+                placeholder="Buscar fichas, merma, precios..."
+                className={`w-full pl-9 pr-9 py-2.5 ${t.bgInput} border ${t.border} ${t.text} rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+                </button>
+              )}
+            </div>
+
+            {/* Resultados globales */}
+            {searchQuery.length >= 2 && (
+              <div className={`rounded-xl border ${t.border} overflow-hidden`} style={{ maxHeight: 340, overflowY: "auto" }}>
+                {searchResultados.length === 0 && !searchBuscando ? (
+                  <div className="flex flex-col items-center justify-center py-6 gap-1.5">
+                    <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 28 }}>search_off</span>
+                    <p className={`${t.textSecondary} text-sm`}>Sin resultados para "{searchQuery}"</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`px-4 py-2 border-b ${t.border} flex items-center justify-between ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
+                      <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>
+                        {searchTotalResultados} resultado{searchTotalResultados !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    {searchResultados.map(grupo => (
+                      <div key={grupo.id}>
+                        <div className={`flex items-center gap-2 px-4 py-2 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
+                          <div className={`w-5 h-5 rounded-md flex items-center justify-center ${grupo.bg}`}>
+                            <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
+                          </div>
+                          <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>{grupo.label}</span>
+                          <button onClick={() => { navegarA(grupo.modulo); setSearchQuery(""); setMobileSearchOpen(false); }}
+                            className={`${grupo.color} text-[10px] font-bold ml-auto`}>Ver todos →</button>
+                        </div>
+                        {grupo.items.map(item => (
+                          <button key={item.id}
+                            onClick={() => { navegarA(item.modulo); setSearchQuery(""); setMobileSearchOpen(false); }}
+                            className={`w-full flex items-center gap-3 px-4 py-3 text-left border-t ${t.border} transition-colors ${t.hover}`}>
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${grupo.bg}`}>
+                              <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 15, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`${t.text} text-sm font-semibold truncate`}>{resaltarTexto(item.titulo, searchQuery)}</p>
+                              <p className={`${t.textSecondary} text-xs truncate`}>{item.sub}</p>
+                            </div>
+                            <span className="material-symbols-outlined text-slate-600 flex-shrink-0" style={{ fontSize: 14 }}>arrow_forward</span>
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* ── LAYOUT desktop: sidebar + main ── */}
@@ -267,7 +435,69 @@ export default function DashboardPage({ user, rol }) {
           <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} items-center justify-between px-8 sticky top-0 z-20`} style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--bg-nav, #0f1923)" }}>
             <div className="flex-1 max-w-md relative">
               <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
-              <input className={`w-full pl-10 pr-4 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`} placeholder="Buscar módulos o reportes..." />
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => e.key === "Escape" && setSearchQuery("")}
+                className={`w-full pl-10 pr-8 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`}
+                placeholder="Buscar módulos o reportes..."
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")}
+                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white transition`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+                </button>
+              )}
+
+              {/* Dropdown resultados globales */}
+              {searchQuery.length >= 2 && (
+                <div className={`absolute top-full mt-2 left-0 right-0 ${t.bgCard} border ${t.border} rounded-xl shadow-2xl overflow-hidden z-50`}
+                  style={{ maxHeight: 420, overflowY: "auto" }}>
+                  {searchResultados.length === 0 && !searchBuscando ? (
+                    <div className="flex flex-col items-center justify-center py-6 gap-1.5">
+                      <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 28 }}>search_off</span>
+                      <p className={`${t.textSecondary} text-sm`}>Sin resultados para "{searchQuery}"</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className={`px-4 py-2 border-b ${t.border} flex items-center justify-between ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
+                        <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>
+                          {searchTotalResultados} resultado{searchTotalResultados !== 1 ? "s" : ""}
+                        </span>
+                        <span className={`${t.textSecondary} text-[10px]`}>Esc para cerrar</span>
+                      </div>
+                      {searchResultados.map(grupo => (
+                        <div key={grupo.id}>
+                          <div className={`flex items-center justify-between px-4 py-2 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-5 h-5 rounded-md flex items-center justify-center ${grupo.bg}`}>
+                                <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
+                              </div>
+                              <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>{grupo.label}</span>
+                            </div>
+                            <button onClick={() => { navegarA(grupo.modulo); setSearchQuery(""); }}
+                              className={`${grupo.color} text-[10px] font-bold hover:underline`}>Ver todos →</button>
+                          </div>
+                          {grupo.items.map(item => (
+                            <button key={item.id}
+                              onClick={() => { navegarA(item.modulo); setSearchQuery(""); }}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left border-t ${t.border} transition-colors ${t.hover}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${grupo.bg}`}>
+                                <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 15, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`${t.text} text-sm font-semibold truncate`}>{resaltarTexto(item.titulo, searchQuery)}</p>
+                                <p className={`${t.textSecondary} text-xs truncate`}>{item.sub}</p>
+                              </div>
+                              <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 14 }}>arrow_forward</span>
+                            </button>
+                          ))}
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary} relative`}>

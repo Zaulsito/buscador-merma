@@ -177,6 +177,35 @@ REGLAS ADICIONALES:
 - Categorías inexistentes en el planograma → array vacío []
 
 Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown. Sin bloques de código.`;
+    } else if (tipo === "precio") {
+      prompt = `Eres un extractor de precios de imágenes. Analizarás una foto que puede contener: una etiqueta de precio, una pantalla de caja, una lista de precios, un recibo, un ticket, o cualquier imagen donde aparezca un precio.
+
+TAREA: Extrae el/los precio(s) visible(s) en la imagen.
+
+REGLAS ABSOLUTAS:
+1. Devuelve SOLO un JSON válido, sin markdown, sin texto adicional.
+2. Si hay UN solo precio claro → devuelve el objeto con ese precio.
+3. Si hay MÚLTIPLES precios → devuelve todos en el array "precios".
+4. El campo "precio" debe ser un número (sin signo $, sin puntos de miles, sin comas decimales — usa punto como separador decimal si aplica).
+5. Si el precio está en formato chileno (ej: $1.290 o $1.290,50) → conviértelo a número entero o decimal (1290 o 1290.50).
+6. Si ves el nombre del producto asociado al precio, inclúyelo en "nombre".
+7. Si no puedes determinar un precio con certeza, devuelve "precio": null.
+8. NO inventes precios que no estés viendo claramente.
+
+Devuelve SOLO este JSON:
+{
+  "precio": 1290,
+  "nombre": "NOMBRE DEL PRODUCTO SI APARECE O VACIO",
+  "precios": [
+    { "precio": 1290, "nombre": "PRODUCTO 1" },
+    { "precio": 890, "nombre": "PRODUCTO 2" }
+  ]
+}
+
+Nota: si hay un solo precio, pon el valor en "precio" y deja "precios" como array vacío []. Si hay varios, pon el primero en "precio" y todos en "precios".
+
+Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
+
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
 Mantén el formato original:
@@ -217,13 +246,14 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
     const texto = data.candidates[0].content?.parts?.[0]?.text?.trim() || "";
     if (!texto) return res.status(500).json({ error: "Gemini respondió vacío" });
 
-    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util" || tipo === "planograma") {
+    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util" || tipo === "planograma" || tipo === "precio") {
       try {
         const clean = texto.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
         if (tipo === "ingredientes") return res.status(200).json({ ingredientes: parsed });
         if (tipo === "vida_util") return res.status(200).json({ insumos: parsed });
         if (tipo === "planograma") return res.status(200).json({ planograma: parsed });
+        if (tipo === "precio") return res.status(200).json({ resultado: parsed });
         return res.status(200).json(parsed);
       } catch {
         return res.status(500).json({ error: "No se pudo parsear la respuesta", raw: texto });

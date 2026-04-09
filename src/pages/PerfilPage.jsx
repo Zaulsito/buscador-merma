@@ -91,7 +91,7 @@ export default function PerfilPage({ user, rol, onBack, onNavegar }) {
 
   return (
     <div className={`min-h-screen ${t.bg}`}>
-      <Navbar user={user} rol={rol} />
+      <Navbar user={user} rol={rol} onNavegar={onNavegar} />
       <div className="max-w-lg mx-auto px-4 py-8">
         <button
           onClick={onBack}

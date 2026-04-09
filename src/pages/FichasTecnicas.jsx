@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import FichaModal from "../components/FichaModal";
 import FichaDetalle from "./FichaDetalle";
 import { useTheme } from "../context/ThemeContext";
-import { exportarFichaExcel } from "../utils/fichaExcel";
+// fichaExcel disponible si se necesita exportar
 import AppSidebar from "../components/AppSidebar";
 
 const POR_PAGINA = 25;
@@ -308,7 +308,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
       {/* Columna principal */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="hidden md:block flex-shrink-0">
-          <Navbar user={user} rol={rol} />
+          <Navbar user={user} rol={rol} onNavegar={onNavegar} />
         </div>
         <main className="flex-1 overflow-y-auto">
     <div className={`min-h-full ${t.bg}`}>

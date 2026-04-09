@@ -58,6 +58,8 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   const [savingCat, setSavingCat] = useState(false);
 
   const [confirmDelete, setConfirmDelete] = useState(null); // { tipo: "producto"|"categoria", id, nombre }
+  const [leyendoPrecio, setLeyendoPrecio] = useState(false);
+  const camPrecioRef = useRef(null);
 
   const inputRef = useRef(null);
 
@@ -155,6 +157,43 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
     setSavingProd(false);
   };
 
+  // ── Leer precio desde cámara/imagen con IA ──
+  const leerPrecioConIA = async (file) => {
+    if (!file) return;
+    setLeyendoPrecio(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type || "image/jpeg", tipo: "precio" }),
+      });
+      const data = await response.json();
+      if (!response.ok) { toast.error(data.error || "Error al procesar imagen"); return; }
+      const resultado = data.resultado;
+      if (!resultado || resultado.precio === null || resultado.precio === undefined) {
+        toast.error("No se detectó ningún precio en la imagen");
+        return;
+      }
+      setFormProd(p => ({
+        ...p,
+        precio: String(resultado.precio),
+        ...(resultado.nombre && !p.nombre ? { nombre: resultado.nombre.toUpperCase() } : {}),
+      }));
+      toast.success(`Precio detectado: $${Number(resultado.precio).toLocaleString("es-CL")} ✅`);
+    } catch (err) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setLeyendoPrecio(false);
+      if (camPrecioRef.current) camPrecioRef.current.value = "";
+    }
+  };
+
   const eliminarProducto = async (id) => {
     try {
       await deleteDoc(doc(db, "lista_precios", id));
@@ -210,7 +249,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} /></div>
+        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} /></div>
 
         {/* Header móvil */}
         <header className={`md:hidden sticky top-0 z-40 flex items-center gap-3 px-4 py-3 ${t.bgNav} border-b ${t.border}`}>
@@ -530,16 +569,46 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
                 {/* Precio */}
                 <div>
                   <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Precio ($)</label>
-                  <div className="relative">
-                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary} text-sm font-bold`}>$</span>
-                    <input
-                      type="number" min="0"
-                      value={formProd.precio}
-                      onChange={e => setFormProd(p => ({ ...p, precio: e.target.value }))}
-                      placeholder="0"
-                      className={`w-full ${t.bgInput} border ${t.border} ${t.text} pl-7 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
-                    />
+                  <div className="relative flex gap-2">
+                    <div className="relative flex-1">
+                      <span className={`absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary} text-sm font-bold`}>$</span>
+                      <input
+                        type="number" min="0"
+                        value={formProd.precio}
+                        onChange={e => setFormProd(p => ({ ...p, precio: e.target.value }))}
+                        placeholder="0"
+                        className={`w-full ${t.bgInput} border ${t.border} ${t.text} pl-7 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                      />
+                    </div>
+                    {/* Botón leer precio con cámara */}
+                    <label
+                      title="Leer precio con cámara"
+                      className={`flex items-center justify-center w-11 h-11 rounded-xl border transition cursor-pointer flex-shrink-0 ${
+                        leyendoPrecio
+                          ? "bg-amber-500/20 border-amber-500/40 pointer-events-none"
+                          : "bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20"
+                      }`}>
+                      {leyendoPrecio
+                        ? <svg className="w-4 h-4 animate-spin text-amber-400" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                          </svg>
+                        : <span className="material-symbols-outlined text-amber-400" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+                      }
+                      <input
+                        ref={camPrecioRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        disabled={leyendoPrecio}
+                        onChange={e => { const f = e.target.files?.[0]; if (f) leerPrecioConIA(f); }}
+                      />
+                    </label>
                   </div>
+                  {leyendoPrecio && (
+                    <p className="text-[10px] text-amber-400 mt-1 font-medium animate-pulse">Analizando imagen con IA...</p>
+                  )}
                 </div>
 
                 {/* Código SAP */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
   useSensor, useSensors, DragOverlay,
@@ -14,7 +14,7 @@ import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
 import TablaIngredientes from "./TablaIngredientes";
 import { useCodigos, useSubcategorias } from "../hooks/useIngredientes";
-import { exportarFichaExcel, importarFichaExcel } from "../utils/fichaExcel";
+// fichaExcel: exportar/importar disponible si se reactiva el botón en UI
 import RichTextEditor from "./RichTextEditor";
 
 const TABS = [
