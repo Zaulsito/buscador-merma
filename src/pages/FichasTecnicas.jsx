@@ -195,7 +195,22 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
   const [subcategoriaFiltro, setSubcategoriaFiltro] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [fichaEditar, setFichaEditar] = useState(null);
-  const [fichaDetalle, setFichaDetalle] = useState(null);
+  const [fichaDetalle, setFichaDetalle] = useState(null); // { ficha, idx }
+
+  const abrirDetalle = (f) => {
+    const idx = fichasFiltradas.findIndex(x => x.id === f.id);
+    setFichaDetalle({ ficha: f, idx: idx >= 0 ? idx : 0 });
+  };
+
+  // Sincronizar fichaDetalle cuando los datos de Firestore se actualicen
+  useEffect(() => {
+    if (!fichaDetalle) return;
+    const fichaActualizada = fichas.find(f => f.id === fichaDetalle.ficha.id);
+    if (fichaActualizada) {
+      const nuevoIdx = fichasFiltradas.findIndex(x => x.id === fichaActualizada.id);
+      setFichaDetalle({ ficha: fichaActualizada, idx: nuevoIdx >= 0 ? nuevoIdx : fichaDetalle.idx });
+    }
+  }, [fichas]);
   const [loading, setLoading] = useState(true);
   const [pagina, setPagina] = useState(1);
   const [fabVisible, setFabVisible] = useState(true);
@@ -284,16 +299,19 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
   if (fichaDetalle)
     return (
       <FichaDetalle
-        ficha={fichaDetalle}
+        ficha={fichaDetalle.ficha}
         user={user}
         rol={rol}
         onBack={() => setFichaDetalle(null)}
         onNavegar={onNavegar}
         onEditar={() => {
-          setFichaEditar(fichaDetalle);
+          setFichaEditar(fichaDetalle.ficha);
           setFichaDetalle(null);
           setShowModal(true);
         }}
+        fichasLista={fichasFiltradas}
+        fichaIdx={fichaDetalle.idx}
+        onCambiarFicha={(idx) => setFichaDetalle({ ficha: fichasFiltradas[idx], idx })}
       />
     );
 
@@ -434,7 +452,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
                   f={f}
                   rol={rol}
                   t={t}
-                  onDetalle={setFichaDetalle}
+                  onDetalle={abrirDetalle}
                   onEditar={abrirEditar}
                   onEliminar={handleEliminar}
                 />
@@ -483,7 +501,15 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
               ? secciones[1] || "Snack y Desayuno"
               : seccionActiva
           }
-          onClose={() => setShowModal(false)}
+          onClose={() => {
+            setShowModal(false);
+            // Si había un detalle abierto, volver a él con los datos actualizados
+            if (fichaDetalle) {
+              const idx = fichaDetalle.idx;
+              // La ficha actualizada vendrá del onSnapshot — re-apuntar al mismo idx
+              setFichaDetalle(prev => prev ? { ...prev } : null);
+            }
+          }}
         />
       )}
     </div>{/* /min-h-full */}

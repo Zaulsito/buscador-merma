@@ -1,7 +1,7 @@
 import { useTheme } from "../context/ThemeContext";
 import Navbar from "../components/Navbar";
 import AppSidebar from "../components/AppSidebar";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Sección con acento azul lateral
 function Seccion({ titulo, icon, children, t }) {
@@ -45,9 +45,44 @@ function TablaDetalle({ headers, rows, t }) {
   );
 }
 
-export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNavegar }) {
+export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNavegar, fichasLista = [], fichaIdx = 0, onCambiarFicha }) {
   const { t } = useTheme();
   const [fotoAmpliada, setFotoAmpliada] = useState(null);
+  const touchStartX = useRef(null);
+  const contenedorRef = useRef(null);
+
+  const hasPrev = fichasLista.length > 1 && fichaIdx > 0;
+  const hasNext = fichasLista.length > 1 && fichaIdx < fichasLista.length - 1;
+
+  const irAnterior = () => { if (hasPrev) onCambiarFicha?.(fichaIdx - 1); };
+  const irSiguiente = () => { if (hasNext) onCambiarFicha?.(fichaIdx + 1); };
+
+  // Swipe horizontal
+  useEffect(() => {
+    const el = contenedorRef.current;
+    if (!el || !fichasLista.length) return;
+    const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+    const onTouchEnd = (e) => {
+      if (touchStartX.current === null) return;
+      const delta = touchStartX.current - e.changedTouches[0].clientX;
+      if (delta > 60) irSiguiente();
+      else if (delta < -60) irAnterior();
+      touchStartX.current = null;
+    };
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => { el.removeEventListener("touchstart", onTouchStart); el.removeEventListener("touchend", onTouchEnd); };
+  }, [fichaIdx, fichasLista]);
+
+  // Teclas ← → en desktop
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "ArrowLeft") irAnterior();
+      if (e.key === "ArrowRight") irSiguiente();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [fichaIdx, fichasLista]);
 
   const estadoBadge =
     ficha.estado === "inactiva"
@@ -108,15 +143,22 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
 
         {/* Botones desktop */}
         <div className="hidden md:flex items-center justify-between mb-8">
-          <button
-            onClick={onBack}
-            className={`flex items-center gap-2 ${t.textSecondary} hover:text-blue-400 text-sm font-medium transition-colors group`}
-          >
-            <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform" style={{ fontSize: 18 }}>
-              arrow_back
-            </span>
-            Volver a Fichas
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className={`flex items-center gap-2 ${t.textSecondary} hover:text-blue-400 text-sm font-medium transition-colors group`}
+            >
+              <span className="material-symbols-outlined group-hover:-translate-x-0.5 transition-transform" style={{ fontSize: 18 }}>
+                arrow_back
+              </span>
+              Volver a Fichas
+            </button>
+            {fichasLista.length > 1 && (
+              <span className={`${t.textSecondary} text-xs`}>
+                {fichaIdx + 1} de {fichasLista.length} · <kbd className="font-mono px-1 py-0.5 rounded bg-white/5 text-[10px]">←</kbd><kbd className="font-mono px-1 py-0.5 rounded bg-white/5 text-[10px]">→</kbd>
+              </span>
+            )}
+          </div>
           {(rol === "admin" || rol === "unico") && (
             <button
               onClick={onEditar}
@@ -460,7 +502,22 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
           >
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <h2 className={`${t.text} text-base font-bold flex-1 text-center truncate px-2`}>Ficha Técnica</h2>
+          <div className="flex-1 flex flex-col items-center px-2">
+            <h2 className={`${t.text} text-sm font-bold truncate max-w-full`}>Ficha Técnica</h2>
+            {fichasLista.length > 1 && (
+              <div className="flex items-center gap-2 mt-0.5">
+                <button onClick={irAnterior} disabled={!hasPrev}
+                  className={`transition ${hasPrev ? "text-blue-400" : "opacity-20 " + t.textSecondary}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
+                </button>
+                <span className={`${t.textSecondary} text-[10px] font-bold`}>{fichaIdx + 1} / {fichasLista.length}</span>
+                <button onClick={irSiguiente} disabled={!hasNext}
+                  className={`transition ${hasNext ? "text-blue-400" : "opacity-20 " + t.textSecondary}`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
+                </button>
+              </div>
+            )}
+          </div>
           {(rol === "admin" || rol === "unico") && (
             <button
               onClick={onEditar}
@@ -477,8 +534,32 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
         </div>
 
         {/* Área scrolleable */}
-        <main className="flex-1 overflow-y-auto">
+        <main ref={contenedorRef} className="flex-1 overflow-y-auto relative">
           <Contenido />
+
+          {/* Flechas desktop — flotantes sobre el contenido */}
+          {fichasLista.length > 1 && (
+            <>
+              <button
+                onClick={irAnterior}
+                disabled={!hasPrev}
+                className={`hidden md:flex fixed left-[280px] top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full shadow-xl items-center justify-center transition-all ${
+                  hasPrev ? `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 hover:border-blue-400/50` : "opacity-0 pointer-events-none"
+                }`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_left</span>
+              </button>
+              <button
+                onClick={irSiguiente}
+                disabled={!hasNext}
+                className={`hidden md:flex fixed right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full shadow-xl items-center justify-center transition-all ${
+                  hasNext ? `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 hover:border-blue-400/50` : "opacity-0 pointer-events-none"
+                }`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_right</span>
+              </button>
+            </>
+          )}
         </main>
       </div>
 

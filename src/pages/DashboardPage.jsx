@@ -313,6 +313,20 @@ export default function DashboardPage({ user, rol }) {
       )
     : todosModulos;
 
+  // Resaltar coincidencia de búsqueda
+  const resaltarTexto = (texto, q) => {
+    if (!texto || !q) return texto;
+    const idx = texto.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return texto;
+    return (
+      <>
+        {texto.slice(0, idx)}
+        <mark className="bg-blue-500/30 text-blue-300 rounded px-0.5 not-italic">{texto.slice(idx, idx + q.length)}</mark>
+        {texto.slice(idx + q.length)}
+      </>
+    );
+  };
+
   return (
     // ✅ h-screen + overflow-hidden en el root — el scroll ocurre solo en main
     <div className={`h-screen overflow-hidden ${t.bg} flex flex-col`}>
