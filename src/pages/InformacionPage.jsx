@@ -6,6 +6,7 @@ import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import toast, { Toaster } from "react-hot-toast";
+import MontajeEditor from "../components/MontajeEditor";
 
 const MODOS = ["Fresco y seco", "Refrigerado", "Congelado", "N/A"];
 
@@ -35,6 +36,13 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const [form, setForm] = useState({ ...FILA_VACIA });
   const [saving, setSaving] = useState(false);
   const [leyendoIA, setLeyendoIA] = useState(false);
+  const [tabArea, setTabArea] = useState("vida_util"); // "vida_util" | "montaje"
+  const [tabMontaje, setTabMontaje] = useState("desayuno"); // "desayuno" | "almuerzo" | "once"
+  const [montajes, setMontajes] = useState({ desayuno: [], almuerzo: [], once: [] });
+  const [modalMontajeOpen, setModalMontajeOpen] = useState(false);
+  const [editandoMontaje, setEditandoMontaje] = useState(null);
+  const [formMontaje, setFormMontaje] = useState({ titulo: "", descripcion: "", items: "" });
+  const [savingMontaje, setSavingMontaje] = useState(false);
   const [leyendoTablaIA, setLeyendoTablaIA] = useState(false);
   const [modalImportIA, setModalImportIA] = useState(false);
   const [resultadoIA, setResultadoIA] = useState(null); // { nuevos, duplicados, todos }
@@ -73,6 +81,60 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
     });
     return () => unsub();
   }, []);
+
+  // ── Listener montajes ──
+  useEffect(() => {
+    const unsubs = ["desayuno", "almuerzo", "once"].map(turno => {
+      return onSnapshot(collection(db, `montaje_${turno}`), snap => {
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.orden || 0) - (b.orden || 0));
+        setMontajes(prev => ({ ...prev, [turno]: data }));
+      });
+    });
+    return () => unsubs.forEach(u => u());
+  }, []);
+
+  const abrirNuevoMontaje = () => {
+    setEditandoMontaje(null);
+    setFormMontaje({ titulo: "", descripcion: "", items: "" });
+    setModalMontajeOpen(true);
+  };
+
+  const abrirEditarMontaje = (item) => {
+    setEditandoMontaje(item);
+    setFormMontaje({ titulo: item.titulo || "", descripcion: item.descripcion || "", items: (item.items || []).join("\n") });
+    setModalMontajeOpen(true);
+  };
+
+  const guardarMontaje = async () => {
+    if (!formMontaje.titulo.trim()) return toast.error("El título es obligatorio");
+    setSavingMontaje(true);
+    try {
+      const data = {
+        titulo: formMontaje.titulo.trim(),
+        descripcion: formMontaje.descripcion.trim(),
+        items: formMontaje.items.split("\n").map(l => l.trim()).filter(Boolean),
+        turno: tabMontaje,
+        updatedAt: serverTimestamp(),
+      };
+      if (editandoMontaje) {
+        await updateDoc(doc(db, `montaje_${tabMontaje}`, editandoMontaje.id), data);
+        toast.success("Actualizado ✅");
+      } else {
+        await addDoc(collection(db, `montaje_${tabMontaje}`), { ...data, orden: montajes[tabMontaje].length, createdAt: serverTimestamp() });
+        toast.success("Agregado ✅");
+      }
+      setModalMontajeOpen(false);
+    } catch { toast.error("Error al guardar"); }
+    setSavingMontaje(false);
+  };
+
+  const eliminarMontaje = async (id) => {
+    try {
+      await deleteDoc(doc(db, `montaje_${tabMontaje}`, id));
+      toast.success("Eliminado");
+    } catch { toast.error("Error al eliminar"); }
+  };
 
   const filtrados = insumos.filter(i => {
     const matchBusqueda = !busqueda || i.insumo?.toLowerCase().includes(busqueda.toLowerCase());
@@ -252,7 +314,26 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
         <main className="flex-1 overflow-y-auto">
           <div className="px-4 md:px-8 py-6">
 
-            {/* Título */}
+            {/* ── Tabs de área ── */}
+            <div className="flex gap-2 mb-6">
+              {[
+                { id: "vida_util", label: "Vida Útil",  icon: "inventory_2" },
+                { id: "montaje",   label: "Montaje",     icon: "restaurant_menu" },
+              ].map(tab => (
+                <button key={tab.id} onClick={() => setTabArea(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold border transition ${
+                    tabArea === tab.id
+                      ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20"
+                      : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`
+                  }`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: tabArea === tab.id ? "'FILL' 1" : "'FILL' 0" }}>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Título — solo en Vida Útil */}
+            {tabArea === "vida_util" && (
             <div className="hidden md:flex items-start justify-between mb-6">
               <div>
                 <button onClick={onBack} className={`flex items-center gap-1.5 ${t.textSecondary} hover:text-blue-400 text-xs mb-2 transition-colors`}>
@@ -286,7 +367,11 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                 )}
               </div>
             </div>
+            )}
 
+            {/* ══ Contenido según tab ══ */}
+            {tabArea === "vida_util" && (
+            <>
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               {[
@@ -478,6 +563,13 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
                 <p className="text-red-500 font-black text-lg uppercase tracking-tighter text-center leading-tight">Documento<br/>Controlado</p>
               </div>
             </div>
+            </> /* fin vida_util */
+            )}
+
+            {/* ══ SECCIÓN MONTAJE ══ */}
+            {tabArea === "montaje" && (
+              <MontajeEditor esAdmin={esAdmin} user={user} />
+            )}
 
           </div>
         </main>
@@ -697,6 +789,51 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
       )}
     
       <BottomNav moduloActivo="informacion" onNavegar={onNavegar} />
+
+      {/* ══ MODAL MONTAJE ══ */}
+      {modalMontajeOpen && (
+        <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-md shadow-2xl`}>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border}`}>
+              <h3 className={`${t.text} font-bold`}>{editandoMontaje ? "Editar guía" : "Nueva guía de montaje"}</h3>
+              <button onClick={() => setModalMontajeOpen(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Título *</label>
+                <input autoFocus value={formMontaje.titulo}
+                  onChange={e => setFormMontaje(p => ({ ...p, titulo: e.target.value }))}
+                  placeholder="Ej: Ensalada César"
+                  className={`w-full ${t.bgInput} border ${t.border} ${t.text} px-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`} />
+              </div>
+              <div>
+                <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Descripción</label>
+                <input value={formMontaje.descripcion}
+                  onChange={e => setFormMontaje(p => ({ ...p, descripcion: e.target.value }))}
+                  placeholder="Descripción breve del montaje"
+                  className={`w-full ${t.bgInput} border ${t.border} ${t.text} px-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`} />
+              </div>
+              <div>
+                <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Pasos / Items (uno por línea)</label>
+                <textarea value={formMontaje.items}
+                  onChange={e => setFormMontaje(p => ({ ...p, items: e.target.value }))}
+                  rows={5} placeholder={"Base de lechuga\nAgregar crutones\nSalsa al costado"}
+                  className={`w-full ${t.bgInput} border ${t.border} ${t.text} px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none`} />
+              </div>
+            </div>
+            <div className={`flex gap-3 px-5 pb-5 border-t ${t.border} pt-3`}>
+              <button onClick={() => setModalMontajeOpen(false)}
+                className={`flex-1 ${t.bgInput} ${t.text} font-semibold py-2.5 rounded-xl text-sm transition`}>Cancelar</button>
+              <button onClick={guardarMontaje} disabled={savingMontaje}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl text-sm transition disabled:opacity-50">
+                {savingMontaje ? "Guardando..." : editandoMontaje ? "Guardar cambios" : "Agregar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

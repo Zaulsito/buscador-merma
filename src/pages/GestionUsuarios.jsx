@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import BottomNav from "../components/BottomNav";
 import { db, auth } from "../firebase/config";
-import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc, writeBatch, query, where } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
@@ -179,9 +179,29 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
   const handleGuardarCategoria = async () => {
     if (!editandoCat.nombre.trim()) { toast.error("El nombre no puede estar vacío"); return; }
     setGuardandoCat(true);
-    await updateDoc(doc(db, "categorias", editandoCat.id), { nombre: editandoCat.nombre.trim(), color: editandoCat.color });
-    toast.success("Categoría actualizada ✅");
-    setEditandoCat(null);
+    try {
+      const nombreAnterior = categorias.find(c => c.id === editandoCat.id)?.nombre;
+      const nombreNuevo = editandoCat.nombre.trim();
+
+      // 1. Actualizar la categoría
+      await updateDoc(doc(db, "categorias", editandoCat.id), { nombre: nombreNuevo, color: editandoCat.color });
+
+      // 2. Si cambió el nombre, actualizar todos los productos de merma con esa categoría
+      if (nombreAnterior && nombreAnterior !== nombreNuevo) {
+        const snap = await getDocs(query(collection(db, "merma"), where("categoria", "==", nombreAnterior)));
+        if (!snap.empty) {
+          const batch = writeBatch(db);
+          snap.docs.forEach(d => batch.update(d.ref, { categoria: nombreNuevo }));
+          await batch.commit();
+          toast.success(`Categoría actualizada y ${snap.size} producto(s) en merma sincronizados ✅`);
+        } else {
+          toast.success("Categoría actualizada ✅");
+        }
+      } else {
+        toast.success("Categoría actualizada ✅");
+      }
+      setEditandoCat(null);
+    } catch { toast.error("Error al actualizar"); }
     setGuardandoCat(false);
   };
 

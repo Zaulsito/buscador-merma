@@ -78,12 +78,18 @@ export default function ProductCard({ product, rol }) {
           ))}
         </select>
 
-        <input
+        <select
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
-          className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} placeholder:text-slate-500 mb-4`}
-          placeholder="Forma de medida (opcional)"
-        />
+          className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} mb-4`}
+        >
+          <option value="">Sin unidad</option>
+          <option value="UNIDADES">UNIDADES</option>
+          <option value="KILOGRAMOS">KILOGRAMOS</option>
+          <option value="PORCIONES">PORCIONES</option>
+          <option value="LITROS">LITROS</option>
+          <option value="GRAMOS">GRAMOS</option>
+        </select>
 
         <div className="flex gap-2">
           <button onClick={() => setEditing(false)} className={`flex-1 ${t.bgInput} ${t.hover} ${t.textSecondary} text-sm py-2.5 rounded-lg transition font-semibold`}>

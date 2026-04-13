@@ -383,11 +383,63 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
         <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} /></div>
 
         {/* Header móvil */}
-        <header className={`md:hidden sticky top-0 z-40 flex items-center gap-3 px-4 py-3 ${t.bgNav} border-b ${t.border}`}>
-          <button onClick={onBack} className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text}`}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h2 className={`${t.text} text-base font-bold`}>Planograma</h2>
+        <header className={`md:hidden sticky top-0 z-40 ${t.bgNav} border-b ${t.border}`}>
+          {/* Fila 1: título + navegación */}
+          <div className="flex items-center gap-2 px-3 py-2">
+            <button onClick={onBack} className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} ${t.text} flex-shrink-0`}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>arrow_back</span>
+            </button>
+            <div className="flex-1 min-w-0">
+              <h2 className={`${t.text} text-sm font-bold truncate`}>Planograma</h2>
+              <p className={`${t.textSecondary} text-[10px] truncate`}>{getTitulo()}</p>
+            </div>
+            {/* Navegación temporal */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button onClick={() => navegar(-1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
+              </button>
+              <button onClick={() => setFechaBase(new Date())} className={`px-2 h-8 rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} text-[10px] font-bold`}>Hoy</button>
+              <button onClick={() => navegar(1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
+              </button>
+            </div>
+          </div>
+          {/* Fila 2: selector de vista + IA */}
+          <div className="flex items-center gap-2 px-3 pb-2">
+            {/* Selector vista */}
+            <div className={`flex ${t.bgCard} border ${t.border} rounded-xl overflow-hidden flex-1`}>
+              {["semanal", "diaria", "mensual"].map(v => (
+                <button key={v} onClick={() => setVista(v)}
+                  className={`flex-1 py-1.5 text-[11px] font-bold transition-colors ${
+                    vista === v ? "bg-blue-600 text-white" : `${t.textSecondary}`
+                  }`}>
+                  {v === "semanal" ? "Semana" : v === "diaria" ? "Día" : "Mes"}
+                </button>
+              ))}
+            </div>
+            {/* Botón IA — solo admins */}
+            {(rol === "admin" || rol === "unico") && (
+              <label className={`flex items-center gap-1.5 cursor-pointer px-3 py-1.5 rounded-xl font-bold text-xs transition flex-shrink-0 ${leyendoIA ? "bg-purple-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-purple-600 to-indigo-600"} text-white`}>
+                {leyendoIA
+                  ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  : <span className="material-symbols-outlined" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>auto_awesome</span>
+                }
+                IA
+                <input type="file" accept="image/*" className="hidden" disabled={leyendoIA}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) leerPlanogramaConIA(f); e.target.value = ""; }} />
+              </label>
+            )}
+            {/* Botón seleccionar — solo en mensual */}
+            {vista === "mensual" && (
+              <button onClick={() => { setModoSeleccion(m => !m); setDiasSeleccionados(new Set()); }}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition flex-shrink-0 ${
+                  modoSeleccion ? "bg-red-500/10 border-red-500/40 text-red-400" : `${t.bgCard} ${t.border} ${t.textSecondary}`
+                }`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 13 }}>{modoSeleccion ? "close" : "checklist"}</span>
+                {modoSeleccion ? "Cancelar" : "Sel."}
+              </button>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto">
@@ -840,28 +892,36 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
               </button>
             </div>
 
-            {/* Preview días */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+            {/* Preview días — compacto */}
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
               {previewIA.dias.filter(d => {
                 const { dia, diaSemana, ...cats } = d;
                 return Object.values(cats).some(v => Array.isArray(v) && v.length > 0);
               }).map((diaData, i) => {
                 const { dia, diaSemana, ...cats } = diaData;
-                // Usar diaSemana de la IA (fuente de verdad), con cálculo como fallback
                 const labelDia = diaSemana || DIAS[(new Date(previewIA.anio, previewIA.mes - 1, dia).getDay() + 6) % 7];
                 return (
-                  <div key={i} className={`${t.bgInput} border ${t.border} rounded-xl p-4`}>
-                    <p className="text-blue-400 font-black text-sm mb-2">
-                      Día {dia} — {labelDia}
-                    </p>
-                    <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                  <div key={i} className={`${t.bgInput} border ${t.border} rounded-xl overflow-hidden`}>
+                    {/* Header día */}
+                    <div className={`flex items-center gap-2 px-3 py-2 border-b ${t.border} ${t.isDark ? "bg-white/5" : "bg-slate-50"}`}>
+                      <span className="text-blue-400 font-black text-xs">{labelDia}</span>
+                      <span className={`${t.textSecondary} text-[10px]`}>·</span>
+                      <span className={`${t.textSecondary} text-[10px]`}>{dia} de {MESES[previewIA.mes - 1]}</span>
+                      <span className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400`}>
+                        {CATEGORIAS.filter(cat => (cats[cat.id] || []).length > 0).length} cat.
+                      </span>
+                    </div>
+                    {/* Filas de categorías — una línea cada una */}
+                    <div className="divide-y divide-white/5">
                       {CATEGORIAS.map(cat => {
                         const platos = cats[cat.id] || [];
                         if (!platos.length) return null;
                         return (
-                          <div key={cat.id}>
-                            <span className={`${t.textSecondary} text-[10px] font-bold uppercase`}>{cat.label}: </span>
-                            <span className={`${t.text} text-xs`}>{platos.join(", ")}</span>
+                          <div key={cat.id} className="flex items-start gap-2 px-3 py-1.5">
+                            <span className={`${t.textSecondary} text-[9px] font-black uppercase tracking-wide w-20 flex-shrink-0 pt-0.5`}>{cat.label}</span>
+                            <span className={`${t.text} text-[10px] leading-snug flex-1 min-w-0`}>
+                              {platos.join(" · ")}
+                            </span>
                           </div>
                         );
                       })}

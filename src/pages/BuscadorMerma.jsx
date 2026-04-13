@@ -83,15 +83,19 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
       p.codigo?.toLowerCase().includes(term) ||
       p.nombre?.toLowerCase().includes(term) ||
       p.categoria?.toLowerCase().includes(term);
-    const matchCat = catActiva === "" || p.categoria === catActiva;
+    const matchCat = catActiva === "" || (catActiva === "__sin__" ? (!p.categoria || p.categoria === "") : p.categoria === catActiva);
     return matchSearch && matchCat;
   });
 
   const totalPaginas = Math.ceil(filtered.length / POR_PAGINA);
   const paginados = filtered.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  const sinCategoria = products.filter(p => !p.categoria || p.categoria === "").length;
 
+  const mainRef = useRef(null);
   const cambiarPagina = (nueva) => {
     setPagina(nueva);
+    // Scroll al top del contenedor principal
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -114,7 +118,7 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
       {/* Columna principal */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} /></div>
-        <main className="flex-1 overflow-y-auto flex flex-col">
+        <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
 
           {/* ── HEADER ── */}
           <header className={`p-6 md:p-8 pb-4 flex flex-col gap-5 border-b ${t.border} flex-shrink-0`}>
@@ -210,6 +214,20 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                     {cat.nombre}
                   </button>
                 ))}
+                {/* Chip "Sin categoría" — solo visible si hay productos sin asignar */}
+                {sinCategoria > 0 && (
+                  <button
+                    onClick={() => setCatActiva("__sin__")}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all shrink-0 ${
+                      catActiva === "__sin__"
+                        ? "bg-amber-500 text-white border-transparent shadow-lg shadow-amber-500/25"
+                        : "bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>warning</span>
+                    Sin categoría ({sinCategoria})
+                  </button>
+                )}
                 {(rol === "admin" || rol === "unico") && (
                   <button
                     onClick={() => setShowNuevaCat(true)}
@@ -252,6 +270,13 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
               <>
                 <p className={`${t.textSecondary} text-sm mb-5`}>
                   Mostrando <span className={`${t.text} font-bold`}>{paginados.length}</span> de <span className={`${t.text} font-bold`}>{filtered.length}</span> productos registrados
+                  {sinCategoria > 0 && (
+                    <button onClick={() => setCatActiva("__sin__")}
+                      className="ml-3 flex items-center gap-1.5 text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold hover:bg-amber-500/20 transition">
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>warning</span>
+                      {sinCategoria} sin categoría
+                    </button>
+                  )}
                 </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">

@@ -80,13 +80,18 @@ export default function AddProductModal({ onClose, onAdded }) {
           ))}
         </select>
 
-        <input
-          type="text"
-          placeholder="Porciones / Unidades / Kilogramos (opcional)"
+        <select
           value={unidadMedida}
           onChange={(e) => setUnidadMedida(e.target.value)}
           className={`${inputClass} mb-6`}
-        />
+        >
+          <option value="">Sin unidad</option>
+          <option value="UNIDADES">UNIDADES</option>
+          <option value="KILOGRAMOS">KILOGRAMOS</option>
+          <option value="PORCIONES">PORCIONES</option>
+          <option value="LITROS">LITROS</option>
+          <option value="GRAMOS">GRAMOS</option>
+        </select>
 
         <div className="flex gap-3">
           <button
