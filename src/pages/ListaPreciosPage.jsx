@@ -48,7 +48,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   // ── Modales ────────────────────────────────────────────────────────────────
   const [modalProd, setModalProd] = useState(false);   // nuevo / editar producto
   const [editProd, setEditProd] = useState(null);       // null = nuevo
-  const [formProd, setFormProd] = useState({ nombre: "", precio: "", categoriaId: "", codSap: "", tipo: "manual", fichaId: "" });
+  const [formProd, setFormProd] = useState({ nombre: "", precio: "", categoriaId: "", codSap: "", codBarra: "", tipo: "manual", fichaId: "" });
   const [savingProd, setSavingProd] = useState(false);
   const [busqFicha, setBusqFicha] = useState("");
 
@@ -60,6 +60,13 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   const [confirmDelete, setConfirmDelete] = useState(null); // { tipo: "producto"|"categoria", id, nombre }
   const [leyendoPrecio, setLeyendoPrecio] = useState(false);
   const camPrecioRef = useRef(null);
+  const camListaRef = useRef(null);
+
+  // ── Estados para flujo IA lista completa ──
+  const [leyendoLista, setLeyendoLista] = useState(false);
+  const [colaIA, setColaIA] = useState([]); // productos detectados pendientes de procesar
+  const [modalSimilitud, setModalSimilitud] = useState(null); // { detectedProd, fichasSimilares }
+  const [modalColaIA, setModalColaIA] = useState(false); // revisar lista detectada
 
   const inputRef = useRef(null);
 
@@ -106,7 +113,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
 
   const abrirNuevoProd = () => {
     setEditProd(null);
-    setFormProd({ nombre: "", precio: "", categoriaId: categorias[0]?.id || "", codSap: "", tipo: "manual", fichaId: "" });
+    setFormProd({ nombre: "", precio: "", categoriaId: categorias[0]?.id || "", codSap: "", codBarra: "", tipo: "manual", fichaId: "" });
     setBusqFicha("");
     setModalProd(true);
     setTimeout(() => inputRef.current?.focus(), 100);
@@ -114,7 +121,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
 
   const abrirEditarProd = (p) => {
     setEditProd(p);
-    setFormProd({ nombre: p.nombre, precio: String(p.precio ?? ""), categoriaId: p.categoriaId || "", codSap: p.codSap || "", tipo: p.tipo || "manual", fichaId: p.fichaId || "" });
+    setFormProd({ nombre: p.nombre, precio: String(p.precio ?? ""), categoriaId: p.categoriaId || "", codSap: p.codSap || "", codBarra: p.codBarra || "", tipo: p.tipo || "manual", fichaId: p.fichaId || "" });
     setBusqFicha("");
     setModalProd(true);
   };
@@ -140,6 +147,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
         precio: formProd.precio !== "" ? parseFloat(formProd.precio) : null,
         categoriaId: formProd.categoriaId || null,
         codSap: formProd.codSap?.trim() || null,
+        codBarra: formProd.codBarra?.trim() || null,
         tipo: formProd.tipo,
         fichaId: formProd.fichaId || null,
         updatedAt: serverTimestamp(),
@@ -153,6 +161,105 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
         toast.success("Producto agregado ✅");
       }
       setModalProd(false);
+    } catch { toast.error("Error al guardar"); }
+    setSavingProd(false);
+  };
+
+  // ── Similitud de nombre entre dos strings (distancia simple) ──
+  const calcSimilitud = (a, b) => {
+    if (!a || !b) return 0;
+    const an = a.toLowerCase().trim();
+    const bn = b.toLowerCase().trim();
+    if (an === bn) return 1;
+    // Overlap de palabras
+    const wa = new Set(an.split(/\s+/).filter(w => w.length > 2));
+    const wb = new Set(bn.split(/\s+/).filter(w => w.length > 2));
+    let matches = 0;
+    wa.forEach(w => { if (bn.includes(w)) matches++; });
+    wb.forEach(w => { if (an.includes(w)) matches++; });
+    return matches / (wa.size + wb.size || 1);
+  };
+
+  // ── Buscar fichas similares al nombre detectado ──
+  const buscarFichasSimilares = (nombreDetectado) => {
+    return fichas
+      .map(f => ({ ...f, sim: calcSimilitud(nombreDetectado, f.nombre) }))
+      .filter(f => f.sim > 0.35)
+      .sort((a, b) => b.sim - a.sim)
+      .slice(0, 3);
+  };
+
+  // ── Leer lista completa de precios desde imagen ──
+  const leerListaConIA = async (file) => {
+    if (!file) return;
+    setLeyendoLista(true);
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result.split(",")[1]);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+      });
+      const response = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: base64, mimeType: file.type || "image/jpeg", tipo: "precio" }),
+      });
+      const data = await response.json();
+      if (!response.ok) { toast.error(data.error || "Error al procesar"); return; }
+      const resultado = data.resultado;
+
+      // Construir cola de productos detectados
+      let detectados = [];
+      if (resultado?.precios?.length > 0) {
+        detectados = resultado.precios;
+      } else if (resultado?.precio !== null && resultado?.precio !== undefined) {
+        detectados = [{ precio: resultado.precio, nombre: resultado.nombre || "", codBarra: resultado.codBarra || null }];
+      }
+
+      if (detectados.length === 0) { toast.error("No se detectaron precios en la imagen"); return; }
+
+      // Enriquecer con similitudes de fichas
+      const enriched = detectados.map(d => ({
+        ...d,
+        fichasSimilares: buscarFichasSimilares(d.nombre || ""),
+      }));
+
+      setColaIA(enriched);
+      setModalColaIA(true);
+      toast.success(`${detectados.length} producto(s) detectados`);
+    } catch (err) {
+      toast.error(`Error: ${err.message}`);
+    } finally {
+      setLeyendoLista(false);
+      if (camListaRef.current) camListaRef.current.value = "";
+    }
+  };
+
+  // ── Confirmar producto de la cola IA ──
+  const confirmarDesdeCola = async (itemCola, usarFicha = null) => {
+    setSavingProd(true);
+    try {
+      const data = {
+        nombre: (usarFicha ? usarFicha.nombre : itemCola.nombre || "SIN NOMBRE").toUpperCase(),
+        precio: itemCola.precio ?? null,
+        categoriaId: null,
+        codSap: usarFicha ? (usarFicha.formatosVenta?.find(fv => fv.codSap)?.codSap || null) : null,
+        codBarra: itemCola.codBarra || null,
+        tipo: usarFicha ? "ficha" : "manual",
+        fichaId: usarFicha ? usarFicha.id : null,
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.displayName || user?.email || "Usuario",
+        createdAt: serverTimestamp(),
+      };
+      await addDoc(collection(db, "lista_precios"), data);
+      toast.success(`${data.nombre} agregado ✅`);
+
+      // Avanzar en la cola
+      const newCola = colaIA.filter(i => i !== itemCola);
+      setColaIA(newCola);
+      if (newCola.length === 0) setModalColaIA(false);
+      setModalSimilitud(null);
     } catch { toast.error("Error al guardar"); }
     setSavingProd(false);
   };
@@ -292,12 +399,25 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
                 </div>
 
                 {esAdmin && (
-                  <button
-                    onClick={tab === "productos" ? abrirNuevoProd : abrirNuevaCat}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition shadow-lg shadow-blue-500/20">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                    {tab === "productos" ? "Nuevo producto" : "Nueva categoría"}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {tab === "productos" && (
+                      <label title="Escanear lista de precios con IA"
+                        className={`flex items-center gap-2 cursor-pointer px-4 py-2 rounded-xl font-bold text-sm transition shadow-lg ${leyendoLista ? "bg-amber-700 opacity-60 pointer-events-none" : "bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 shadow-amber-500/20"} text-white`}>
+                        {leyendoLista
+                          ? <><svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg> Leyendo...</>
+                          : <><span className="material-symbols-outlined" style={{ fontSize: 16, fontVariationSettings: "'FILL' 1" }}>photo_camera</span> Escanear lista</>
+                        }
+                        <input ref={camListaRef} type="file" accept="image/*" capture="environment" className="hidden" disabled={leyendoLista}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) leerListaConIA(f); }} />
+                      </label>
+                    )}
+                    <button
+                      onClick={tab === "productos" ? abrirNuevoProd : abrirNuevaCat}
+                      className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm px-4 py-2 rounded-xl transition shadow-lg shadow-blue-500/20">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+                      {tab === "productos" ? "Nuevo producto" : "Nueva categoría"}
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -623,6 +743,30 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
                 </div>
               </div>
 
+              {/* Código de Barras */}
+              <div>
+                <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>
+                  Código de Barras
+                  <span className={`ml-2 font-normal normal-case text-[10px] ${t.textSecondary}`}>EAN/UPC — opcional</span>
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" style={{ fontSize: 16 }}>barcode</span>
+                  <input
+                    value={formProd.codBarra || ""}
+                    onChange={e => setFormProd(p => ({ ...p, codBarra: e.target.value.replace(/[^0-9]/g, "") }))}
+                    placeholder="Ej: 7802300012345"
+                    maxLength={14}
+                    className={`w-full ${t.bgInput} border ${t.border} ${t.text} pl-9 pr-4 py-2.5 rounded-xl text-sm font-mono outline-none focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+                {formProd.codBarra?.length > 0 && (
+                  <p className={`${t.textSecondary} text-[10px] mt-1`}>
+                    {formProd.codBarra.length} dígitos ·{" "}
+                    {formProd.codBarra.length === 13 ? "EAN-13 ✓" : formProd.codBarra.length === 12 ? "UPC-A ✓" : formProd.codBarra.length === 8 ? "EAN-8 ✓" : "verificar longitud"}
+                  </p>
+                )}
+              </div>
+
               {/* Categoría */}
               <div>
                 <label className={`${t.textSecondary} text-xs font-bold uppercase tracking-wider mb-1.5 block`}>Categoría</label>
@@ -746,6 +890,102 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
                 className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2.5 rounded-xl text-sm transition">
                 Eliminar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ MODAL COLA IA — revisar productos detectados ══ */}
+      {modalColaIA && colaIA.length > 0 && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]`}>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border} flex-shrink-0`}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-amber-400" style={{ fontSize: 20, fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+                </div>
+                <div>
+                  <p className={`${t.text} font-bold`}>Productos detectados</p>
+                  <p className={`${t.textSecondary} text-xs`}>{colaIA.length} producto(s) pendientes de confirmar</p>
+                </div>
+              </div>
+              <button onClick={() => { setModalColaIA(false); setColaIA([]); }}
+                className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+              {colaIA.map((item, i) => {
+                const esPrimero = i === 0;
+                return (
+                  <div key={i} className={`${t.bgInput} border ${t.border} rounded-xl p-4 ${esPrimero ? "ring-2 ring-blue-500/40" : "opacity-60"}`}>
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        {esPrimero && <p className={`text-blue-400 text-[9px] font-black uppercase tracking-wider mb-0.5`}>Procesando ahora</p>}
+                        <p className={`${t.text} font-bold text-sm truncate`}>{item.nombre || "Sin nombre"}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {item.precio != null && <span className="text-emerald-400 font-black text-sm">${Number(item.precio).toLocaleString("es-CL")}</span>}
+                          {item.codBarra && <span className={`${t.textSecondary} text-[10px] font-mono`}>{item.codBarra}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fichas similares */}
+                    {esPrimero && item.fichasSimilares?.length > 0 && (
+                      <div className={`mt-2 pt-3 border-t ${t.border}`}>
+                        <p className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider mb-2`}>
+                          ⚠ Fichas técnicas similares encontradas — ¿cuál deseas usar?
+                        </p>
+                        <div className="space-y-2">
+                          {item.fichasSimilares.map(ficha => (
+                            <button key={ficha.id}
+                              onClick={() => confirmarDesdeCola(item, ficha)}
+                              disabled={savingProd}
+                              className={`w-full flex items-center gap-3 p-2.5 rounded-lg border transition text-left ${t.bgCard} ${t.border} hover:border-blue-400/50 hover:bg-blue-500/5`}>
+                              <div className="w-8 h-8 rounded-lg bg-orange-500/15 flex items-center justify-center flex-shrink-0">
+                                <span className="material-symbols-outlined text-orange-400" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>description</span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`${t.text} text-xs font-bold truncate`}>{ficha.nombre}</p>
+                                <p className={`${t.textSecondary} text-[10px]`}>
+                                  {ficha.seccion} · SAP {ficha.formatosVenta?.find(fv => fv.codSap)?.codSap || "—"}
+                                  · {Math.round(ficha.sim * 100)}% similitud
+                                </p>
+                              </div>
+                              <span className="material-symbols-outlined text-blue-400 flex-shrink-0" style={{ fontSize: 16 }}>add_circle</span>
+                            </button>
+                          ))}
+                        </div>
+                        <p className={`${t.textSecondary} text-[10px] mt-2`}>O bien, agrega el producto tal como viene de la foto:</p>
+                      </div>
+                    )}
+
+                    {esPrimero && (
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={() => confirmarDesdeCola(item, null)} disabled={savingProd}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg text-xs transition disabled:opacity-50">
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+                          Agregar tal cual
+                        </button>
+                        <button onClick={() => {
+                          setColaIA(prev => prev.filter((_, idx) => idx !== 0));
+                          if (colaIA.length === 1) setModalColaIA(false);
+                        }}
+                          className={`px-3 py-2 rounded-lg text-xs font-bold border ${t.bgInput} ${t.border} ${t.textSecondary} hover:text-red-400 transition`}>
+                          Omitir
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={`px-6 py-3 border-t ${t.border} flex-shrink-0`}>
+              <p className={`${t.textSecondary} text-xs text-center`}>
+                Confirma o descarta cada producto. Los cambios se guardan automáticamente en Lista de Precios.
+              </p>
             </div>
           </div>
         </div>

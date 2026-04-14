@@ -178,32 +178,44 @@ REGLAS ADICIONALES:
 
 Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown. Sin bloques de código.`;
     } else if (tipo === "precio") {
-      prompt = `Eres un extractor de precios de imágenes. Analizarás una foto que puede contener: una etiqueta de precio, una pantalla de caja, una lista de precios, un recibo, un ticket, o cualquier imagen donde aparezca un precio.
+      prompt = `Eres un extractor ESTRICTO de precios y productos desde imágenes. Analizarás fotos de: etiquetas de precio, gondolas de supermercado, listas de precios, recibos, tickets, pantallas de caja, o cualquier imagen con precios de productos.
 
-TAREA: Extrae el/los precio(s) visible(s) en la imagen.
+TAREA: Extrae TODOS los productos con sus precios y códigos de barras visibles.
 
-REGLAS ABSOLUTAS:
-1. Devuelve SOLO un JSON válido, sin markdown, sin texto adicional.
-2. Si hay UN solo precio claro → devuelve el objeto con ese precio.
-3. Si hay MÚLTIPLES precios → devuelve todos en el array "precios".
-4. El campo "precio" debe ser un número (sin signo $, sin puntos de miles, sin comas decimales — usa punto como separador decimal si aplica).
-5. Si el precio está en formato chileno (ej: $1.290 o $1.290,50) → conviértelo a número entero o decimal (1290 o 1290.50).
-6. Si ves el nombre del producto asociado al precio, inclúyelo en "nombre".
-7. Si no puedes determinar un precio con certeza, devuelve "precio": null.
-8. NO inventes precios que no estés viendo claramente.
+═══ REGLAS ABSOLUTAS ═══
 
-Devuelve SOLO este JSON:
+PRECIO:
+- Convierte formato chileno a número entero: $1.290 → 1290, $12.990 → 12990
+- Si hay precio tachado (precio anterior) y precio actual, usa el precio actual
+- Si no puedes leer el precio con certeza → null
+- NO inventes precios
+
+NOMBRE:
+- Extrae el nombre del producto EXACTAMENTE como aparece en la imagen, en MAYÚSCULAS
+- Si hay descripción larga, toma solo el nombre principal
+- Si no hay nombre visible → string vacío ""
+
+CÓDIGO DE BARRAS:
+- Si hay un código de barras o número EAN/UPC visible, inclúyelo en "codBarra"
+- Puede aparecer como número bajo el código de barras (ej: 7802300012345)
+- Si no hay código visible → null
+
+MÚLTIPLES PRODUCTOS:
+- Si la imagen tiene VARIOS productos con precios → extrae TODOS en el array "precios"
+- Máximo 20 productos por imagen
+
+Devuelve SOLO este JSON sin markdown:
 {
   "precio": 1290,
-  "nombre": "NOMBRE DEL PRODUCTO SI APARECE O VACIO",
+  "nombre": "NOMBRE PRINCIPAL DEL PRODUCTO",
+  "codBarra": "7802300012345",
   "precios": [
-    { "precio": 1290, "nombre": "PRODUCTO 1" },
-    { "precio": 890, "nombre": "PRODUCTO 2" }
+    { "precio": 1290, "nombre": "PRODUCTO 1", "codBarra": "7802300012345" },
+    { "precio": 890,  "nombre": "PRODUCTO 2", "codBarra": null }
   ]
 }
 
-Nota: si hay un solo precio, pon el valor en "precio" y deja "precios" como array vacío []. Si hay varios, pon el primero en "precio" y todos en "precios".
-
+Nota: si hay un solo producto → pon su precio en "precio" y "precios" como array vacío []. Si hay varios → pon el primero en "precio" y todos en "precios".
 Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
 
     } else {

@@ -7,6 +7,7 @@ const navItems = [
   { id: "fichas",       label: "Fichas Técnicas",     icon: "description"    },
   { id: "planificador", label: "Planificador",        icon: "account_tree"   },
   { id: "precios",       label: "Lista de Precios",    icon: "sell"           },
+  { id: "traspasos",     label: "Traspasos",          icon: "swap_horiz"     },
 ];
 
 const adminItem = { id: "usuarios",     label: "Gestionamiento",    icon: "manage_accounts" };

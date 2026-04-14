@@ -13,11 +13,12 @@ const ITEMS = [
     ],
   },
   { id: "precios",      label: "PRECIOS", icon: "sell",         fill: false },
+  { id: "traspasos",    label: "TRASP.",  icon: "swap_horiz",  fill: false },
   { id: "perfil",       label: "PERFIL",  icon: "person",       fill: false },
 ];
 
 // Módulos donde el nav se oculta automáticamente
-const MODULOS_AUTO_HIDE = ["planificador", "planograma", "merma", "fichas", "fichaDetalle", "precios", "informacion", "usuarios", "perfil", "planificadorFichas", "planificadorMerma"];
+const MODULOS_AUTO_HIDE = ["planificador", "planograma", "merma", "fichas", "fichaDetalle", "precios", "informacion", "usuarios", "perfil", "planificadorFichas", "planificadorMerma", "traspasos"];
 
 export default function BottomNav({ moduloActivo, onNavegar }) {
   const { t } = useTheme();

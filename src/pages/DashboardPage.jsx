@@ -10,6 +10,7 @@ import Planificador from "./Planificador";
 import AppSidebar from "../components/AppSidebar";
 import PlanogramaPage from "./PlanogramaPage";
 import ListaPreciosPage from "./ListaPreciosPage";
+import TraspasosPage from "./TraspasosPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
 import BottomNav from "../components/BottomNav";
@@ -50,6 +51,18 @@ const modulos = [
     bg: "bg-emerald-500/10",
     hoverBg: "group-hover:bg-emerald-500",
     borderB: "border-b-emerald-500",
+  },
+  {
+    id: "traspasos",
+    nombre: "Traspasos",
+    descripcion: "Gestiona y registra traspasos de productos entre secciones.",
+    icon: "swap_horiz",
+    accion: "Ver traspasos",
+    color: "#06b6d4",
+    colorClass: "text-cyan-400",
+    bg: "bg-cyan-500/10",
+    hoverBg: "group-hover:bg-cyan-500",
+    borderB: "border-b-cyan-500",
   },
   {
     id: "precios",
@@ -301,6 +314,7 @@ export default function DashboardPage({ user, rol }) {
   if (modulo === "informacion") return <InformacionPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planograma")  return <PlanogramaPage   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "traspasos")    return <TraspasosPage    user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
