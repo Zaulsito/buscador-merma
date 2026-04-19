@@ -14,6 +14,7 @@ import TraspasosPage from "./TraspasosPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
 import BottomNav from "../components/BottomNav";
+import Navbar from "../components/Navbar";
 
 const modulos = [
   {
