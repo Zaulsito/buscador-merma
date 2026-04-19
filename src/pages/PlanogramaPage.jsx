@@ -380,7 +380,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} /></div>
+        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} titulo="Planograma" /></div>
 
         {/* Header móvil */}
         <header className={`md:hidden sticky top-0 z-40 ${t.bgNav} border-b ${t.border}`}>

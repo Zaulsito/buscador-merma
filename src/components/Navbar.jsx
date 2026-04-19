@@ -61,7 +61,7 @@ function matchQuery(q, campos) {
   return campos.some(c => c?.toLowerCase().includes(qLow));
 }
 
-export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar }) {
+export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titulo }) {
   const [menuOpen, setMenuOpen]   = useState(false);
   const [temaOpen, setTemaOpen]   = useState(false);
   const { tema, setTema, t, temas } = useTheme();
@@ -169,13 +169,37 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar }) {
     >
       <div className="w-full px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
 
-        {/* Logo */}
-        <div className="flex items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => onNavegar?.(null)}>
-          <img src="/icon-192.png" className="w-9 h-9 rounded-lg object-contain flex-shrink-0" alt="logo"
+        {/* Logo - Solo visible en móvil para evitar redundancia con el Sidebar en Desktop */}
+        <div className="flex md:hidden items-center gap-3 cursor-pointer flex-shrink-0" onClick={() => onNavegar?.(null)}>
+          <img src="/icon-192.png" className="w-8 h-8 rounded-lg object-contain flex-shrink-0" alt="logo"
             onError={e => { e.target.style.display = "none"; }} />
-          <h1 className={`${t.text} font-bold text-sm tracking-tight leading-tight hidden sm:block`}>
+          <h1 className={`${t.text} font-bold text-xs tracking-tight leading-tight`}>
             Rincon Belloto<br />Informaciones
           </h1>
+        </div>
+
+        {/* Breadcrumbs - Solo visible en Desktop */}
+        <div className="hidden md:flex items-center gap-2 text-sm font-medium flex-shrink-0">
+          <button 
+            onClick={() => onNavegar?.(null)}
+            className={`${t.textSecondary} hover:text-white transition-colors flex items-center gap-2 group`}
+          >
+            <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">home</span>
+            Dashboard
+          </button>
+          
+          {titulo && (
+            <>
+              <span className="text-slate-600 font-light mx-1">/</span>
+              <button 
+                onClick={() => window.location.reload()} // O la lógica de refresh que prefieras
+                className="text-blue-400 font-bold hover:text-blue-300 transition-colors"
+                title="Refrescar sección"
+              >
+                {titulo}
+              </button>
+            </>
+          )}
         </div>
 
         {/* ── Búsqueda global (desktop) ── */}

@@ -530,7 +530,7 @@ export default function FichaDetalle({ ficha, user, rol, onBack, onEditar, onNav
 
         {/* Navbar desktop */}
         <div className="hidden md:block flex-shrink-0">
-          <Navbar user={user} rol={rol} />
+          <Navbar user={user} rol={rol} onNavegar={onNavegar} titulo="Detalle de Ficha" />
         </div>
 
         {/* Área scrolleable */}
