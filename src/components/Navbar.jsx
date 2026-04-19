@@ -61,7 +61,7 @@ function matchQuery(q, campos) {
   return campos.some(c => c?.toLowerCase().includes(qLow));
 }
 
-export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titulo }) {
+export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTutorial, titulo }) {
   const [menuOpen, setMenuOpen]   = useState(false);
   const [temaOpen, setTemaOpen]   = useState(false);
   const { tema, setTema, t, temas } = useTheme();

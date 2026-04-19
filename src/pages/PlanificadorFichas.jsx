@@ -11,7 +11,6 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
   const [secciones, setSecciones] = useState([]);
   const [seccionActiva, setSeccionActiva] = useState("todas");
   const [seleccionadas, setSeleccionadas] = useState([]);
-  const [porciones, setPorciones] = useState({}); // { id: número de veces }
   const [listaGenerada, setListaGenerada] = useState(null);
   const [modalLista, setModalLista] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,33 +62,24 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
     const yaEsta = seleccionadas.some((f) => f.id === ficha.id);
     if (yaEsta) {
       setSeleccionadas(prev => prev.filter((f) => f.id !== ficha.id));
-      setPorciones(prev => { const n = { ...prev }; delete n[ficha.id]; return n; });
     } else {
       setSeleccionadas(prev => [...prev, ficha]);
-      setPorciones(prev => ({ ...prev, [ficha.id]: 1 }));
     }
   };
 
-  const setPorcion = (id, valor) => {
-    const n = parseInt(valor) || 1;
-    setPorciones(prev => ({ ...prev, [id]: Math.max(1, n) }));
-  };
 
   const estaSeleccionada = (id) => seleccionadas.some((f) => f.id === id);
 
   const generarLista = () => {
     const mapa = {};
     seleccionadas.forEach((ficha) => {
-      const mult = porciones[ficha.id] || 1;
       (ficha.materiasPrimas || []).forEach((mp) => {
         if (!mp.nombre?.trim()) return;
         const key = mp.nombre.trim().toUpperCase();
-        const cantNeta = parseFloat(mp.cantidadNeta) || 0;
-        const unidad = mp.unidad || "";
         if (mapa[key]) {
-          mapa[key].total += cantNeta * mult;
+          mapa[key].count += 1;
         } else {
-          mapa[key] = { nombre: key, total: cantNeta * mult, unidad };
+          mapa[key] = { nombre: key, count: 1 };
         }
       });
     });
@@ -158,7 +148,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
 
             {/* Fichas seleccionadas */}
             {seleccionadas.length > 0 && (
-              <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 mb-6`}>
+              <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 mb-4`}>
                 <p className={`${t.textSecondary} text-xs mb-2`}>Fichas seleccionadas:</p>
                 <div className="flex flex-wrap gap-2">
                   {seleccionadas.map((f) => (
@@ -172,21 +162,16 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
             )}
 
             {/* Chips secciones */}
-            <div className="flex gap-2 flex-wrap mb-6">
+            <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar -mx-2 px-2 mb-2">
               <button
                 onClick={() => setSeccionActiva("todas")}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                className={`flex-shrink-0 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
                   seccionActiva === "todas"
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                    : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                    ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    : `${t.bgCard} ${t.border} ${t.textSecondary} hover:border-blue-400/50`
                 }`}
               >
-                <span className="flex items-center gap-1.5">
-                  Todos
-                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${seccionActiva === "todas" ? "bg-white/20 text-white" : `${t.bgInput} ${t.textSecondary}`}`}>
-                    {fichas.length}
-                  </span>
-                </span>
+                Categorías ({fichas.length})
               </button>
               {secciones.map((s) => {
                 const count = fichas.filter(f => f.seccion === s).length;
@@ -194,34 +179,30 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                   <button
                     key={s}
                     onClick={() => setSeccionActiva(s)}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold transition flex items-center gap-1.5 ${
+                    className={`flex-shrink-0 px-5 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
                       seccionActiva === s
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25"
-                        : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                        ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/30"
+                        : `${t.bgCard} ${t.border} ${t.textSecondary} hover:border-blue-400/50`
                     }`}
                   >
-                    {s}
-                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${seccionActiva === s ? "bg-white/20 text-white" : `${t.bgInput} ${t.textSecondary}`}`}>
-                      {count}
-                    </span>
+                    {s} ({count})
                   </button>
                 );
               })}
             </div>
 
-            {/* Grid fichas */}
             {/* Buscador */}
-            <div className="relative mb-5">
-              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
+            <div className="relative mb-6">
+              <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 20 }}>search</span>
               <input
                 value={busqueda}
                 onChange={e => setBusqueda(e.target.value)}
-                placeholder="Buscar ficha por nombre o código..."
-                className={`w-full ${t.bgCard} border ${t.border} ${t.text} pl-10 pr-4 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                placeholder="Buscar ficha por nombre o código SAP..."
+                className={`w-full ${t.bgInput} border ${t.border} ${t.text} pl-12 pr-4 py-3.5 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:bg-transparent transition-all`}
               />
               {busqueda && (
-                <button onClick={() => setBusqueda("")} className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white transition`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                <button onClick={() => setBusqueda("")} className={`absolute right-4 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
                 </button>
               )}
             </div>
@@ -262,31 +243,6 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                         {estaSeleccionada(f.id) && <span className="material-symbols-outlined text-white" style={{ fontSize: 14 }}>check</span>}
                       </div>
                     </div>
-                    {estaSeleccionada(f.id) && (
-                      <div className={`px-3 pb-3 border-t ${t.border} pt-2`} onClick={e => e.stopPropagation()}>
-                        <label className={`${t.textSecondary} text-[10px] font-bold uppercase tracking-wider mb-1 block`}>Cantidad de veces</label>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setPorcion(f.id, (porciones[f.id] || 1) - 1)}
-                            className={`w-7 h-7 rounded-lg ${t.bgInput} border ${t.border} ${t.textSecondary} hover:text-white flex items-center justify-center transition flex-shrink-0`}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>remove</span>
-                          </button>
-                          <input
-                            type="number" min="1"
-                            value={porciones[f.id] || 1}
-                            onChange={e => setPorcion(f.id, e.target.value)}
-                            className={`flex-1 ${t.bgInput} border ${t.border} ${t.text} px-2 py-1 rounded-lg text-sm text-center outline-none focus:ring-2 focus:ring-blue-500`}
-                          />
-                          <button
-                            onClick={() => setPorcion(f.id, (porciones[f.id] || 1) + 1)}
-                            className={`w-7 h-7 rounded-lg ${t.bgInput} border ${t.border} ${t.textSecondary} hover:text-white flex items-center justify-center transition flex-shrink-0`}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -355,8 +311,8 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                         <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>receipt_long</span>
                       </div>
                       <div>
-                        <p className={`${t.text} font-bold text-sm`}>Lista de Pedido</p>
-                        <p className={`${t.textSecondary} text-xs`}>{listaGenerada.length} ingredientes · {seleccionadas.map(f => porciones[f.id] || 1).reduce((a,b)=>a+b,0)} porciones</p>
+                        <p className={`${t.text} font-bold text-sm`}>Lista de Ingredientes</p>
+                        <p className={`${t.textSecondary} text-xs`}>{listaGenerada.length} únicos detectados en {seleccionadas.length} recetas</p>
                       </div>
                     </div>
                     <button onClick={() => setModalLista(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
@@ -368,7 +324,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
                       <div key={i} className={`flex items-center justify-between px-5 py-3 border-b ${t.border} last:border-0 ${t.hover} transition-colors`}>
                         <span className={`${t.text} text-sm font-medium`}>{item.nombre}</span>
                         <span className="bg-blue-500/15 text-blue-400 text-xs font-black px-2.5 py-1 rounded-full border border-blue-500/20 flex-shrink-0 ml-3">
-                          {item.total % 1 === 0 ? item.total : item.total.toFixed(3)} {item.unidad || ""}
+                          {item.count} vez/vcs
                         </span>
                       </div>
                     ))}
@@ -389,7 +345,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
           <button
             onClick={() => generarLista()}
             onMouseEnter={() => setFlotanteVisible(true)}
-            className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
+            className={`fixed bottom-24 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
           >
             <span className="material-symbols-outlined" style={{ fontSize: 20 }}>checklist</span>
             <span>Generar lista</span>

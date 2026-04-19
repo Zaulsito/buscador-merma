@@ -345,41 +345,94 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
         <main className="flex-1 overflow-y-auto">
     <div className={`min-h-full ${t.bg}`}>
 
-      {/* Header móvil */}
-      <div className="flex items-center gap-3 p-4 md:hidden">
-        <button onClick={onBack} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary}`}>
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-        </button>
-      </div>
 
-      <div className="w-full px-6 lg:px-10 py-8 pt-0 md:pt-8">
+      <div className="w-full px-6 lg:px-10 py-6 md:py-8">
         {/* Encabezado */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-white">
-              Fichas Técnicas
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Gestión integral de recetas y costos de producción.
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+          <div className="flex items-center gap-4">
+            <div className={`w-11 h-11 flex items-center justify-center rounded-full ${t.bgCard} border ${t.border} ${t.textSecondary} shadow-sm group-hover:text-blue-500 transition-all`}>
+              {/* Flecha solo móvil */}
+              <button 
+                onClick={onBack}
+                className="sm:hidden w-full h-full flex items-center justify-center rounded-full"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>arrow_back</span>
+              </button>
+              {/* Icono ficha solo desktop */}
+              <span className="hidden sm:block material-symbols-outlined text-blue-500/80" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>
+                receipt_long
+              </span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white leading-none">
+                Fichas Técnicas
+              </h1>
+              <p className="text-slate-400 text-sm mt-1.5">
+                Gestión integral de recetas y costos de producción.
+              </p>
+            </div>
           </div>
           {(rol === "admin" || rol === "unico") && (
             <button
               onClick={abrirNueva}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20 whitespace-nowrap"
+              className="hidden sm:flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/25 whitespace-nowrap active:scale-95"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
-              Nueva ficha
+              Nueva ficha tecnica
             </button>
           )}
         </div>
 
-        {/* Búsqueda */}
-        <div className="flex flex-col gap-4 mb-6">
+        {/* Filtros Reorganizados */}
+        <div className="flex flex-col gap-6 mb-8">
+          
+          {/* 1. Chips de sección como filtro principal */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => scrollChips(-1)}
+              className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_left</span>
+            </button>
+
+            <div
+              ref={chipsRef}
+              className="flex gap-2 overflow-x-auto items-center flex-1 px-2 no-scrollbar"
+              style={{ 
+                scrollbarWidth: "none", 
+                msOverflowStyle: "none",
+                WebkitMaskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)',
+                maskImage: 'linear-gradient(to right, transparent, black 10px, black calc(100% - 10px), transparent)'
+              }}
+            >
+              {secciones.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSeccionActiva(s)}
+                  className={`px-5 py-2.5 rounded-2xl text-[11px] font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                    seccionActiva === s
+                      ? "bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25 scale-105"
+                      : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => scrollChips(1)}
+              className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_right</span>
+            </button>
+          </div>
+
+          {/* 2. Buscador */}
           <div className="relative">
-            <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-blue-400 pointer-events-none">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-5 text-blue-400 pointer-events-none">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -387,81 +440,40 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
             <input
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className={`w-full ${t.bgInput} border ${t.border} rounded-xl pl-12 pr-4 py-3.5 ${t.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-400 outline-none text-sm`}
+              className={`w-full ${t.bgInput} border ${t.border} rounded-2xl pl-14 pr-5 py-4 ${t.text} focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder:text-slate-500 outline-none text-sm group shadow-sm`}
               placeholder="Buscar por nombre de receta, categoría o código SAP..."
             />
           </div>
 
-          {/* Filtro subcategoría + limpiar */}
+          {/* 3. Subcategorías */}
           {(subcategorias.length > 0 || busqueda || subcategoriaFiltro) && (
-            <div className="flex gap-3 flex-wrap items-center">
+            <div className="flex gap-4 flex-wrap items-center">
               {subcategorias.length > 0 && (
-                <select
-                  value={subcategoriaFiltro}
-                  onChange={(e) => setSubcategoriaFiltro(e.target.value)}
-                  className={`${t.bgInput} border ${t.border} ${t.text} px-4 py-2 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm`}
-                >
-                  <option value="">Todas las subcategorías</option>
-                  {subcategorias.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={subcategoriaFiltro}
+                    onChange={(e) => setSubcategoriaFiltro(e.target.value)}
+                    className={`appearance-none ${t.bgInput} border ${t.border} ${t.text} pl-4 pr-10 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-xs font-bold transition-all shadow-sm`}
+                  >
+                    <option value="">Todas las subcategorías</option>
+                    {subcategorias.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" style={{ fontSize: 16 }}>expand_more</span>
+                </div>
               )}
               {(busqueda || subcategoriaFiltro) && (
                 <button
                   onClick={() => { setBusqueda(""); setSubcategoriaFiltro(""); }}
-                  className="flex items-center gap-1.5 text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 text-[11px] font-black uppercase tracking-wider transition-all"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
                   Limpiar filtros
                 </button>
               )}
             </div>
           )}
-        </div>
-
-        {/* Chips de sección Premium */}
-        <div className="flex items-center gap-2 mb-8">
-          <button
-            onClick={() => scrollChips(-1)}
-            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-          </button>
-
-          <div
-            ref={chipsRef}
-            className="flex gap-2 overflow-x-auto items-center flex-1 px-4"
-            style={{ 
-              scrollbarWidth: "none", 
-              msOverflowStyle: "none",
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)',
-              maskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)'
-            }}
-          >
-            {secciones.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSeccionActiva(s)}
-                className={`px-5 py-2 rounded-full text-xs font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
-                  seccionActiva === s
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
-                    : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
-                }`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-
-          <button
-            onClick={() => scrollChips(1)}
-            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-          </button>
         </div>
 
         {/* Contenido */}
@@ -512,21 +524,19 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
       </div>
 
       {/* FAB móvil - solo visible en pantallas pequeñas */}
+      {/* FAB Nueva Ficha (Visible en móvil y desktop si el usuario lo requiere) */}
       {(rol === "admin" || rol === "unico") && (
         <button
           onClick={abrirNueva}
-          onTouchStart={resetFabTimer}
           className={`
-            md:hidden fixed right-5 z-50
-            w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/40
-            flex items-center justify-center
-            transition-all duration-300 ease-in-out
-            ${fabVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}
+            fixed bottom-24 right-5 z-50
+            w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-2xl shadow-blue-600/30
+            flex items-center justify-center transition-all duration-300 active:scale-90
+            ${fabVisible ? "translate-y-0 opacity-100" : "translate-y-20 opacity-0 pointer-events-none"}
           `}
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
           aria-label="Nueva ficha"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </button>

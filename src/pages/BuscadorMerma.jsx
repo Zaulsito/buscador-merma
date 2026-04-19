@@ -139,13 +139,23 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
 
             {/* Título + botones */}
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <button onClick={onBack} className={`mt-1 sm:hidden w-9 h-9 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} shrink-0`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-                </button>
+              <div className="flex items-start gap-4">
+                <div className={`mt-1 w-10 h-10 md:w-11 md:h-11 flex items-center justify-center rounded-full ${t.bgCard} border ${t.border} ${t.textSecondary} shadow-sm transition-all`}>
+                  {/* Flecha solo móvil */}
+                  <button 
+                    onClick={onBack}
+                    className="sm:hidden w-full h-full flex items-center justify-center rounded-full"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>arrow_back</span>
+                  </button>
+                  {/* Icono merma solo desktop */}
+                  <span className="hidden sm:block material-symbols-outlined text-blue-500/80" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>
+                    inventory_2
+                  </span>
+                </div>
                 <div>
-                  <h2 className={`${t.text} text-2xl md:text-3xl font-black tracking-tight`}>Gestión de Merma</h2>
-                  <p className={`${t.textSecondary} mt-0.5 text-sm`}>Gestión y control de desperdicios de inventario en tiempo real.</p>
+                  <h2 className={`${t.text} text-2xl md:text-3xl font-black tracking-tight leading-none`}>Gestión de Merma</h2>
+                  <p className={`${t.textSecondary} mt-1.5 text-sm`}>Gestión y control de desperdicios de inventario en tiempo real.</p>
                 </div>
               </div>
 
@@ -196,10 +206,10 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
               >
                 <button
                   onClick={() => setCatActiva("")}
-                  className={`px-5 py-2 rounded-full text-xs md:text-sm font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                  className={`px-5 py-2.5 rounded-2xl text-[11px] font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
                     catActiva === ""
-                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
-                      : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
+                      ? "bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25 scale-105"
+                      : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
                   }`}
                 >
                   TODAS
@@ -208,16 +218,15 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                   <button
                     key={cat.id}
                     onClick={() => setCatActiva(cat.nombre)}
-                    className={`px-5 py-2 rounded-full text-xs md:text-sm font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                    className={`px-5 py-2.5 rounded-2xl text-[11px] font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
                       catActiva === cat.nombre
-                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
-                        : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
+                        ? "bg-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25 scale-105"
+                        : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
                     }`}
                   >
                     {cat.nombre}
                   </button>
                 ))}
-                {/* Chip "Sin categoría" — solo visible si hay productos sin asignar */}
                 {sinCategoria > 0 && (
                   <button
                     onClick={() => setCatActiva("__sin__")}
@@ -252,7 +261,7 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
             </div>
 
             {/* Buscador (Posicionado debajo de categorías para mejor flujo visual) */}
-            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <div className="relative flex-1 group">
                 <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 ${t.textSecondary} group-focus-within:text-blue-400 transition-colors`} style={{ fontSize: 20 }}>search</span>
                 <input

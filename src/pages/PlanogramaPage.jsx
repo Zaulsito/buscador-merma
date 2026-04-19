@@ -17,6 +17,65 @@ const CATEGORIAS = [
   { id: "postres",        label: "Postres",          icon: "icecream" },
 ];
 
+const BADGE_COLORS = {
+  todas: {
+    badge: "bg-blue-500/10 text-blue-400",
+    active: "bg-blue-600 border-blue-500 shadow-blue-500/40",
+    soft: "bg-blue-500/5",
+    border: "border-blue-500/20",
+    text: "text-blue-400"
+  },
+  entradas: {
+    badge: "bg-emerald-500/10 text-emerald-400",
+    active: "bg-emerald-600 border-emerald-500 shadow-emerald-500/40",
+    soft: "bg-emerald-500/5",
+    border: "border-emerald-500/20",
+    text: "text-emerald-400"
+  },
+  principal: {
+    badge: "bg-red-500/10 text-red-400",
+    active: "bg-red-600 border-red-500 shadow-red-500/40",
+    soft: "bg-red-500/5",
+    border: "border-red-500/20",
+    text: "text-red-400"
+  },
+  parrilla: {
+    badge: "bg-orange-500/10 text-orange-400",
+    active: "bg-orange-600 border-orange-500 shadow-orange-500/40",
+    soft: "bg-orange-500/5",
+    border: "border-orange-500/20",
+    text: "text-orange-400"
+  },
+  sopa: {
+    badge: "bg-sky-500/10 text-sky-400",
+    active: "bg-sky-600 border-sky-500 shadow-sky-500/40",
+    soft: "bg-sky-500/5",
+    border: "border-sky-500/20",
+    text: "text-sky-400"
+  },
+  acompanamiento: {
+    badge: "bg-amber-500/10 text-amber-400",
+    active: "bg-amber-600 border-amber-500 shadow-amber-500/40",
+    soft: "bg-amber-500/5",
+    border: "border-amber-500/20",
+    text: "text-amber-400"
+  },
+  ensaladas: {
+    badge: "bg-pink-500/10 text-pink-400",
+    active: "bg-pink-600 border-pink-500 shadow-pink-500/40",
+    soft: "bg-pink-500/5",
+    border: "border-pink-500/20",
+    text: "text-pink-400"
+  },
+  postres: {
+    badge: "bg-purple-500/10 text-purple-400",
+    active: "bg-purple-600 border-purple-500 shadow-purple-500/40",
+    soft: "bg-purple-500/5",
+    border: "border-purple-500/20",
+    text: "text-purple-400"
+  },
+};
+
 const DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const DIAS_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MESES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -78,6 +137,10 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
   const [eliminando, setEliminando] = useState(false);
   const [modoSeleccion, setModoSeleccion] = useState(false);
   const [diasSeleccionados, setDiasSeleccionados] = useState(new Set());
+  const [categoriaActiva, setCategoriaActiva] = useState("todas");
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const tabsRef = useRef(null);
 
   useEffect(() => {
     const handler = (e) => {
@@ -105,6 +168,67 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
     });
     return () => unsub();
   }, []);
+
+  // ── Lógica de scroll para categorías ──
+  const checkScroll = () => {
+    if (tabsRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+      setCanScrollLeft(scrollLeft > 5);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 5);
+    }
+  };
+
+  const scrollTabs = (dir) => {
+    if (tabsRef.current) {
+      const amount = dir === "left" ? -200 : 200;
+      tabsRef.current.scrollBy({ left: amount, behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkScroll);
+      window.addEventListener("resize", checkScroll);
+      // Chequeo inicial discreto
+      setTimeout(checkScroll, 500);
+      return () => {
+        el.removeEventListener("scroll", checkScroll);
+        window.removeEventListener("resize", checkScroll);
+      };
+    }
+  }, [datos, categoriaActiva, vista]); // Re-chequear al cambiar datos o vista
+
+  // ── Lógica de conteo para los chips de categoría ──
+  const conteos = (() => {
+    const res = { todas: 0 };
+    CATEGORIAS.forEach(c => res[c.id] = 0);
+
+    let rango = [];
+    if (vista === "diaria") {
+      rango = [toKey(fechaBase)];
+    } else if (vista === "semanal") {
+      const lunes = getLunes(fechaBase);
+      for (let i = 0; i < 7; i++) rango.push(toKey(addDays(lunes, i)));
+    } else if (vista === "mensual") {
+      const y = fechaBase.getFullYear(), m = fechaBase.getMonth();
+      const total = getDiasEnMes(y, m);
+      for (let i = 1; i <= total; i++) rango.push(toKey(fechaLocal(y, m, i)));
+    }
+
+    rango.forEach(key => {
+      const diaData = datos[key];
+      if (diaData) {
+        Object.entries(diaData).forEach(([catId, platos]) => {
+          if (res[catId] !== undefined && platos.length > 0) {
+            res[catId] += platos.length;
+            res.todas += platos.length;
+          }
+        });
+      }
+    });
+    return res;
+  })();
 
   // ── Cargar datos del rango actual ──
   useEffect(() => {
@@ -323,11 +447,15 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
   // ── Render celda ──
   const renderCelda = (key, catId, compact = false) => {
     const platos = datos[key]?.[catId] || [];
+    const color = BADGE_COLORS[catId] || BADGE_COLORS.todas;
+    
     return (
       <div
         onClick={() => abrirEditar(key, catId)}
-        className={`cursor-pointer min-h-[56px] rounded-lg p-2 transition-all group hover:bg-blue-500/10 hover:border-blue-500/30 border ${
-          platos.length > 0 ? `border-transparent ${t.isDark ? "bg-white/3" : "bg-slate-50"}` : `border-dashed ${t.border} opacity-50 hover:opacity-100`
+        className={`cursor-pointer min-h-[56px] rounded-lg p-2 transition-all group border ${
+          platos.length > 0 
+            ? `border-transparent ${t.isDark ? "bg-white/3" : "bg-slate-50"} hover:${color.soft} hover:${color.border}` 
+            : `border-dashed ${t.border} opacity-50 hover:opacity-100 hover:${color.border} hover:${color.soft}`
         }`}
       >
         {platos.length > 0 ? (
@@ -340,7 +468,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
           </ul>
         ) : (
           <p className={`${t.textSecondary} text-xs italic flex items-center gap-1`}>
-            <span className="material-symbols-outlined opacity-40" style={{ fontSize: 14 }}>add</span>
+            <span className={`material-symbols-outlined opacity-40 group-hover:opacity-100 transition-opacity ${color.text}`} style={{ fontSize: 14 }}>add</span>
             {compact ? "" : "Agregar platos"}
           </p>
         )}
@@ -407,7 +535,6 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
               <button onClick={() => navegar(-1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary}`}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
               </button>
-              <button onClick={() => setFechaBase(new Date())} className={`px-2 h-8 rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} text-[10px] font-bold`}>Hoy</button>
               <button onClick={() => navegar(1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary}`}>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
               </button>
@@ -455,20 +582,21 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
           <div className="px-4 md:px-8 py-6">
 
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <div>
-                <button onClick={onBack} className={`hidden md:flex items-center gap-1.5 ${t.textSecondary} hover:text-blue-400 text-xs mb-2 transition-colors`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_back</span>
-                  Planificador
+
+            <div className="hidden md:flex md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={onBack} 
+                  className={`w-11 h-11 flex items-center justify-center rounded-2xl ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-500 hover:border-blue-500/50 transition-all shadow-sm`}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 24 }}>arrow_back</span>
                 </button>
-                <h1 className={`${t.text} text-2xl md:text-3xl font-extrabold tracking-tight`}>Planograma Semanal</h1>
-                <p className={`${t.textSecondary} text-sm mt-0.5 flex items-center gap-1.5`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>calendar_today</span>
-                  {getTitulo()}
-                </p>
+                <div className="flex flex-col">
+                  <h2 className={`${t.text} text-xl font-black tracking-tight leading-none`}>{getTitulo()}</h2>
+                  <p className={`${t.textSecondary} text-[11px] font-bold uppercase tracking-wider mt-1.5`}>Vista {vista}</p>
+                </div>
               </div>
 
-              {/* Controles */}
               <div className="flex items-center gap-3">
                 {/* Botón leer con IA — solo admins */}
                 {(rol === "admin" || rol === "unico") && (
@@ -522,16 +650,83 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                     className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 transition`}>
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
                   </button>
-                  <button onClick={() => setFechaBase(new Date())}
-                    className={`px-3 h-9 rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} text-xs font-bold hover:text-blue-400 transition`}>
-                    Hoy
-                  </button>
                   <button onClick={() => navegar(1)}
                     className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 transition`}>
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* Chips de Categorías */}
+            <div className="sticky top-0 z-30 glass-effect border-b border-white/5 -mx-4 md:-mx-8 px-4 md:px-8 mb-4 group/filters">
+              
+              {/* Flecha Izquierda (Solo Desktop) */}
+              <div className={`absolute left-0 top-0 bottom-0 z-10 w-16 pointer-events-none hidden md:flex items-center justify-start pl-4 md:pl-8 transition-opacity duration-300 ${canScrollLeft ? "opacity-100" : "opacity-0"}`}>
+                <div className={`absolute inset-0 bg-gradient-to-r from-[rgba(15,25,35,0.9)] via-[rgba(15,25,35,0.5)] to-transparent`} />
+                <button 
+                  onClick={() => scrollTabs("left")}
+                  className={`pointer-events-auto w-8 h-8 rounded-full border ${t.border} ${t.bgCard} ${t.text} flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all z-20`}>
+                  <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                </button>
+              </div>
+
+              {/* Contenedor Scrollable */}
+              <div 
+                ref={tabsRef}
+                className="overflow-x-auto no-scrollbar py-3 scroll-smooth"
+              >
+                <div className="flex gap-3 min-w-max px-2">
+                  <button
+                    onClick={() => setCategoriaActiva("todas")}
+                    className={`group flex items-center gap-2.5 px-5 py-2 rounded-full text-[11px] font-black tracking-wide uppercase transition-all duration-300 border ${
+                      categoriaActiva === "todas"
+                        ? `${BADGE_COLORS.todas.active} text-white shadow-lg scale-105`
+                        : `${t.bgCard} ${t.border} ${t.textSecondary} hover:border-blue-500/50 hover:text-blue-400 hover:scale-105`
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[16px]">apps</span>
+                    <span>Todas</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                      categoriaActiva === "todas" ? "bg-white/20 text-white" : BADGE_COLORS.todas.badge
+                    }`}>
+                      {conteos.todas}
+                    </span>
+                  </button>
+                  {CATEGORIAS.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCategoriaActiva(cat.id)}
+                      className={`group flex items-center gap-2.5 px-5 py-2 rounded-full text-[11px] font-black tracking-wide uppercase transition-all duration-300 border ${
+                        categoriaActiva === cat.id
+                          ? `${(BADGE_COLORS[cat.id]?.active || BADGE_COLORS.todas.active)} text-white shadow-lg scale-105`
+                          : `${t.bgCard} ${t.border} ${t.textSecondary} hover:border-blue-500/50 hover:text-blue-400 hover:scale-105`
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {cat.icon}
+                      </span>
+                      <span>{cat.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                        categoriaActiva === cat.id ? "bg-white/20 text-white" : (BADGE_COLORS[cat.id]?.badge || BADGE_COLORS.todas.badge)
+                      }`}>
+                        {conteos[cat.id]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Flecha Derecha (Solo Desktop) */}
+              <div className={`absolute right-0 top-0 bottom-0 z-10 w-16 pointer-events-none hidden md:flex items-center justify-end pr-4 md:pr-8 transition-opacity duration-300 ${canScrollRight ? "opacity-100" : "opacity-0"}`}>
+                <div className={`absolute inset-0 bg-gradient-to-l from-[rgba(15,25,35,0.9)] via-[rgba(15,25,35,0.5)] to-transparent`} />
+                <button 
+                  onClick={() => scrollTabs("right")}
+                  className={`pointer-events-auto w-8 h-8 rounded-full border ${t.border} ${t.bgCard} ${t.text} flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all z-20`}>
+                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                </button>
+              </div>
+
             </div>
 
             {/* ══════════════ VISTA SEMANAL ══════════════ */}
@@ -555,12 +750,12 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                         ))}
                       </tr>
                     </thead>
-                    <tbody className={`divide-y ${t.border}`}>
-                      {CATEGORIAS.map((cat, ci) => (
+                     <tbody className={`divide-y ${t.border}`}>
+                      {CATEGORIAS.filter(cat => categoriaActiva === "todas" || cat.id === categoriaActiva).map((cat, ci) => (
                         <tr key={cat.id} className={`${ci % 2 === 0 ? "" : t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50"}`}>
                           <td className={`px-4 py-2 border-r ${t.border}`}>
                             <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
+                              <span className={`material-symbols-outlined ${(BADGE_COLORS[cat.id] || BADGE_COLORS.todas).text}`} style={{ fontSize: 14, fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
                               <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>{cat.label}</span>
                             </div>
                           </td>
@@ -577,21 +772,22 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
               </div>
             )}
 
-            {/* ══════════════ VISTA DIARIA ══════════════ */}
+             {/* ══════════════ VISTA DIARIA ══════════════ */}
             {vista === "diaria" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {CATEGORIAS.map(cat => {
+                {CATEGORIAS.filter(cat => categoriaActiva === "todas" || cat.id === categoriaActiva).map(cat => {
                   const key = toKey(fechaBase);
                   const platos = datos[key]?.[cat.id] || [];
+                  const color = BADGE_COLORS[cat.id] || BADGE_COLORS.todas;
                   return (
-                    <div key={cat.id} className={`${t.bgCard} border ${t.border} rounded-2xl overflow-hidden`}>
-                      <div className={`px-5 py-3 border-b ${t.border} flex items-center justify-between`}>
+                    <div key={cat.id} className={`${t.bgCard} border ${platos.length > 0 ? color.border : t.border} rounded-2xl overflow-hidden transition-all duration-300`}>
+                      <div className={`px-5 py-3 border-b ${platos.length > 0 ? color.border : t.border} flex items-center justify-between ${platos.length > 0 ? color.soft : ""}`}>
                         <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
+                          <span className={`material-symbols-outlined ${color.text}`} style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>{cat.icon}</span>
                           <h3 className={`${t.text} font-bold text-sm`}>{cat.label}</h3>
                         </div>
                         <button onClick={() => abrirEditar(key, cat.id)}
-                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition">
+                          className={`w-7 h-7 flex items-center justify-center rounded-lg ${color.badge} hover:brightness-110 transition shadow-sm`}>
                           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
                         </button>
                       </div>
@@ -600,14 +796,14 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                           <ul className="space-y-1.5">
                             {platos.map((p, i) => (
                               <li key={i} className={`flex items-center gap-2 ${t.text} text-sm`}>
-                                <span className="w-5 h-5 rounded-full bg-blue-500/15 text-blue-400 text-[10px] font-black flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                <span className={`w-5 h-5 rounded-full ${color.badge} text-[10px] font-black flex items-center justify-center flex-shrink-0 shadow-sm`}>{i + 1}</span>
                                 {p}
                               </li>
                             ))}
                           </ul>
                         ) : (
                           <button onClick={() => abrirEditar(key, cat.id)}
-                            className={`w-full py-4 border border-dashed ${t.border} rounded-xl ${t.textSecondary} text-xs hover:border-blue-500/50 hover:text-blue-400 transition flex items-center justify-center gap-1.5`}>
+                            className={`w-full py-4 border border-dashed ${t.border} rounded-xl ${t.textSecondary} text-xs hover:border-current hover:${color.text} hover:${color.soft} transition flex items-center justify-center gap-1.5`}>
                             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add_circle</span>
                             Agregar platos
                           </button>
@@ -644,9 +840,10 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                     <div key={w} className={`grid grid-cols-7 border-b ${t.border} last:border-0`}>
                       {celdas.slice(w * 7, w * 7 + 7).map((dia, di) => {
                         if (!dia) return <div key={di} className={`min-h-[100px] border-r ${t.border} last:border-0 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50/50"}`} />;
-                        const key = toKey(fechaLocal(year, month, dia));
+                         const key = toKey(fechaLocal(year, month, dia));
                         const esHoy = key === hoy;
-                        const totalPlatos = CATEGORIAS.reduce((acc, cat) => acc + (datos[key]?.[cat.id]?.length || 0), 0);
+                        const catsFiltradas = CATEGORIAS.filter(cat => categoriaActiva === "todas" || cat.id === categoriaActiva);
+                        const totalPlatos = catsFiltradas.reduce((acc, cat) => acc + (datos[key]?.[cat.id]?.length || 0), 0);
                         const seleccionado = diasSeleccionados.has(key);
                         return (
                           <div key={di}
@@ -674,29 +871,30 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
                                 </span>
                               )}
                               {!modoSeleccion && totalPlatos > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-[9px] font-bold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded-full">{totalPlatos}</span>
-                                  <button
-                                    onClick={e => abrirModalDia(key, e)}
-                                    className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-red-400 hover:bg-red-500/10 transition"
-                                    title="Eliminar platos">
-                                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>delete</span>
-                                  </button>
+                              <div className="flex items-center gap-1">
+                                <span className={`text-[9px] font-bold ${BADGE_COLORS.todas.badge} px-1.5 py-0.5 rounded-full`}>{totalPlatos}</span>
+                                <button
+                                  onClick={e => abrirModalDia(key, e)}
+                                  className="opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-red-400 hover:bg-red-500/10 transition"
+                                  title="Eliminar día">
+                                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>delete</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="space-y-0.5">
+                            {catsFiltradas.slice(0, 3).map(cat => {
+                              const platos = datos[key]?.[cat.id] || [];
+                              if (!platos[0]) return null;
+                              const color = BADGE_COLORS[cat.id] || BADGE_COLORS.todas;
+                              return (
+                                <div key={cat.id} className={`text-[9px] ${t.textSecondary} truncate`}>
+                                  <span className={`${color.text} font-bold`}>{cat.label.slice(0, 3)}.</span> {platos[0]}
                                 </div>
-                              )}
-                            </div>
-                            <div className="space-y-0.5">
-                              {CATEGORIAS.slice(0, 3).map(cat => {
-                                const platos = datos[key]?.[cat.id] || [];
-                                if (!platos[0]) return null;
-                                return (
-                                  <div key={cat.id} className={`text-[9px] ${t.textSecondary} truncate`}>
-                                    <span className="text-blue-400 font-bold">{cat.label.slice(0, 3)}.</span> {platos[0]}
-                                  </div>
-                                );
-                              })}
-                              {totalPlatos > 3 && <p className="text-[9px] text-blue-400 font-bold">+{totalPlatos - 3} más</p>}
-                            </div>
+                              );
+                            })}
+                            {totalPlatos > 3 && <p className={`text-[9px] ${BADGE_COLORS.todas.text} font-bold`}>+{totalPlatos - 3} más</p>}
+                          </div>
                           </div>
                         );
                       })}
@@ -711,18 +909,24 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
       </div>
 
       {/* ══════════════ MODAL EDICIÓN ══════════════ */}
-      {modalOpen && editando && (
+    {modalOpen && editando && (() => {
+      const cat = CATEGORIAS.find(c => c.id === editando.catId);
+      const color = BADGE_COLORS[editando.catId] || BADGE_COLORS.todas;
+      return (
         <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-lg shadow-2xl`}>
+          <div className={`${t.bgCard} border ${t.border} rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden`}>
             {/* Header modal */}
-            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border}`}>
-              <div>
-                <h3 className={`${t.text} font-bold`}>
-                  {CATEGORIAS.find(c => c.id === editando.catId)?.label}
-                </h3>
-                <p className={`${t.textSecondary} text-xs mt-0.5`}>
-                  {editando.key} — un plato por línea
-                </p>
+            <div className={`flex items-center justify-between px-6 py-4 border-b ${t.border} ${color.soft}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-full ${color.badge} flex items-center justify-center`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{cat?.icon}</span>
+                </div>
+                <div>
+                  <h3 className={`${t.text} font-bold`}>{cat?.label}</h3>
+                  <p className={`${t.textSecondary} text-xs mt-0.5`}>
+                    {editando.key} — un plato por línea
+                  </p>
+                </div>
               </div>
               <button onClick={() => setModalOpen(false)} className={`w-8 h-8 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary}`}>
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
@@ -790,7 +994,8 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
             </div>
           </div>
         </div>
-      )}
+      );
+    })()}
       {/* ══ BARRA SELECCIÓN MÚLTIPLE ══ */}
       {modoSeleccion && (
         <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border ${t.border} ${t.bgCard}`}

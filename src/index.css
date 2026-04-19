@@ -1,3 +1,25 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  /* Ocultar barra de scroll para Chrome, Safari y Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Ocultar barra de scroll para IE, Edge y Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background-color: var(--bg-nav, rgba(15, 25, 35, 0.7));
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
