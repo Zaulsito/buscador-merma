@@ -69,6 +69,13 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   const [modalColaIA, setModalColaIA] = useState(false); // revisar lista detectada
 
   const inputRef = useRef(null);
+  const chipsRef = useRef(null);
+  
+  const scrollChips = (dir) => {
+    if (chipsRef.current) {
+      chipsRef.current.scrollBy({ left: dir * 200, behavior: "smooth" });
+    }
+  };
 
   // ── Firestore listeners ───────────────────────────────────────────────────
   useEffect(() => {
@@ -436,25 +443,60 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
                     />
                   </div>
 
-                  {/* Filtro categorías — scroll horizontal en móvil */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 flex-shrink-0">
+                  {/* Filtro categorías Premium */}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
                     <button
-                      onClick={() => setCatActiva("todas")}
-                      className={`flex-shrink-0 px-3 py-2 rounded-xl text-xs font-bold border transition ${catActiva === "todas" ? "bg-blue-600 border-blue-600 text-white" : `${t.bgCard} ${t.border} ${t.textSecondary}`}`}>
-                      Todas
+                      onClick={() => scrollChips(-1)}
+                      className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
                     </button>
-                    {categorias.map(c => {
-                      const cc = colorClasses(c.color);
-                      const activa = catActiva === c.id;
-                      return (
-                        <button key={c.id}
-                          onClick={() => setCatActiva(c.id)}
-                          className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition ${activa ? `${cc.bg} ${cc.text} border-current` : `${t.bgCard} ${t.border} ${t.textSecondary}`}`}>
-                          <span className={`w-2 h-2 rounded-full ${activa ? cc.dot : "bg-current opacity-40"}`} />
-                          {c.nombre}
-                        </button>
-                      );
-                    })}
+
+                    <div
+                      ref={chipsRef}
+                      className="flex gap-2 overflow-x-auto items-center flex-1 px-4"
+                      style={{ 
+                        scrollbarWidth: "none", 
+                        msOverflowStyle: "none",
+                        WebkitMaskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)',
+                        maskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)'
+                      }}
+                    >
+                      <button
+                        onClick={() => setCatActiva("todas")}
+                        className={`px-4 py-2 rounded-full text-[10px] font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                          catActiva === "todas"
+                            ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
+                            : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`
+                        }`}
+                      >
+                        TODAS
+                      </button>
+                      {categorias.map(c => {
+                        const cc = colorClasses(c.color);
+                        const activa = catActiva === c.id;
+                        return (
+                          <button key={c.id}
+                            onClick={() => setCatActiva(c.id)}
+                            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-bold border transition-all shrink-0 uppercase tracking-widest ${
+                              activa 
+                                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25" 
+                                : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-blue-400`
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${activa ? "bg-white" : cc.dot}`} />
+                            {c.nombre}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => scrollChips(1)}
+                      className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+                    </button>
                   </div>
                 </div>
 

@@ -215,8 +215,15 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
   const [pagina, setPagina] = useState(1);
   const [fabVisible, setFabVisible] = useState(true);
   const fabTimerRef = useRef(null);
+  const chipsRef = useRef(null);
   const lastScrollY = useRef(0);
   const { t } = useTheme();
+
+  const scrollChips = (dir) => {
+    if (chipsRef.current) {
+      chipsRef.current.scrollBy({ left: dir * 200, behavior: "smooth" });
+    }
+  };
 
   const resetFabTimer = useCallback(() => {
     setFabVisible(true);
@@ -408,21 +415,46 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
           )}
         </div>
 
-        {/* Chips de sección */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
-          {secciones.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSeccionActiva(s)}
-              className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                seccionActiva === s
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-500/20"
-                  : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:border-blue-400 hover:text-blue-500`
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        {/* Chips de sección Premium */}
+        <div className="flex items-center gap-2 mb-8">
+          <button
+            onClick={() => scrollChips(-1)}
+            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+          </button>
+
+          <div
+            ref={chipsRef}
+            className="flex gap-2 overflow-x-auto items-center flex-1 px-4"
+            style={{ 
+              scrollbarWidth: "none", 
+              msOverflowStyle: "none",
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)',
+              maskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)'
+            }}
+          >
+            {secciones.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSeccionActiva(s)}
+                className={`px-5 py-2 rounded-full text-xs font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                  seccionActiva === s
+                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
+                    : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => scrollChips(1)}
+            className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+          </button>
         </div>
 
         {/* Contenido */}

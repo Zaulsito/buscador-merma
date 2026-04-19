@@ -3,8 +3,8 @@ import { useTheme } from "../context/ThemeContext";
 
 const ITEMS = [
   { id: "inicio",       label: "INICIO",  icon: "home",         fill: true  },
-  { id: "merma",        label: "MERMA",   icon: "search",       fill: false },
   { id: "fichas",       label: "FICHAS",  icon: "description",  fill: false },
+  { id: "merma",        label: "GESTIÓN", icon: "inventory_2",  fill: false },
   {
     id: "planificador", label: "PLAN.",   icon: "account_tree", fill: false,
     sub: [

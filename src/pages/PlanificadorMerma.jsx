@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import BottomNav from "../components/BottomNav";
 import { db } from "../firebase/config";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -17,7 +17,14 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [flotanteVisible, setFlotanteVisible] = useState(true);
+  const chipsRef = useRef(null);
   const { t } = useTheme();
+
+  const scrollChips = (dir) => {
+    if (chipsRef.current) {
+      chipsRef.current.scrollBy({ left: dir * 200, behavior: "smooth" });
+    }
+  };
 
   // Ocultar botón flotante después de 3s de inactividad
   useEffect(() => {
@@ -68,13 +75,80 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
   const generarLista = () => {
     const lista = seleccionados.map((p) => ({
       codigo: p.codigo || "—",
+      ean: p.ean || "",
       nombre: p.nombre,
       categoria: p.categoria || "—",
       cantidad: cantidades[p.id] || "—",
       unidad: p.unidadMedida || "—",
-    }));
+    })).sort((a, b) => a.nombre.localeCompare(b.nombre));
     setListaGenerada(lista);
     setModalLista(true);
+  };
+
+  const CODE39_ENCODING = {
+    '0': '000110100', '1': '100100001', '2': '001100001', '3': '101100000', '4': '000110001',
+    '5': '100110000', '6': '001110000', '7': '000100101', '8': '100100100', '9': '001100100',
+    'A': '100001001', 'B': '001001001', 'C': '101001000', 'D': '000011001', 'E': '100011000',
+    'F': '001011000', 'G': '000001101', 'H': '100001100', 'I': '001001100', 'J': '000011100',
+    'K': '100000011', 'L': '001000011', 'M': '101000010', 'N': '000010011', 'O': '100010010',
+    'P': '001010010', 'Q': '000000111', 'R': '100000110', 'S': '001000110', 'T': '000010110',
+    'U': '110000001', 'V': '011000001', 'W': '111000000', 'X': '010010001', 'Y': '110010000',
+    'Z': '011010000', '-': '010000101', '.': '110000100', ' ': '011000100', '*': '010010100',
+    '$': '010101000', '/': '010100010', '+': '010001010', '%': '000101010'
+  };
+
+  const Barcode = ({ value, className = "", size = "xl" }) => {
+    if (!value) return null;
+
+    const fullValue = `*${String(value).toUpperCase()}*`;
+    const bars = [];
+    let currentX = 0;
+    const narrow = 1.5;
+    const wide = narrow * 2.5;
+    const gap = narrow;
+
+    for (let i = 0; i < fullValue.length; i++) {
+      const char = fullValue[i];
+      const pattern = CODE39_ENCODING[char];
+      if (!pattern) continue;
+
+      // Cada patrón tiene 9 barras (5 negras, 4 blancas)
+      for (let j = 0; j < pattern.length; j++) {
+        const isBlack = j % 2 === 0;
+        const isWide = pattern[j] === '1';
+        const width = isWide ? wide : narrow;
+
+        if (isBlack) {
+          bars.push({ x: currentX, w: width });
+        }
+        currentX += width;
+      }
+      currentX += gap; // Espacio entre caracteres
+    }
+
+    const sizes = {
+      sm: { scale: 0.5, h: 30 },
+      md: { scale: 0.8, h: 40 },
+      lg: { scale: 1, h: 50 },
+      xl: { scale: 1.4, h: 60 }
+    };
+    const config = sizes[size] || sizes.xl;
+
+    return (
+      <div className={`flex flex-col items-center p-3 bg-white rounded-xl shadow-inner ${className}`}>
+        <svg 
+          width={currentX * config.scale} 
+          height={config.h} 
+          viewBox={`0 0 ${currentX} 60`}
+          preserveAspectRatio="none"
+        >
+          {bars.map((b, i) => (
+            <rect key={i} x={b.x} y="0" width={b.w} height="60" fill="black" />
+          ))}
+        </svg>
+        <span className="text-[10px] font-mono text-gray-900 font-bold mt-2 tracking-[0.2em]">{value}</span>
+      </div>
+    );
   };
 
   return (
@@ -108,10 +182,10 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className={`${t.text} text-2xl font-bold flex items-center gap-2`}>
-                  <span className="material-symbols-outlined text-blue-400">search</span>
+                  <span className="material-symbols-outlined text-blue-400">inventory_2</span>
                   Planificador de Merma
                 </h2>
-                <p className={`${t.textSecondary} text-sm mt-1`}>Selecciona productos y define cantidades para planificar tu pedido.</p>
+                <p className={`${t.textSecondary} text-sm mt-1`}>Selecciona productos y define cantidades para planificar tu merma.</p>
               </div>
               {seleccionados.length > 0 && (
                 <div className="flex items-center gap-3">
@@ -125,27 +199,56 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
               )}
             </div>
 
-            {/* Chips categorías */}
-            <div className="flex gap-2 flex-wrap mb-6">
+            {/* Chips categorías Premium */}
+            <div className="flex items-center gap-2 mb-8">
               <button
-                onClick={() => setCatActiva("")}
-                className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                  catActiva === "" ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25" : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
-                }`}
+                onClick={() => scrollChips(-1)}
+                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
               >
-                Todas
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
               </button>
-              {categorias.map((c) => (
+
+              <div
+                ref={chipsRef}
+                className="flex gap-2 overflow-x-auto items-center flex-1 px-4"
+                style={{ 
+                  scrollbarWidth: "none", 
+                  msOverflowStyle: "none",
+                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)',
+                  maskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)'
+                }}
+              >
                 <button
-                  key={c}
-                  onClick={() => setCatActiva(c)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
-                    catActiva === c ? "bg-blue-600 text-white shadow-lg shadow-blue-500/25" : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400`
+                  onClick={() => setCatActiva("")}
+                  className={`px-5 py-2 rounded-full text-xs font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                    catActiva === ""
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
+                      : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
                   }`}
                 >
-                  {c}
+                  TODAS
                 </button>
-              ))}
+                {categorias.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCatActiva(c)}
+                    className={`px-5 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
+                      catActiva === c
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
+                        : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => scrollChips(1)}
+                className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-blue-400 transition-colors border ${t.border}`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+              </button>
             </div>
 
             {/* Buscador */}
@@ -184,10 +287,17 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
                   >
                     {/* Card header clickeable */}
                     <div className="p-4 flex items-center justify-between gap-2 cursor-pointer" onClick={() => toggleSeleccion(p)}>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className={`${t.text} font-semibold text-sm truncate`}>{p.nombre}</p>
-                        <p className={`${t.textSecondary} text-xs`}>{p.categoria || "Sin categoría"}</p>
-                        {p.codigo && <p className="text-blue-400 font-mono text-xs mt-0.5">{p.codigo}</p>}
+                        <p className={`${t.textSecondary} text-[10px]`}>{p.categoria || "Sin categoría"}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          {p.codigo && <p className="text-blue-400 font-mono text-[10px]">{p.codigo}</p>}
+                          {p.ean && (
+                            <span className="text-gray-500 font-mono text-[9px] px-1.5 py-0.5 bg-gray-600/20 rounded border border-gray-500/10">
+                              {p.ean}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition ${
                         estaSeleccionado(p.id) ? "bg-blue-500 border-blue-500" : "border-gray-500"
@@ -199,18 +309,27 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
                     {/* Input cantidad si está seleccionado */}
                     {estaSeleccionado(p.id) && (
                       <div className={`px-4 pb-4 border-t ${t.border} pt-3`}>
-                        <label className={`${t.textSecondary} text-xs mb-1 block`}>Cantidad a pedir</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            min="0"
-                            value={cantidades[p.id] || ""}
-                            onChange={(e) => setCantidad(p.id, e.target.value)}
-                            onClick={(e) => e.stopPropagation()}
-                            placeholder="0"
-                            className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`}
-                          />
-                          <span className={`${t.textSecondary} text-xs`}>{p.unidadMedida || "—"}</span>
+                        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                          <div className="flex-1">
+                            <input
+                              type="number"
+                              min="0"
+                              value={cantidades[p.id] || ""}
+                              onChange={(e) => setCantidad(p.id, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="0"
+                              className={`w-full ${t.bgInput} ${t.text} px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                            />
+                            <div className="flex items-center justify-between mt-1">
+                              <span className={`${t.textSecondary} text-[10px] uppercase font-bold tracking-wider`}>Cantidad a pedir</span>
+                              <span className={`${t.textSecondary} text-[10px]`}>{p.unidadMedida || "—"}</span>
+                            </div>
+                          </div>
+                          {p.ean && (
+                            <div className="flex items-center justify-center min-w-[120px]">
+                              <Barcode value={p.ean} size="md" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -227,7 +346,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-blue-500/25"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 20 }}>checklist</span>
-                  Generar lista de pedido
+                  Generar lista de merma
                 </button>
               </div>
             )}
@@ -243,7 +362,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
                         <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>checklist</span>
                       </div>
                       <div>
-                        <p className={`${t.text} font-bold text-sm`}>Lista de Pedido</p>
+                        <p className={`${t.text} font-bold text-sm`}>Lista de Merma</p>
                         <p className={`${t.textSecondary} text-xs`}>{listaGenerada.length} productos seleccionados</p>
                       </div>
                     </div>
@@ -254,15 +373,20 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
                   {/* Lista */}
                   <div className="flex-1 overflow-y-auto">
                     {listaGenerada.map((item, i) => (
-                      <div key={i} className={`flex items-center justify-between px-5 py-3 border-b ${t.border} last:border-0 ${t.hover} transition-colors`}>
-                        <div className="min-w-0">
-                          <p className={`${t.text} text-sm font-medium truncate`}>{item.nombre}</p>
-                          {item.codigo !== "—" && <p className="text-blue-400 font-mono text-xs">{item.codigo}</p>}
+                      <div key={i} className={`flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 border-b ${t.border} last:border-0 ${t.hover} transition-colors gap-4`}>
+                        <div className="min-w-0 flex-1">
+                          <p className={`${t.text} text-sm font-bold truncate`}>{item.nombre}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {item.codigo !== "—" && <span className="text-blue-400 font-mono text-[10px]">SAP: {item.codigo}</span>}
+                            {item.cantidad !== "—" && (
+                              <span className="text-amber-500 font-black text-[10px] uppercase border border-amber-500/30 px-1.5 rounded bg-amber-500/5">
+                                {item.cantidad} {item.unidad !== "—" ? item.unidad : ""}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        {item.cantidad !== "—" && (
-                          <span className="bg-blue-500/15 text-blue-400 text-xs font-black px-2.5 py-1 rounded-full border border-blue-500/20 flex-shrink-0 ml-3">
-                            {item.cantidad} {item.unidad !== "—" ? item.unidad : ""}
-                          </span>
+                        {item.ean && (
+                           <Barcode value={item.ean} size="xl" className="shrink-0" />
                         )}
                       </div>
                     ))}
@@ -282,7 +406,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
         {/* Botón flotante generar lista */}
         {seleccionados.length > 0 && (
           <button
-            onClick={() => { generarLista(); document.querySelector("main")?.scrollTo({ top: 99999, behavior: "smooth" }); }}
+            onClick={() => { generarLista(); }}
             onMouseEnter={() => setFlotanteVisible(true)}
             className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-2xl shadow-2xl shadow-blue-500/40 transition-all duration-300 ${flotanteVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}`}
           >

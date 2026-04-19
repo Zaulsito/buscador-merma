@@ -43,15 +43,20 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
   }, []);
 
   useEffect(() => {
+    const mainElement = mainRef.current;
+    if (!mainElement) return;
+
     const onScroll = () => {
-      const currentY = window.scrollY;
-      if (currentY > lastScrollY.current) resetFabTimer();
-      lastScrollY.current = currentY;
+      resetFabTimer();
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
+
+    mainElement.addEventListener("scroll", onScroll, { passive: true });
+    
+    // Iniciar oculto si no se mueve
     fabTimerRef.current = setTimeout(() => setFabVisible(false), 3000);
+    
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      mainElement.removeEventListener("scroll", onScroll);
       clearTimeout(fabTimerRef.current);
     };
   }, [resetFabTimer]);
@@ -130,49 +135,34 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                   <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
                 </button>
                 <div>
-                  <h2 className={`${t.text} text-2xl md:text-3xl font-black tracking-tight`}>Buscador de Merma</h2>
+                  <h2 className={`${t.text} text-2xl md:text-3xl font-black tracking-tight`}>Gestión de Merma</h2>
                   <p className={`${t.textSecondary} mt-0.5 text-sm`}>Gestión y control de desperdicios de inventario en tiempo real.</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex flex-row items-stretch gap-3 shrink-0">
                 {(rol === "admin" || rol === "unico") && (
-                  <button onClick={() => setShowImportExport(true)} className={`hidden sm:flex items-center gap-2 px-4 py-2.5 ${t.bgInput} ${t.hover} ${t.text} font-semibold rounded-lg transition text-sm border ${t.border}`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
-                    Importar/Exportar
-                  </button>
-                )}
-                {(rol === "admin" || rol === "unico") && (
-                  <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:brightness-110 text-white px-5 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-500/30 text-sm">
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-                    Agregar Producto
-                  </button>
-                )}
-              </div>
-            </div>
+                  <>
+                    <button 
+                      onClick={() => setShowModal(true)} 
+                      className="flex-1 sm:w-64 flex items-center justify-center gap-2 bg-gradient-to-br from-blue-500 to-blue-600 hover:brightness-110 text-white px-6 py-3.5 rounded-xl font-black tracking-tight transition shadow-lg shadow-blue-500/30 text-xs md:text-sm whitespace-nowrap"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
+                      AGREGAR PRODUCTO
+                    </button>
 
-            {/* Buscador */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1 group">
-                <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 ${t.textSecondary} group-focus-within:text-blue-400 transition-colors`} style={{ fontSize: 20 }}>search</span>
-                <input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className={`w-full pl-12 pr-10 py-3 rounded-xl ${t.bgInput} ${t.text} border-none outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-slate-500 shadow-inner`}
-                  placeholder="Buscar producto por nombre o ID..."
-                />
-                {search && (
-                  <button onClick={() => setSearch("")} className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-red-400 transition-colors`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
-                  </button>
+                    {/* Botón Importar/Exportar (Ocultado por petición, código preservado)
+                    <button 
+                      onClick={() => setShowImportExport(true)} 
+                      className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${t.bgInput} ${t.hover} ${t.textSecondary} font-bold text-[10px] sm:text-xs md:text-sm border ${t.border} transition-all whitespace-nowrap`}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
+                      IMPORTAR/EXPORTAR
+                    </button> 
+                    */}
+                  </>
                 )}
               </div>
-              {(rol === "admin" || rol === "unico") && (
-                <button onClick={() => setShowImportExport(true)} className={`sm:hidden flex items-center justify-center gap-2 px-4 py-3 rounded-xl ${t.bgInput} ${t.textSecondary} font-medium text-sm border ${t.border}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>ios_share</span>
-                  Import/Export
-                </button>
-              )}
             </div>
 
             {/* Chips de categoría con flechas */}
@@ -185,27 +175,31 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
               </button>
 
-              {/* Chips scrolleables sin scrollbar */}
               <div
                 ref={chipsRef}
-                className="flex gap-2 overflow-x-auto items-center flex-1"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                className="flex gap-2 overflow-x-auto items-center flex-1 px-4"
+                style={{ 
+                  scrollbarWidth: "none", 
+                  msOverflowStyle: "none",
+                  WebkitMaskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)',
+                  maskImage: 'linear-gradient(to right, transparent, black 20px, black calc(100% - 20px), transparent)'
+                }}
               >
                 <button
                   onClick={() => setCatActiva("")}
-                  className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all shrink-0 ${
+                  className={`px-5 py-2 rounded-full text-xs md:text-sm font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
                     catActiva === ""
                       ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
                       : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
                   }`}
                 >
-                  Todas
+                  TODAS
                 </button>
                 {categoriasDocs.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => setCatActiva(cat.nombre)}
-                    className={`px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap border transition-all shrink-0 ${
+                    className={`px-5 py-2 rounded-full text-xs md:text-sm font-black whitespace-nowrap border transition-all shrink-0 uppercase tracking-widest ${
                       catActiva === cat.nombre
                         ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-transparent shadow-lg shadow-blue-500/25"
                         : `${t.bgInput} ${t.textSecondary} border-transparent hover:text-blue-400`
@@ -247,6 +241,24 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
               </button>
             </div>
+
+            {/* Buscador (Posicionado debajo de categorías para mejor flujo visual) */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <div className="relative flex-1 group">
+                <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 ${t.textSecondary} group-focus-within:text-blue-400 transition-colors`} style={{ fontSize: 20 }}>search</span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className={`w-full pl-12 pr-10 py-4 rounded-xl ${t.bgInput} ${t.text} border-none outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder:text-slate-500 shadow-xl transition-all`}
+                  placeholder="Buscar producto por nombre o SAP..."
+                />
+                {search && (
+                  <button onClick={() => setSearch("")} className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-red-400 transition-colors`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                  </button>
+                )}
+              </div>
+            </div>
           </header>
 
           {/* ── GRID ── */}
@@ -283,6 +295,25 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
                   {paginados.map((p) => (
                     <ProductCard key={p.id} product={p} rol={rol} />
                   ))}
+                  
+                  {/* Tarjeta Nuevo Producto (Estilo Premium) */}
+                  {(rol === "admin" || rol === "unico") && (
+                    <button 
+                      onClick={() => setShowModal(true)}
+                      className={`group relative flex flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-gray-700/50 ${t.bgCard} hover:border-blue-500/50 hover:bg-blue-500/5 transition-all duration-300 min-h-[380px]`}
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-gray-800 flex items-center justify-center text-gray-500 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 shadow-xl">
+                        <span className="material-symbols-outlined" style={{ fontSize: 32 }}>add</span>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white font-bold text-sm tracking-wide uppercase">Nuevo Producto</p>
+                        <p className="text-gray-500 text-[10px] mt-1 font-medium tracking-widest uppercase">Añadir al Inventario</p>
+                      </div>
+                      
+                      {/* Glow sutil */}
+                      <div className="absolute inset-x-10 bottom-10 h-10 bg-blue-500/20 blur-[40px] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                  )}
                 </div>
 
                 {totalPaginas > 1 && (
@@ -317,22 +348,27 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
         </main>
       </div>{/* /columna principal */}
 
-      {/* FAB móvil */}
+      {/* FAB Inteligente Minimalista */}
       {(rol === "admin" || rol === "unico") && (
         <button
           onClick={() => setShowModal(true)}
-          onTouchStart={resetFabTimer}
           className={`
-            md:hidden fixed right-5 z-50
-            w-14 h-14 rounded-full bg-blue-600 text-white shadow-xl shadow-blue-500/40
+            fixed right-6 z-[60]
+            w-14 h-14 rounded-2xl
+            bg-gray-900/80 backdrop-blur-xl
+            border border-gray-700/50
+            text-blue-400 shadow-2xl shadow-black/50
             flex items-center justify-center
-            transition-all duration-300 ease-in-out
-            ${fabVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"}
+            transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]
+            hover:scale-110 hover:text-blue-300 hover:border-blue-500/30
+            active:scale-95
+            ${fabVisible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-10 scale-50 pointer-events-none"}
           `}
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 80px)" }}
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 90px)" }}
           aria-label="Agregar producto"
         >
-          <span className="material-symbols-outlined" style={{ fontSize: 28 }}>add</span>
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-blue-500/5 to-transparent pointer-events-none" />
+          <span className="material-symbols-outlined" style={{ fontSize: 32 }}>add</span>
         </button>
       )}
 

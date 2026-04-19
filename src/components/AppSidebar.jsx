@@ -3,8 +3,8 @@ import { auth } from "../firebase/config";
 import { signOut } from "firebase/auth";
 
 const navItems = [
-  { id: "merma",        label: "Buscador de Merma",  icon: "search"         },
   { id: "fichas",       label: "Fichas Técnicas",     icon: "description"    },
+  { id: "merma",        label: "Gestión de Merma",    icon: "inventory_2"    },
   { id: "planificador", label: "Planificador",        icon: "account_tree"   },
   { id: "precios",       label: "Lista de Precios",    icon: "sell"           },
   { id: "traspasos",     label: "Traspasos",          icon: "swap_horiz"     },

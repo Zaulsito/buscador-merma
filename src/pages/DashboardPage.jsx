@@ -17,18 +17,6 @@ import BottomNav from "../components/BottomNav";
 
 const modulos = [
   {
-    id: "merma",
-    nombre: "Buscador de Merma",
-    descripcion: "Localiza y analiza pérdidas operativas eficientemente.",
-    icon: "search",
-    accion: "Acceder módulo",
-    color: "#258cf4",
-    colorClass: "text-blue-400",
-    bg: "bg-blue-500/10",
-    hoverBg: "group-hover:bg-blue-500",
-    borderB: "border-b-blue-500",
-  },
-  {
     id: "fichas",
     nombre: "Fichas Técnicas",
     descripcion: "Biblioteca centralizada de especificaciones y procesos.",
@@ -39,6 +27,18 @@ const modulos = [
     bg: "bg-orange-500/10",
     hoverBg: "group-hover:bg-orange-500",
     borderB: "border-b-orange-500",
+  },
+  {
+    id: "merma",
+    nombre: "Gestión de Merma",
+    descripcion: "Localiza y analiza pérdidas operativas eficientemente.",
+    icon: "inventory_2",
+    accion: "Acceder módulo",
+    color: "#258cf4",
+    colorClass: "text-blue-400",
+    bg: "bg-blue-500/10",
+    hoverBg: "group-hover:bg-blue-500",
+    borderB: "border-b-blue-500",
   },
   {
     id: "planificador",
@@ -130,7 +130,7 @@ export default function DashboardPage({ user, rol }) {
         .slice(0, 4).map(d => ({ id: d.id, titulo: d.nombre, sub: d.seccion || "—", modulo: "fichas" })),
     },
     {
-      id: "merma", label: "Buscador de Merma", icon: "search",
+      id: "merma", label: "Gestión de Merma", icon: "inventory_2",
       color: "text-blue-400", bg: "bg-blue-500/10", modulo: "merma",
       buscar: (docs, q) => docs
         .filter(d => [d.nombre, d.codigo, d.categoria].some(c => c?.toLowerCase().includes(q.toLowerCase())))
@@ -240,9 +240,9 @@ export default function DashboardPage({ user, rol }) {
         eventos.merma = snap.docs
           .map(d => ({
             _ts: d.data().fechaCreacion?.seconds || 0,
-            icon: "search",
+            icon: "inventory_2",
             color: "bg-blue-500/10 text-blue-400",
-            titulo: `Merma: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
+            titulo: `Gestión: ${d.data().nombre || d.data().codigo || "Sin nombre"}`,
             desc: `Código: ${d.data().codigo || "—"} · Categoría: ${d.data().categoria || "—"}`,
             tiempo: tiempoRelativo(d.data().fechaCreacion),
           }))
