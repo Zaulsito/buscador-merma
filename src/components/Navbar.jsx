@@ -158,7 +158,7 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titul
   // ── Resto del Navbar ──────────────────────────────────────────────────────
   const nombre    = user?.displayName || user?.email || "Usuario";
   const iniciales = nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
-  const rolLabel  = rol === "unico" ? "Programador" : rol === "admin" ? "Admin" : rol || "Usuario";
+  const rolLabel  = rol === "unico" ? "PROGRAMADOR" : rol === "admin" ? "ADMIN" : (rol || "Usuario").toUpperCase();
 
   const cerrarMenus = () => { setMenuOpen(false); setTemaOpen(false); };
 
@@ -329,9 +329,9 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titul
                 <p className="text-xs font-bold text-slate-100 leading-tight">{nombre.split(" ")[0]}</p>
                 <p className={`text-[10px] uppercase tracking-widest leading-tight font-bold ${rol === "unico" ? "text-emerald-400" : rol === "admin" ? "text-amber-400" : "text-blue-400"}`}>{rolLabel}</p>
               </div>
-              <div className="w-9 h-9 rounded-full bg-blue-600/30 border-2 border-blue-500/40 flex items-center justify-center flex-shrink-0">
+              <div className="w-9 h-9 rounded-full bg-blue-600/30 border-2 border-blue-500/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
                 {user?.photoURL
-                  ? <img src={user.photoURL} alt={nombre} className="w-full h-full object-cover rounded-full" />
+                  ? <img src={user.photoURL} alt={nombre} className="w-full h-full object-cover" />
                   : <span className="text-blue-300 text-xs font-black">{iniciales}</span>
                 }
               </div>
@@ -343,19 +343,19 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titul
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={cerrarMenus} />
-                <div className={`absolute right-0 mt-2 w-60 ${t.bgCard} rounded-2xl shadow-2xl z-50 overflow-hidden border ${t.border}`}
+                <div className={`absolute right-0 mt-2 w-64 ${t.bgCard} rounded-2xl shadow-2xl z-50 overflow-hidden border ${t.border}`}
                   style={{ backdropFilter: "blur(16px)" }}>
 
                   {/* Info usuario */}
                   <div className={`px-4 py-4 border-b ${t.border} flex items-center gap-3`}>
-                    <div className="w-10 h-10 rounded-full bg-blue-600/30 border-2 border-blue-500/40 flex items-center justify-center flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-blue-600/30 border-2 border-blue-500/40 flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {user?.photoURL
-                        ? <img src={user.photoURL} alt={nombre} className="w-full h-full object-cover rounded-full" />
+                        ? <img src={user.photoURL} alt={nombre} className="w-full h-full object-cover" />
                         : <span className="text-blue-300 text-sm font-black">{iniciales}</span>
                       }
                     </div>
                     <div className="min-w-0">
-                      <p className={`${t.text} text-sm font-bold truncate`}>{nombre}</p>
+                      <p className={`${t.text} text-sm font-bold truncate`}>{user?.displayName || nombre}</p>
                       <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
                     </div>
                   </div>
@@ -363,10 +363,16 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, titul
                   {onPerfil && (
                     <button onClick={() => { onPerfil(); cerrarMenus(); }}
                       className={`w-full text-left px-4 py-3 ${t.text} ${t.hover} transition text-sm flex items-center gap-3`}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
+                      <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>person</span>
                       Mi Perfil
+                    </button>
+                  )}
+
+                  {onTutorial && (
+                    <button onClick={() => { onTutorial(); cerrarMenus(); }}
+                      className={`w-full text-left px-4 py-3 ${t.text} ${t.hover} transition text-sm flex items-center gap-3`}>
+                      <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: 20 }}>help</span>
+                      Ver Tutorial
                     </button>
                   )}
 

@@ -111,6 +111,14 @@ export default function DashboardPage({ user, rol }) {
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem("rinfo_tutorial_visto");
   });
+
+  // Detectar trigger de tutorial desde otras páginas
+  useEffect(() => {
+    if (sessionStorage.getItem("trigger_tutorial") === "true") {
+      sessionStorage.removeItem("trigger_tutorial");
+      setShowTutorial(true);
+    }
+  }, [modulo]); // Se dispara al volver al dashboard (modulo === null)
   const [actividadReal, setActividadReal] = useState([]);
   // ── Búsqueda global (misma lógica que Navbar) ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -460,127 +468,17 @@ export default function DashboardPage({ user, rol }) {
         <main className="flex-1 overflow-y-auto">
 
           {/* Top bar desktop */}
-          <header className={`hidden md:flex h-16 ${t.bgNav} border-b ${t.border} items-center justify-between px-8 sticky top-0 z-20`} style={{ backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--bg-nav, #0f1923)" }}>
-            <div className="flex-1 max-w-md relative">
-              <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
-              <input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => e.key === "Escape" && setSearchQuery("")}
-                className={`w-full pl-10 pr-8 py-2 ${t.bgInput} ${t.text} rounded-lg focus:ring-2 focus:ring-blue-500 text-sm outline-none border-none`}
-                placeholder="Buscar módulos o reportes..."
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white transition`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
-                </button>
-              )}
+          <div className="hidden md:block">
+            <Navbar 
+              user={user} 
+              rol={rol} 
+              onNavegar={navegarA} 
+              onPerfil={() => navegarA("perfil")}
+              onTutorial={() => setShowTutorial(true)}
+              titulo={null} 
+            />
+          </div>
 
-              {/* Dropdown resultados globales */}
-              {searchQuery.length >= 2 && (
-                <div className={`absolute top-full mt-2 left-0 right-0 ${t.bgCard} border ${t.border} rounded-xl shadow-2xl overflow-hidden z-50`}
-                  style={{ maxHeight: 420, overflowY: "auto" }}>
-                  {searchResultados.length === 0 && !searchBuscando ? (
-                    <div className="flex flex-col items-center justify-center py-6 gap-1.5">
-                      <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 28 }}>search_off</span>
-                      <p className={`${t.textSecondary} text-sm`}>Sin resultados para "{searchQuery}"</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className={`px-4 py-2 border-b ${t.border} flex items-center justify-between ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
-                        <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>
-                          {searchTotalResultados} resultado{searchTotalResultados !== 1 ? "s" : ""}
-                        </span>
-                        <span className={`${t.textSecondary} text-[10px]`}>Esc para cerrar</span>
-                      </div>
-                      {searchResultados.map(grupo => (
-                        <div key={grupo.id}>
-                          <div className={`flex items-center justify-between px-4 py-2 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
-                            <div className="flex items-center gap-2">
-                              <div className={`w-5 h-5 rounded-md flex items-center justify-center ${grupo.bg}`}>
-                                <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
-                              </div>
-                              <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>{grupo.label}</span>
-                            </div>
-                            <button onClick={() => { navegarA(grupo.modulo); setSearchQuery(""); }}
-                              className={`${grupo.color} text-[10px] font-bold hover:underline`}>Ver todos →</button>
-                          </div>
-                          {grupo.items.map(item => (
-                            <button key={item.id}
-                              onClick={() => { navegarA(item.modulo); setSearchQuery(""); }}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left border-t ${t.border} transition-colors ${t.hover}`}>
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${grupo.bg}`}>
-                                <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 15, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <p className={`${t.text} text-sm font-semibold truncate`}>{resaltarTexto(item.titulo, searchQuery)}</p>
-                                <p className={`${t.textSecondary} text-xs truncate`}>{item.sub}</p>
-                              </div>
-                              <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 14 }}>arrow_forward</span>
-                            </button>
-                          ))}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <button className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary} relative`}>
-                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>notifications</span>
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-              <button
-                onClick={() => setShowTutorial(true)}
-                className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.textSecondary} hover:text-blue-400 transition-colors`}
-                title="Ver tutorial"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 22 }}>help</span>
-              </button>
-              <div className={`h-6 w-px ${t.bgInput}`}></div>
-              <div className="relative">
-                <button onClick={() => setUserMenuOpen(o => !o)} className="flex items-center gap-2 group">
-                  <span className={`${t.text} text-sm font-semibold group-hover:text-blue-400 transition-colors`}>{nombre}</span>
-                  <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">{iniciales}</div>
-                </button>
-                {userMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
-                    <div className={`absolute right-0 top-full mt-2 z-50 w-52 ${t.bgCard} border ${t.border} rounded-2xl shadow-2xl overflow-hidden`}>
-                      {/* Header */}
-                      <div className={`px-4 py-3 border-b ${t.border}`}>
-                        <p className={`${t.text} text-sm font-bold`}>{nombre}</p>
-                        <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
-                        <span className="text-[10px] font-black px-2 py-0.5 bg-blue-500/15 text-blue-400 rounded-full border border-blue-500/20 mt-1 inline-block uppercase">
-                          {rol === "admin" || rol === "unico" ? "Admin" : "Usuario"}
-                        </span>
-                      </div>
-                      {/* Opciones */}
-                      <button onClick={() => { setUserMenuOpen(false); navegarA("perfil"); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} ${t.text} text-sm transition-colors`}>
-                        <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 18 }}>person</span>
-                        Mi Perfil
-                      </button>
-                      <button onClick={() => { setUserMenuOpen(false); setShowTutorial(true); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} ${t.text} text-sm transition-colors`}>
-                        <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: 18 }}>help</span>
-                        Ver Tutorial
-                      </button>
-                      <div className={`border-t ${t.border} mx-3`} />
-                      <button
-                        onClick={() => { setUserMenuOpen(false); import("firebase/auth").then(({ getAuth, signOut }) => signOut(getAuth())); }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 ${t.hover} text-red-400 text-sm transition-colors`}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>logout</span>
-                        Cerrar sesión
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-          </header>
 
           <div className="p-4 md:p-8 space-y-8 pb-24 md:pb-8">
 

@@ -24,7 +24,16 @@ export default function Planificador({ user, rol, onBack, onNavegar }) {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} titulo="Planificador Central" /></div>
+        <div className="hidden md:block flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo="Planificador Central" 
+          />
+        </div>
 
         {/* ── HEADER MÓVIL ── */}
         <header className={`md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 ${t.bgNav} border-b ${t.border}`}

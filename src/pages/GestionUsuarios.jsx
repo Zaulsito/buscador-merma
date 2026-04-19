@@ -243,7 +243,16 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <div className="hidden md:block flex-shrink-0"><Navbar user={user} rol={rol} onNavegar={onNavegar} titulo="Gestión de Usuarios" /></div>
+        <div className="hidden md:block flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo="Gestión de Usuarios" 
+          />
+        </div>
 
         {/* ════════════ MOBILE ════════════ */}
         <div className="md:hidden flex flex-col flex-1 overflow-hidden">
