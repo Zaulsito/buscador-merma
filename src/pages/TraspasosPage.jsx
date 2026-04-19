@@ -199,6 +199,8 @@ function ModalItem({ producto, onConfirm, onClose, t }) {
 }
 
 // ── Componente principal ──────────────────────────────────────────────────
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function TraspasosPage({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const esAdmin = rol === "admin" || rol === "unico";
@@ -409,7 +411,8 @@ export default function TraspasosPage({ user, rol, onBack, onNavegar }) {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="cyan-600" color2="blue-500" />
           <div className="px-4 md:px-8 py-6 max-w-5xl mx-auto">
 
             {/* Encabezado desktop */}

@@ -185,7 +185,7 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTut
             className={`${t.textSecondary} hover:text-white transition-colors flex items-center gap-2 group`}
           >
             <span className="material-symbols-outlined text-[20px] group-hover:scale-110 transition-transform">home</span>
-            Dashboard
+            Inicio
           </button>
           
           {titulo && (

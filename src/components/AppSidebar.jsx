@@ -59,7 +59,7 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
           }`}
         >
           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>home</span>
-          Dashboard
+          Inicio
         </button>
 
         {items.map(item => {

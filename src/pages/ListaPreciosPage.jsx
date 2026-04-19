@@ -31,6 +31,8 @@ function formatPrecio(val) {
   return `$${num.toLocaleString("es-CL", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const esAdmin = rol === "admin" || rol === "unico";
@@ -382,7 +384,8 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
           <h2 className={`${t.text} text-base font-bold`}>Lista de Precios</h2>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="amber-600" color2="yellow-500" />
           <div className="px-4 md:px-8 py-6">
 
             {/* ── Encabezado ── */}

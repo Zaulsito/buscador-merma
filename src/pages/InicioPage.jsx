@@ -106,8 +106,31 @@ const moduloAdmin = {
 
 
 
-export default function DashboardPage({ user, rol }) {
+import DecorativeBackground from "../components/DecorativeBackground";
+
+export default function InicioPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
+
+  // Temas de colores para el banner de bienvenida
+  const HERO_THEMES = [
+    { from: "#3b82f6", to: "#1d4ed8", shadow: "rgba(59,130,246,0.3)", label: "text-blue-100" },     // Azul
+    { from: "#7c3aed", to: "#4338ca", shadow: "rgba(124,58,237,0.3)", label: "text-purple-100" },   // Púrpura
+    { from: "#059669", to: "#0284c7", shadow: "rgba(5,150,105,0.3)",  label: "text-emerald-100" }, // Esmeralda
+    { from: "#d97706", to: "#ea580c", shadow: "rgba(217,119,6,0.3)",  label: "text-amber-100" },   // Ámbar
+    { from: "#db2777", to: "#9333ea", shadow: "rgba(219,39,119,0.3)", label: "text-pink-100" },     // Rosa
+    { from: "#0891b2", to: "#1e40af", shadow: "rgba(8,145,178,0.3)",  label: "text-cyan-100" },    // Cian
+  ];
+
+  const [heroTheme, setHeroTheme] = useState(() => HERO_THEMES[Math.floor(Math.random() * HERO_THEMES.length)]);
+
+  // Rotar color del banner cada 5 minutos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroTheme(HERO_THEMES[Math.floor(Math.random() * HERO_THEMES.length)]);
+    }, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem("rinfo_tutorial_visto");
@@ -119,7 +142,7 @@ export default function DashboardPage({ user, rol }) {
       sessionStorage.removeItem("trigger_tutorial");
       setShowTutorial(true);
     }
-  }, [modulo]); // Se dispara al volver al dashboard (modulo === null)
+  }, [modulo]); // Se dispara al volver al inicio (modulo === null)
   const [actividadReal, setActividadReal] = useState([]);
   // ── Búsqueda global (misma lógica que Navbar) ──
   const [searchQuery, setSearchQuery] = useState("");
@@ -466,7 +489,8 @@ export default function DashboardPage({ user, rol }) {
         <AppSidebar user={user} rol={rol} moduloActivo={null} onNavegar={navegarA} />
 
         {/* ── MAIN CONTENT ── scroll solo aquí ── */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="blue-600" color2="indigo-500" />
 
           {/* Top bar desktop */}
           <div className="hidden md:block">
@@ -481,14 +505,21 @@ export default function DashboardPage({ user, rol }) {
           </div>
 
 
-          <div className="p-4 md:p-8 space-y-8 pb-24 md:pb-8">
+          <div className="p-4 md:p-8 space-y-8 pb-24 md:pb-8 relative">
+            <DecorativeBackground color1="blue-600" color2="indigo-500" />
 
             {/* Hero */}
-            <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 p-8 md:p-10 text-white shadow-xl shadow-blue-500/20">
+            <section
+              className="relative overflow-hidden rounded-2xl p-8 md:p-10 text-white transition-all duration-1000"
+              style={{
+                background: `linear-gradient(to right, ${heroTheme.from}, ${heroTheme.to})`,
+                boxShadow: `0 20px 40px ${heroTheme.shadow}`,
+              }}
+            >
               <div className="relative z-10 max-w-2xl">
-                <span className="text-blue-100 text-xs font-semibold uppercase tracking-widest">Panel de Control</span>
+                <span className="text-white/70 text-xs font-semibold uppercase tracking-widest">Inicio</span>
                 <h2 className="text-3xl md:text-4xl font-black mt-1 mb-2">Bienvenido, {nombre}</h2>
-                <p className="text-blue-100 text-sm md:text-base max-w-md">
+                <p className="text-white/80 text-sm md:text-base max-w-md font-medium">
                   Gestiona tus procesos, accede a fichas técnicas y planifica tus operaciones desde un solo lugar.
                 </p>
               </div>
@@ -517,15 +548,18 @@ export default function DashboardPage({ user, rol }) {
                   <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Menú del día por cuarto</p>
                   <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Organiza y consulta los platos planificados por sección para cada jornada.</p>
                 </button>
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-blue-500/50 transition-colors`}>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-purple-500/50 transition-colors group`}>
                   <div className="flex flex-col gap-2 mb-3">
-                    <div className="p-2 bg-slate-500/10 text-slate-400 rounded-lg w-fit">
-                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>rocket_launch</span>
+                    <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg w-fit group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>receipt_long</span>
                     </div>
-                    <span className="text-slate-400 text-[10px] font-bold px-2 py-0.5 bg-slate-500/10 rounded-full w-fit">Próximamente</span>
+                    <span className="text-purple-400 text-[10px] font-bold px-2 py-0.5 bg-purple-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
-                  <p className={`${t.textSecondary} text-xs font-medium`}>Módulos Nuevos</p>
-                  <p className={`${t.text} text-sm font-bold mt-1`}>En desarrollo</p>
+                  <p className={`${t.textSecondary} text-xs font-medium`}>Gestión de Procesos</p>
+                  <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Trazabilidad: Control de Cuarto</p>
+                  <p className={`${t.textSecondary} text-xs mt-1.5 leading-relaxed`}>
+                    Mantén el control total de los procesos por cuarto, asegurando la trazabilidad completa de lo que se produce y gestiona en cada área.
+                  </p>
                 </div>
               </div>
             </section>

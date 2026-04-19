@@ -11,10 +11,10 @@ const STEPS_BASE = [
     tip: null,
   },
   {
-    id: "dashboard",
+    id: "inicio",
     icon: "home",
     color: "blue",
-    titulo: "Dashboard",
+    titulo: "Inicio",
     subtitulo: "Tu centro de control",
     descripcion: "Desde aquí tienes acceso rápido a todos los módulos. Verás un resumen del estado general de la app y podrás navegar usando la barra lateral izquierda.",
     tip: "Haz clic en cualquier módulo de la barra lateral para acceder directamente.",
@@ -62,7 +62,7 @@ const STEPS_BASE = [
     color: "emerald",
     titulo: "¡Todo listo!",
     subtitulo: "Ya conoces R.info",
-    descripcion: "Tienes todo lo que necesitas para comenzar. Recuerda que puedes repetir este tutorial en cualquier momento desde el Dashboard. ¡Mucho éxito!",
+    descripcion: "Tienes todo lo que necesitas para comenzar. Recuerda que puedes repetir este tutorial en cualquier momento desde el Inicio. ¡Mucho éxito!",
     tip: null,
   },
 ];

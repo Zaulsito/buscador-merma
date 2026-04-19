@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
+import InicioPage from "./pages/InicioPage";
 import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "./firebase/config";
 
@@ -30,5 +30,5 @@ export default function App() {
     );
   }
 
-  return user ? <DashboardPage user={user} rol={rol} /> : <LoginPage />;
+  return user ? <InicioPage user={user} rol={rol} /> : <LoginPage />;
 }

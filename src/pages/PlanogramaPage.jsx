@@ -113,6 +113,8 @@ function getDiasEnMes(year, month) {
   return new Date(year, month + 1, 0).getDate();
 }
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const [vista, setVista] = useState("semanal"); // semanal | diaria | mensual
@@ -459,10 +461,13 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
         }`}
       >
         {platos.length > 0 ? (
-          <ul className="space-y-0.5">
+          <ul className="space-y-1">
             {platos.map((p, i) => (
-              <li key={i} className={`${t.text} text-xs leading-snug`}>
-                {compact ? p : `• ${p}`}
+              <li key={i} className={`flex items-start gap-2 ${t.text} text-[11px] leading-tight font-medium`}>
+                <span className={`w-3.5 h-3.5 rounded-full ${color.badge} text-[8px] font-black flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm border border-white/5`}>
+                  {i + 1}
+                </span>
+                <span className="flex-1 min-w-0 break-words">{p}</span>
               </li>
             ))}
           </ul>
@@ -578,7 +583,8 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="purple-600" color2="indigo-500" />
           <div className="px-4 md:px-8 py-6">
 
             {/* Header */}
@@ -659,7 +665,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
             </div>
 
             {/* Chips de Categorías */}
-            <div className="sticky top-0 z-30 glass-effect border-b border-white/5 -mx-4 md:-mx-8 px-4 md:px-8 mb-4 group/filters">
+            <div className="sticky top-0 z-30 bg-[#0f1923]/95 backdrop-blur-md border-b border-white/10 -mx-4 md:-mx-8 px-4 md:px-8 mb-4 group/filters transition-all">
               
               {/* Flecha Izquierda (Solo Desktop) */}
               <div className={`absolute left-0 top-0 bottom-0 z-10 w-16 pointer-events-none hidden md:flex items-center justify-start pl-4 md:pl-8 transition-opacity duration-300 ${canScrollLeft ? "opacity-100" : "opacity-0"}`}>

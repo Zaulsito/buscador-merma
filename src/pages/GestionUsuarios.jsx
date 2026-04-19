@@ -33,6 +33,8 @@ const COLORES = [
   { id: "slate",   preview: "bg-slate-400",   bg: "bg-slate-500/15",   text: "text-slate-400",   border: "border-slate-500/20"   },
 ];
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const [tabActiva, setTabActiva] = useState(0);
@@ -296,7 +298,8 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
+          <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 relative">
+            <DecorativeBackground color1="purple-600" color2="indigo-500" />
 
             {/* ── USUARIOS móvil ── */}
             {tabActiva === 0 && (
@@ -507,7 +510,8 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
         </div>
 
         {/* ════════════ DESKTOP ════════════ */}
-        <main className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden">
+        <main className="hidden md:flex flex-col flex-1 min-h-0 overflow-hidden relative">
+          <DecorativeBackground color1="purple-600" color2="indigo-500" />
 
           {/* Header desktop */}
           <header className={`px-8 pt-8 pb-0 flex-shrink-0 border-b ${t.border}`}>

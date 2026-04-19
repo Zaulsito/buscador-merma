@@ -25,6 +25,8 @@ const FILA_VACIA = {
   abierto_duracion: "",
 };
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const [insumos, setInsumos] = useState([]);
@@ -320,7 +322,8 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="indigo-600" color2="blue-500" />
           <div className="px-4 md:px-8 py-6">
 
             {/* ── Tabs de área ── */}

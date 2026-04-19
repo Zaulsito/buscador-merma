@@ -8,6 +8,8 @@ import { useTheme } from "../context/ThemeContext";
 
 const DIAS_LIMITE = 14;
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function PerfilPage({ user, rol, onBack, onNavegar }) {
   const [nombre, setNombre] = useState(user.displayName || "");
   const [passwordActual, setPasswordActual] = useState("");
@@ -90,7 +92,8 @@ export default function PerfilPage({ user, rol, onBack, onNavegar }) {
   const esGoogleUser = user.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className={`min-h-screen ${t.bg}`}>
+    <div className={`min-h-screen ${t.bg} relative overflow-hidden`}>
+      <DecorativeBackground color1="slate-600" color2="blue-500" />
       <Navbar 
         user={user} 
         rol={rol} 

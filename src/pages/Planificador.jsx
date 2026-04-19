@@ -6,6 +6,8 @@ import Navbar from "../components/Navbar";
 import PlanificadorFichas from "./PlanificadorFichas";
 import PlanificadorMerma from "./PlanificadorMerma";
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function Planificador({ user, rol, onBack, onNavegar }) {
   const { t } = useTheme();
   const [submodulo, setSubmodulo] = useState(null);
@@ -46,12 +48,7 @@ export default function Planificador({ user, rol, onBack, onNavegar }) {
         </header>
 
         <main className="flex-1 overflow-y-auto relative">
-
-          {/* ── FONDO DECORATIVO desktop ── */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none hidden md:block">
-            <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
-            <div className="absolute top-1/2 -right-32 w-80 h-80 bg-indigo-500/8 rounded-full blur-3xl" />
-          </div>
+          <DecorativeBackground color1="blue-600" color2="indigo-500" />
 
           {/* ════════════════════════════
               LAYOUT MÓVIL (mockup)
@@ -201,7 +198,7 @@ export default function Planificador({ user, rol, onBack, onNavegar }) {
             {/* Breadcrumb */}
             <div className="flex items-center gap-2 mb-8">
               <button onClick={onBack} className={`${t.textSecondary} hover:text-blue-400 text-xs font-medium transition-colors`}>
-                Dashboard Principal
+                Inicio Principal
               </button>
               <span className={`${t.textSecondary} text-xs`}>›</span>
               <span className="text-blue-400 text-xs font-semibold">Planificador Maestro</span>

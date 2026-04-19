@@ -13,6 +13,8 @@ import Navbar from "../components/Navbar";
 const POR_PAGINA = 50;
 const MAX_BOTONES = 5;
 
+import DecorativeBackground from "../components/DecorativeBackground";
+
 export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
   const [products, setProducts] = useState([]);
   const [categoriasDocs, setCategoriasDocs] = useState([]);
@@ -132,7 +134,8 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
             titulo="Gestión de Merma" 
           />
         </div>
-        <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col">
+        <main ref={mainRef} className="flex-1 overflow-y-auto flex flex-col relative">
+          <DecorativeBackground color1="blue-600" color2="indigo-500" />
 
           {/* ── HEADER ── */}
           <header className={`p-6 md:p-8 pb-4 flex flex-col gap-5 border-b ${t.border} flex-shrink-0`}>

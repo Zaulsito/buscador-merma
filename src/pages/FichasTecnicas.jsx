@@ -32,7 +32,7 @@ function EstadoBadge({ ficha }) {
 function FichaCard({ f, rol, onDetalle, onEditar, onEliminar, t }) {
   return (
     <div
-      className={`${t.bgCard} rounded-2xl border ${t.border} hover:border-blue-400/60 transition-all duration-200 group flex flex-col h-full overflow-hidden cursor-pointer shadow-sm hover:shadow-md`}
+      className={`${t.bgCard} rounded-2xl border ${t.border} hover:border-blue-500/50 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 group flex flex-col h-full overflow-hidden cursor-pointer shadow-sm`}
       onClick={() => onDetalle(f)}
     >
       {/* Imagen */}
@@ -124,7 +124,7 @@ function NuevaFichaCard({ onNueva, t }) {
   return (
     <div
       onClick={onNueva}
-      className={`border-2 border-dashed ${t.border} rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-blue-500/5 hover:border-blue-400/50 transition-all cursor-pointer group min-h-[300px]`}
+      className={`border-2 border-dashed ${t.border} rounded-2xl flex flex-col items-center justify-center p-8 hover:bg-blue-500/5 hover:border-blue-500/50 hover:-translate-y-1 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 cursor-pointer group min-h-[300px]`}
     >
       <div className={`size-14 rounded-full ${t.bgInput} flex items-center justify-center ${t.textSecondary} group-hover:bg-blue-500/20 group-hover:text-blue-500 mb-4 transition-all`}>
         <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -186,6 +186,8 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina, t }) {
     </div>
   );
 }
+
+import DecorativeBackground from "../components/DecorativeBackground";
 
 export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
   const [fichas, setFichas] = useState([]);
@@ -342,7 +344,8 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
             titulo="Fichas Técnicas" 
           />
         </div>
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative">
+          <DecorativeBackground color1="orange-600" color2="amber-500" />
     <div className={`min-h-full ${t.bg}`}>
 
 
