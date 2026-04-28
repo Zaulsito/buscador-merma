@@ -13,6 +13,7 @@ import ListaPreciosPage from "./ListaPreciosPage";
 import TraspasosPage from "./TraspasosPage";
 import TutorialOverlay from "../components/TutorialOverlay";
 import InformacionPage from "./InformacionPage";
+import TrazabilidadPage from "./TrazabilidadPage";
 import BottomNav from "../components/BottomNav";
 import Navbar from "../components/Navbar";
 
@@ -348,6 +349,7 @@ export default function InicioPage({ user, rol }) {
   if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "traspasos")    return <TraspasosPage    user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "trazabilidad") return <TrazabilidadPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
   const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -548,19 +550,20 @@ export default function InicioPage({ user, rol }) {
                   <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Menú del día por cuarto</p>
                   <p className={`${t.textSecondary} text-xs mt-1 leading-relaxed`}>Organiza y consulta los platos planificados por sección para cada jornada.</p>
                 </button>
-                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-purple-500/50 transition-colors group`}>
+                <button
+                  onClick={() => navegarA("trazabilidad")}
+                  className={`${t.bgCard} border ${t.border} rounded-2xl p-4 hover:border-purple-500/50 transition-colors text-left group`}>
                   <div className="flex flex-col gap-2 mb-3">
                     <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg w-fit group-hover:bg-purple-500 group-hover:text-white transition-colors">
                       <span className="material-symbols-outlined" style={{ fontSize: 20 }}>receipt_long</span>
                     </div>
-                    <span className="text-purple-400 text-[10px] font-bold px-2 py-0.5 bg-purple-500/10 rounded-full w-fit">Próximamente</span>
                   </div>
                   <p className={`${t.textSecondary} text-xs font-medium`}>Gestión de Procesos</p>
                   <p className={`${t.text} text-sm font-bold mt-1 leading-snug`}>Trazabilidad: Control de Cuarto</p>
                   <p className={`${t.textSecondary} text-xs mt-1.5 leading-relaxed`}>
                     Mantén el control total de los procesos por cuarto, asegurando la trazabilidad completa de lo que se produce y gestiona en cada área.
                   </p>
-                </div>
+                </button>
               </div>
             </section>
 
