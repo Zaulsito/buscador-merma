@@ -15,9 +15,10 @@ const navItems = [
 const adminItem = { id: "usuarios",     label: "Gestionamiento",    icon: "manage_accounts" };
 const infoItem  = { id: "informacion",  label: "Información Útil",  icon: "info"            };
 
-export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
+export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
 
+  const esProgramadorReal = rolReal === 'unico';
   const nombre   = user?.displayName || user?.email || "Usuario";
   const iniciales = nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 
@@ -46,26 +47,28 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{isCollapsed ? "chevron_right" : "chevron_left"}</span>
       </button>
 
-      {/* Logo */}
-      <div
-        className={`p-6 flex items-center ${isCollapsed ? 'justify-center p-4' : 'gap-3'} cursor-pointer flex-shrink-0 overflow-hidden`}
-        onClick={() => onNavegar(null)}
-        title="Inicio"
-      >
-        <img
-            src="/icon-192.png"
-            className="w-10 h-10 rounded-xl object-contain flex-shrink-0"
-            alt="logo"
-            onError={e => { e.target.style.display = "none"; }}
-          />
-        {!isCollapsed && (
-          <div className="whitespace-nowrap transition-opacity duration-300">
-            <h1 className={`${t.text} font-bold text-sm tracking-tight leading-tight`}>Rincon Belloto<br/>Informaciones</h1>
-            <p className={`${t.textSecondary} text-[10px] uppercase tracking-widest`}>
-              {rol === "unico" ? "Programador" : rol === "admin" ? "Admin" : rol || "Usuario"}
-            </p>
-          </div>
-        )}
+      {/* Logo y Header */}
+      <div className={`flex flex-col border-b ${t.border} mb-2`}>
+        <div
+          className={`p-6 flex items-center ${isCollapsed ? 'justify-center p-4' : 'gap-3'} cursor-pointer overflow-hidden`}
+          onClick={() => onNavegar(null)}
+          title="Inicio"
+        >
+          <img
+              src="/icon-192.png"
+              className="w-10 h-10 rounded-xl object-contain flex-shrink-0 shadow-lg shadow-blue-500/10"
+              alt="logo"
+              onError={e => { e.target.style.display = "none"; }}
+            />
+          {!isCollapsed && (
+            <div className="whitespace-nowrap transition-opacity duration-300">
+              <h1 className={`${t.text} font-bold text-sm tracking-tight leading-tight`}>Rincon Belloto<br/>Informaciones</h1>
+              <p className={`${t.textSecondary} text-[10px] uppercase tracking-widest font-black text-blue-400 mt-0.5`}>
+                {rol === "unico" ? "Programador" : rol === "admin" ? "Admin" : rol || "Usuario"}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Nav */}
@@ -106,6 +109,38 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar }) {
           );
         })}
       </nav>
+
+      {/* Simulación de Rol Global (Solo para el Programador Real) */}
+      {!isCollapsed && esProgramadorReal && setRolSimulado && (
+        <div className="px-4 pb-4 mt-auto animate-in fade-in slide-in-from-bottom-1 duration-500">
+          <div className={`p-1.5 rounded-2xl bg-black/20 border ${t.border} flex flex-col gap-1`}>
+              <div className="flex items-center gap-1.5 px-2 py-1 mb-1">
+                <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 16 }}>visibility</span>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vista Previa</span>
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { id: 'usuario', label: 'User', icon: 'person' },
+                  { id: 'admin', label: 'Adm', icon: 'shield_person' },
+                  { id: 'unico', label: 'Dev', icon: 'code' }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setRolSimulado(r.id)}
+                    title={`Ver como ${r.label}`}
+                    className={`flex flex-col items-center justify-center py-2 rounded-xl transition-all border
+                      ${rol === r.id 
+                        ? 'bg-blue-500/20 border-blue-500/50 text-blue-400' 
+                        : `border-transparent text-slate-500 hover:bg-white/5 hover:text-slate-300`}`}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>{r.icon}</span>
+                    <span className="text-[8px] font-black uppercase tracking-tighter mt-0.5">{r.label}</span>
+                  </button>
+                ))}
+              </div>
+          </div>
+        </div>
+      )}
 
       {/* User card */}
       <div className={`p-4 border-t ${t.border} flex-shrink-0`}>

@@ -201,7 +201,7 @@ function ModalItem({ producto, onConfirm, onClose, t }) {
 // ── Componente principal ──────────────────────────────────────────────────
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function TraspasosPage({ user, rol, onBack, onNavegar }) {
+export default function TraspasosPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const esAdmin = rol === "admin" || rol === "unico";
   const userId = user?.uid || "anon";
@@ -385,7 +385,7 @@ export default function TraspasosPage({ user, rol, onBack, onNavegar }) {
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <Toaster />
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="traspasos" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="traspasos" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

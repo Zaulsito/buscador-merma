@@ -8,21 +8,21 @@ import PlanificadorMerma from "./PlanificadorMerma";
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function Planificador({ user, rol, onBack, onNavegar }) {
+export default function Planificador({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const [submodulo, setSubmodulo] = useState(null);
 
   if (submodulo === "fichas")
-    return <PlanificadorFichas user={user} rol={rol} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
+    return <PlanificadorFichas user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
   if (submodulo === "merma")
-    return <PlanificadorMerma user={user} rol={rol} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
+    return <PlanificadorMerma user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
 
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
 
       {/* Sidebar — solo desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

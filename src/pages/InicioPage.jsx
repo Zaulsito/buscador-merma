@@ -16,6 +16,7 @@ import InformacionPage from "./InformacionPage";
 import TrazabilidadPage from "./TrazabilidadPage";
 import BottomNav from "../components/BottomNav";
 import Navbar from "../components/Navbar";
+import { normalizeText, matchSearch } from "../utils/searchUtils";
 
 const modulos = [
   {
@@ -111,6 +112,10 @@ import DecorativeBackground from "../components/DecorativeBackground";
 
 export default function InicioPage({ user, rol }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
+  
+  // Simulación de roles para el Programador (solo visible si rol real es 'unico')
+  const [rolSimulado, setRolSimulado] = useState(rol);
+  const esProgramadorReal = rol === 'unico';
 
   // Temas de colores para el banner de bienvenida
   const HERO_THEMES = [
@@ -159,21 +164,21 @@ export default function InicioPage({ user, rol }) {
       id: "fichas", label: "Fichas Técnicas", icon: "description",
       color: "text-orange-400", bg: "bg-orange-500/10", modulo: "fichas",
       buscar: (docs, q) => docs
-        .filter(d => [d.nombre, d.codigo, d.seccion].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .filter(d => [d.nombre, d.codigo, d.seccion].some(c => matchSearch(c, q)))
         .slice(0, 4).map(d => ({ id: d.id, titulo: d.nombre, sub: d.seccion || "—", modulo: "fichas" })),
     },
     {
       id: "merma", label: "Gestión de Merma", icon: "inventory_2",
       color: "text-blue-400", bg: "bg-blue-500/10", modulo: "merma",
       buscar: (docs, q) => docs
-        .filter(d => [d.nombre, d.codigo, d.categoria].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .filter(d => [d.nombre, d.codigo, d.categoria].some(c => matchSearch(c, q)))
         .slice(0, 4).map(d => ({ id: d.id, titulo: d.nombre || d.codigo, sub: d.categoria || "—", modulo: "merma" })),
     },
     {
       id: "precios", label: "Lista de Precios", icon: "sell",
       color: "text-amber-400", bg: "bg-amber-500/10", modulo: "precios",
       buscar: (docs, q) => docs
-        .filter(d => [d.nombre, d.codSap].some(c => c?.toLowerCase().includes(q.toLowerCase())))
+        .filter(d => [d.nombre, d.codSap].some(c => matchSearch(c, q)))
         .slice(0, 4).map(d => ({
           id: d.id, titulo: d.nombre,
           sub: d.precio != null ? `$${Number(d.precio).toLocaleString("es-CL")}` : "Sin precio",
@@ -221,7 +226,7 @@ export default function InicioPage({ user, rol }) {
   }, [searchQuery, searchCache]);
 
   const searchTotalResultados = searchResultados.reduce((acc, g) => acc + g.items.length, 0);
-  const esAdmin = rol === "admin" || rol === "unico";
+  const esAdmin = rolSimulado === "admin" || rolSimulado === "unico";
   const { t } = useTheme();
 
   // Función para calcular tiempo relativo
@@ -340,31 +345,33 @@ export default function InicioPage({ user, rol }) {
     }
   };
 
-  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "perfil")       return <PerfilPage       user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "informacion") return <InformacionPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "planograma")  return <PlanogramaPage   user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "traspasos")    return <TraspasosPage    user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "planificador") return <Planificador     user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "trazabilidad") return <TrazabilidadPage user={user} rol={rol} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "perfil")       return <PerfilPage       user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "informacion") return <InformacionPage user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "planograma")  return <PlanogramaPage   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "traspasos")    return <TraspasosPage    user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "planificador") return <Planificador     user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "trazabilidad") return <TrazabilidadPage user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
   const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
   const todosModulos = (rol === "admin" || rol === "unico") ? [...modulos, moduloAdmin] : modulos;
   const modulosFiltrados = searchQuery.trim()
     ? todosModulos.filter(m =>
-        m.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
+        matchSearch(m.nombre, searchQuery) ||
+        matchSearch(m.descripcion, searchQuery)
       )
     : todosModulos;
 
   // Resaltar coincidencia de búsqueda
   const resaltarTexto = (texto, q) => {
     if (!texto || !q) return texto;
-    const idx = texto.toLowerCase().indexOf(q.toLowerCase());
+    const nTexto = normalizeText(texto);
+    const nQ = normalizeText(q);
+    const idx = nTexto.indexOf(nQ);
     if (idx === -1) return texto;
     return (
       <>
@@ -488,7 +495,14 @@ export default function InicioPage({ user, rol }) {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── SIDEBAR desktop ── */}
-        <AppSidebar user={user} rol={rol} moduloActivo={null} onNavegar={navegarA} />
+        <AppSidebar 
+          user={user} 
+          rol={rolSimulado} 
+          rolReal={rol} 
+          setRolSimulado={setRolSimulado} 
+          moduloActivo={null} 
+          onNavegar={navegarA} 
+        />
 
         {/* ── MAIN CONTENT ── scroll solo aquí ── */}
         <main className="flex-1 overflow-y-auto relative">
@@ -498,7 +512,7 @@ export default function InicioPage({ user, rol }) {
           <div className="hidden md:block">
             <Navbar 
               user={user} 
-              rol={rol} 
+              rol={rolSimulado} 
               onNavegar={navegarA} 
               onPerfil={() => navegarA("perfil")}
               onTutorial={() => setShowTutorial(true)}
@@ -653,9 +667,8 @@ export default function InicioPage({ user, rol }) {
 
       {/* Tutorial */}
       {showTutorial && (
-        <TutorialOverlay rol={rol} onClose={() => setShowTutorial(false)} />
+        <TutorialOverlay rol={rolSimulado} onClose={() => setShowTutorial(false)} />
       )}
-
     </div>
   );
 }

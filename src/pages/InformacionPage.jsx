@@ -5,6 +5,7 @@ import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimest
 import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
 import toast, { Toaster } from "react-hot-toast";
 import MontajeEditor from "../components/MontajeEditor";
 
@@ -27,7 +28,7 @@ const FILA_VACIA = {
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function InformacionPage({ user, rol, onBack, onNavegar }) {
+export default function InformacionPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const [insumos, setInsumos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +140,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
   };
 
   const filtrados = insumos.filter(i => {
-    const matchBusqueda = !busqueda || i.insumo?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchBusqueda = matchSearch(i.insumo, busqueda);
     const matchModo = filtroModo === "Todos" || i.abierto_modo === filtroModo;
     return matchBusqueda && matchModo;
   });
@@ -284,7 +285,7 @@ export default function InformacionPage({ user, rol, onBack, onNavegar }) {
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <Toaster />
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="informacion" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="informacion" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

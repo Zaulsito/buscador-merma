@@ -5,8 +5,9 @@ import { collection, onSnapshot } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
 
-export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
+export default function PlanificadorMerma({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const [products, setProducts] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [catActiva, setCatActiva] = useState("");
@@ -51,9 +52,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
 
   const filtered = products.filter(p => {
     const matchCat = catActiva === "" || p.categoria === catActiva;
-    const matchBusqueda = !busqueda || 
-      p.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      p.codigo?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchBusqueda = matchSearch(p.nombre, busqueda) || matchSearch(p.codigo, busqueda);
     return matchCat && matchBusqueda;
   });
 
@@ -154,7 +153,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar }) {
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

@@ -4,6 +4,7 @@ import DecorativeBackground from "../components/DecorativeBackground";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
+import SandwichModule from "../components/trazabilidad/SandwichModule";
 
 const SECCIONES = [
   { id: "caliente", nombre: "Cuarto Caliente", icon: "local_fire_department", color: "text-red-500", bg: "bg-red-500/10", borderB: "border-b-red-500", hoverBg: "group-hover:bg-red-500" },
@@ -14,15 +15,15 @@ const SECCIONES = [
   { id: "sandwich", nombre: "Sandwich", icon: "lunch_dining", color: "text-emerald-500", bg: "bg-emerald-500/10", borderB: "border-b-emerald-500", hoverBg: "group-hover:bg-emerald-500" },
 ];
 
-export default function TrazabilidadPage({ user, rol, onBack, onNavegar }) {
+export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const [seccionActiva, setSeccionActiva] = useState(null);
-
+  
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       {/* Sidebar — solo desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="trazabilidad" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="trazabilidad" onNavegar={onNavegar} />
       </div>
 
       {/* Columna principal */}
@@ -99,7 +100,7 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar }) {
                       <h4 className={`${t.text} text-base font-bold mb-1`}>{s.nombre}</h4>
                       <p className={`${t.textSecondary} text-sm leading-relaxed`}>Gestionar registros y trazabilidad de {s.nombre.toLowerCase()}.</p>
                     </div>
-                    <div className="mt-auto flex items-center gap-1 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: s.color.replace("text-", "") }}>
+                    <div className={`mt-auto flex items-center gap-1 text-xs font-bold ${s.color} opacity-70 group-hover:opacity-100 transition-opacity`}>
                       Acceder a los registros
                       <span className="material-symbols-outlined" style={{ fontSize: 14 }}>arrow_forward</span>
                     </div>
@@ -108,13 +109,19 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar }) {
               </div>
             </div>
           ) : (
-            <div className="max-w-6xl mx-auto flex flex-col items-center justify-center text-center py-20 relative z-10">
-               <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${SECCIONES.find(s => s.id === seccionActiva)?.bg} ${SECCIONES.find(s => s.id === seccionActiva)?.color}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 40 }}>{SECCIONES.find(s => s.id === seccionActiva)?.icon}</span>
-               </div>
-               <h3 className={`${t.text} text-2xl font-bold mb-2`}>{SECCIONES.find(s => s.id === seccionActiva)?.nombre}</h3>
-               <p className={`${t.textSecondary} text-sm max-w-md`}>Esta sección está lista para integrar los formularios y tablas de trazabilidad correspondientes. Los datos se asignarán próximamente.</p>
-               <span className="mt-6 text-xs font-bold px-4 py-1.5 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20 uppercase tracking-wider">Módulo en Desarrollo</span>
+            <div className="max-w-6xl mx-auto relative z-10">
+              {seccionActiva === 'sandwich' ? (
+                <SandwichModule rol={rol} />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-center py-20">
+                   <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${SECCIONES.find(s => s.id === seccionActiva)?.bg} ${SECCIONES.find(s => s.id === seccionActiva)?.color}`}>
+                      <span className="material-symbols-outlined" style={{ fontSize: 40 }}>{SECCIONES.find(s => s.id === seccionActiva)?.icon}</span>
+                   </div>
+                   <h3 className={`${t.text} text-2xl font-bold mb-2`}>{SECCIONES.find(s => s.id === seccionActiva)?.nombre}</h3>
+                   <p className={`${t.textSecondary} text-sm max-w-md`}>Esta sección está lista para integrar los formularios y tablas de trazabilidad correspondientes. Los datos se asignarán próximamente.</p>
+                   <span className="mt-6 text-xs font-bold px-4 py-1.5 bg-purple-500/10 text-purple-400 rounded-full border border-purple-500/20 uppercase tracking-wider">Módulo en Desarrollo</span>
+                </div>
+              )}
             </div>
           )}
         </main>

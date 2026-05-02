@@ -9,13 +9,14 @@ import ImportExportModal from "../components/ImportExportModal";
 import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
 
 const POR_PAGINA = 50;
 const MAX_BOTONES = 5;
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
+export default function BuscadorMerma({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const [products, setProducts] = useState([]);
   const [categoriasDocs, setCategoriasDocs] = useState([]);
   const [search, setSearch] = useState("");
@@ -85,13 +86,12 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
   useEffect(() => { setPagina(1); }, [search, catActiva]);
 
   const filtered = products.filter((p) => {
-    const term = search.toLowerCase();
-    const matchSearch =
-      p.codigo?.toLowerCase().includes(term) ||
-      p.nombre?.toLowerCase().includes(term) ||
-      p.categoria?.toLowerCase().includes(term);
+    const matchBusqueda =
+      matchSearch(p.codigo, search) ||
+      matchSearch(p.nombre, search) ||
+      matchSearch(p.categoria, search);
     const matchCat = catActiva === "" || (catActiva === "__sin__" ? (!p.categoria || p.categoria === "") : p.categoria === catActiva);
-    return matchSearch && matchCat;
+    return matchBusqueda && matchCat;
   });
 
   const totalPaginas = Math.ceil(filtered.length / POR_PAGINA);
@@ -119,7 +119,7 @@ export default function BuscadorMerma({ user, rol, onBack, onNavegar }) {
 
       {/* Sidebar — solo desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="merma" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="merma" onNavegar={onNavegar} />
       </div>
 
       {/* Columna principal */}

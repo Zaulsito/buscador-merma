@@ -9,6 +9,7 @@ import AppSidebar from "../components/AppSidebar";
 import BottomNav from "../components/BottomNav";
 import Navbar from "../components/Navbar";
 import toast, { Toaster } from "react-hot-toast";
+import { normalizeText, matchSearch } from "../utils/searchUtils";
 
 const COLORES_CAT = [
   { id: "blue",   bg: "bg-blue-500/15",   text: "text-blue-400",   dot: "bg-blue-400"   },
@@ -33,7 +34,7 @@ function formatPrecio(val) {
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
+export default function ListaPreciosPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const esAdmin = rol === "admin" || rol === "unico";
 
@@ -110,12 +111,10 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   // ── Filtrado ──────────────────────────────────────────────────────────────
   const productosFiltrados = productos
     .filter(p => catActiva === "todas" || p.categoriaId === catActiva)
-    .filter(p => !busqueda || p.nombre?.toLowerCase().includes(busqueda.toLowerCase()))
+    .filter(p => matchSearch(p.nombre, busqueda))
     .sort((a, b) => (a.nombre || "").localeCompare(b.nombre || ""));
 
-  const fichasFiltradas = fichas.filter(f =>
-    !busqFicha || f.nombre?.toLowerCase().includes(busqFicha.toLowerCase())
-  );
+  const fichasFiltradas = fichas.filter(f => matchSearch(f.nombre, busqFicha));
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   const catDeProducto = (p) => categorias.find(c => c.id === p.categoriaId);
@@ -177,8 +176,8 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
   // ── Similitud de nombre entre dos strings (distancia simple) ──
   const calcSimilitud = (a, b) => {
     if (!a || !b) return 0;
-    const an = a.toLowerCase().trim();
-    const bn = b.toLowerCase().trim();
+    const an = normalizeText(a).trim();
+    const bn = normalizeText(b).trim();
     if (an === bn) return 1;
     // Overlap de palabras
     const wa = new Set(an.split(/\s+/).filter(w => w.length > 2));
@@ -361,7 +360,7 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar }) {
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <Toaster />
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="precios" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="precios" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

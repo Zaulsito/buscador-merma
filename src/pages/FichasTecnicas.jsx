@@ -8,6 +8,7 @@ import FichaDetalle from "./FichaDetalle";
 import { useTheme } from "../context/ThemeContext";
 // fichaExcel disponible si se necesita exportar
 import AppSidebar from "../components/AppSidebar";
+import { matchSearch } from "../utils/searchUtils";
 
 const POR_PAGINA = 25;
 
@@ -189,7 +190,7 @@ function Paginacion({ pagina, totalPaginas, cambiarPagina, t }) {
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
+export default function FichasTecnicas({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const [fichas, setFichas] = useState([]);
   const [secciones, setSecciones] = useState(["Todas"]);
   const [seccionActiva, setSeccionActiva] = useState("Todas");
@@ -274,7 +275,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
 
   const fichasFiltradas = fichas.filter((f) => {
     const matchSeccion = seccionActiva === "Todas" || f.seccion === seccionActiva;
-    const matchBusqueda = f.nombre?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchBusqueda = matchSearch(f.nombre, busqueda);
     const matchSubcat = !subcategoriaFiltro || f.subcategoria === subcategoriaFiltro;
     return matchSeccion && matchBusqueda && matchSubcat;
   });
@@ -329,7 +330,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar }) {
 
       {/* Sidebar — solo desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="fichas" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="fichas" onNavegar={onNavegar} />
       </div>
 
       {/* Columna principal */}

@@ -10,7 +10,7 @@ const DIAS_LIMITE = 14;
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function PerfilPage({ user, rol, onBack, onNavegar }) {
+export default function PerfilPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const [nombre, setNombre] = useState(user.displayName || "");
   const [passwordActual, setPasswordActual] = useState("");
   const [passwordNueva, setPasswordNueva] = useState("");
@@ -92,17 +92,28 @@ export default function PerfilPage({ user, rol, onBack, onNavegar }) {
   const esGoogleUser = user.providerData[0]?.providerId === "google.com";
 
   return (
-    <div className={`min-h-screen ${t.bg} relative overflow-hidden`}>
+    <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <DecorativeBackground color1="slate-600" color2="blue-500" />
-      <Navbar 
-        user={user} 
-        rol={rol} 
-        onNavegar={onNavegar} 
-        onPerfil={() => onNavegar("perfil")}
-        onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
-        titulo="Mi Perfil" 
-      />
-      <div className="max-w-lg mx-auto px-4 py-8">
+      
+      {/* Sidebar — solo desktop */}
+      <div className="hidden md:block flex-shrink-0">
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="perfil" onNavegar={onNavegar} />
+      </div>
+
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <div className="hidden md:block flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo="Mi Perfil" 
+          />
+        </div>
+
+        <main className="flex-1 overflow-y-auto relative">
+          <div className="max-w-lg mx-auto px-4 py-8">
         <button
           onClick={onBack}
           className="flex items-center gap-2 bg-teal-600/20 hover:bg-teal-600/40 text-teal-300 text-sm font-semibold px-4 py-2 rounded-full transition border border-teal-500/30 mb-6"
@@ -196,6 +207,8 @@ export default function PerfilPage({ user, rol, onBack, onNavegar }) {
             </p>
           </div>
         )}
+          </div>
+        </main>
       </div>
     
       <BottomNav moduloActivo="perfil" onNavegar={onNavegar} />

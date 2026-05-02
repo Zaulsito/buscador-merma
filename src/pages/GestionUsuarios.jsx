@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import BottomNav from "../components/BottomNav";
 import { db, auth } from "../firebase/config";
-import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc, writeBatch, query, where } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, getDocs, deleteDoc, setDoc, addDoc, writeBatch, query, where, orderBy, limit } from "firebase/firestore";
 import { createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from "firebase/auth";
 import { useTheme } from "../context/ThemeContext";
 import toast, { Toaster } from "react-hot-toast";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const ROL_BADGE = {
   unico:   { label: "Único",   cls: "bg-blue-500/15 text-blue-400 border border-blue-500/30"     },
@@ -19,6 +22,7 @@ const TABS = [
   { label: "Secciones",   icon: "domain"      },
   { label: "Categorías",  icon: "category"    },
   { label: "Funciones",   icon: "shield_person"},
+  { label: "Impresiones", icon: "print"        },
 ];
 
 const COLORES = [
@@ -35,7 +39,7 @@ const COLORES = [
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
+export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const [tabActiva, setTabActiva] = useState(0);
   const [busqueda, setBusqueda] = useState("");
@@ -63,6 +67,9 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
   const [guardandoCat, setGuardandoCat] = useState(false);
 
   // Funciones
+  // Impresiones
+  const [impresiones, setImpresiones] = useState([]);
+  const [busquedaPrint, setBusquedaPrint] = useState("");
   const [limpiando, setLimpiando] = useState(false);
 
   useEffect(() => {
@@ -85,6 +92,14 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
       setCategorias(snap.docs.map(d => ({ id: d.id, nombre: d.data().nombre, color: d.data().color || "blue" })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, "log_impresiones"), orderBy("fechaImpresion", "desc"), limit(100));
+    const unsub = onSnapshot(q, (snap) => {
+      setImpresiones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     });
     return () => unsub();
   }, []);
@@ -119,6 +134,40 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
     if (!confirm(`¿Eliminar a ${u.nombre || u.email}?`)) return;
     try { await deleteDoc(doc(db, "usuarios", u.id)); toast.success("Usuario eliminado ✅"); }
     catch { toast.error("Error al eliminar"); }
+  };
+
+  const handleEliminarLog = async (id) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este registro de impresión?")) return;
+    try {
+      await deleteDoc(doc(db, "log_impresiones", id));
+      toast.success("Registro eliminado correctamente");
+    } catch (error) {
+      toast.error("Error al eliminar el registro");
+    }
+  };
+
+  const handleVerPDF = (p) => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.setTextColor(0, 85, 44);
+    doc.text("COPIA DE AUDITORÍA - J781", 15, 20);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`ID ÚNICO: ${p.printId}`, 15, 28);
+    doc.text(`USUARIO: ${p.nombre} (${p.usuario})`, 15, 33);
+    doc.text(`FECHA ORIGINAL: ${p.fechaImpresion?.toDate().toLocaleString()}`, 15, 38);
+    doc.text(`MÓDULO: ${p.modulo} | SECCIÓN: ${p.seccion}`, 15, 43);
+
+    autoTable(doc, {
+      startY: 50,
+      head: p.headerSnapshot || [],
+      body: p.dataSnapshot || [],
+      theme: 'grid',
+      headStyles: { fillColor: [0, 85, 44] }
+    });
+
+    doc.save(`AUDITORIA_${p.printId}.pdf`);
   };
 
   const handleCrearUsuario = async () => {
@@ -232,7 +281,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
   const inputCls = `w-full ${t.bgInput} ${t.text} px-3 py-2.5 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm border ${t.border} placeholder:text-slate-500`;
 
   const usuariosFiltrados = usuarios.filter(u =>
-    !busqueda || u.nombre?.toLowerCase().includes(busqueda.toLowerCase()) || u.email?.toLowerCase().includes(busqueda.toLowerCase())
+    matchSearch(u.nombre, busqueda) || matchSearch(u.email, busqueda)
   );
 
   return (
@@ -241,7 +290,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
 
       {/* Sidebar desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="usuarios" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="usuarios" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
@@ -287,10 +336,10 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
 
             {/* Tabs móvil */}
             <div className="flex gap-5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {TABS.map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(i)}
+              {TABS.filter((t, i) => i !== 4 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 4 : i)}
                   className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                    tabActiva === i ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
+                    tabActiva === (tab.label === "Impresiones" ? 4 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
                   }`}>
                   {tab.label}
                 </button>
@@ -506,6 +555,41 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
                 </div>
               </>
             )}
+
+            {/* ── IMPRESIONES mobile ── */}
+            {tabActiva === 4 && (
+              <div className="flex flex-col gap-4">
+                <div className={`${t.bgInput} border ${t.border} rounded-xl p-4`}>
+                  <input 
+                    value={busquedaPrint} 
+                    onChange={e => setBusquedaPrint(e.target.value)}
+                    placeholder="Buscar por ID o Usuario..."
+                    className={`w-full bg-transparent ${t.text} text-sm outline-none`}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
+                  {impresiones.filter(p => 
+                    p.printId?.toLowerCase().includes(busquedaPrint.toLowerCase()) || 
+                    p.nombre?.toLowerCase().includes(busquedaPrint.toLowerCase())
+                  ).map(p => (
+                    <div key={p.id} className={`${t.bgCard} border ${t.border} p-4 rounded-2xl flex flex-col gap-2 relative group`}>
+                      <div className="flex justify-between items-start">
+                        <span className="text-blue-400 font-black text-xs tracking-tighter uppercase">{p.printId}</span>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleVerPDF(p)} className="text-emerald-400"><span className="material-symbols-outlined text-sm">visibility</span></button>
+                          <button onClick={() => handleEliminarLog(p.id)} className="text-red-400"><span className="material-symbols-outlined text-sm">delete</span></button>
+                        </div>
+                      </div>
+                      <p className={`${t.text} font-bold text-sm`}>{p.nombre}</p>
+                      <div className="flex justify-between items-center mt-1">
+                        <span className={`${t.bgInput} ${t.textSecondary} px-2 py-0.5 rounded text-[10px] uppercase font-bold`}>{p.modulo}</span>
+                        <span className="text-emerald-400 text-[10px] font-bold">{p.seccion}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </main>
         </div>
 
@@ -533,10 +617,10 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
 
             {/* Tabs desktop */}
             <div className="flex gap-6">
-              {TABS.map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(i)}
+              {TABS.filter((t, i) => i !== 4 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 4 : i)}
                   className={`pb-4 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${
-                    tabActiva === i ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
+                    tabActiva === (tab.label === "Impresiones" ? 4 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
                   }`}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
                   {tab.label}
@@ -875,6 +959,75 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar }) {
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-6 opacity-40`}>
                   <h4 className={`${t.text} font-bold mb-1`}>Más funciones próximamente...</h4>
                   <p className={`${t.textSecondary} text-sm`}>Nuevas herramientas de administración en camino.</p>
+                </div>
+              </div>
+            )}
+
+            {/* ── IMPRESIONES desktop ── */}
+            {tabActiva === 4 && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex gap-4 items-center mb-6`}
+                  style={{ background: "rgba(37,140,244,0.04)", backdropFilter: "blur(12px)" }}>
+                  <div className="relative flex-1">
+                    <span className={`material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 ${t.textSecondary}`} style={{ fontSize: 18 }}>search</span>
+                    <input value={busquedaPrint} onChange={e => setBusquedaPrint(e.target.value)}
+                      className={`w-full ${t.bgInput} border ${t.border} ${t.text} pl-11 pr-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                      placeholder="Validar ID de impresión o buscar usuario..." />
+                  </div>
+                </div>
+
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl overflow-hidden`}
+                  style={{ background: "rgba(37,140,244,0.04)", backdropFilter: "blur(12px)" }}>
+                  <table className="w-full text-left">
+                    <thead className={`${t.isDark ? "bg-white/5" : "bg-slate-50"} border-b ${t.border}`}>
+                      <tr>
+                        {["ID Único", "Usuario", "Módulo / Sección", "Fecha y Hora", "Acciones"].map(h => (
+                          <th key={h} className={`px-6 py-4 text-xs uppercase tracking-widest ${t.textSecondary} font-bold`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className={`divide-y ${t.border}`}>
+                      {impresiones.filter(p => 
+                        p.printId?.toLowerCase().includes(busquedaPrint.toLowerCase()) || 
+                        p.nombre?.toLowerCase().includes(busquedaPrint.toLowerCase())
+                      ).map(p => (
+                        <tr key={p.id} className="hover:bg-blue-500/5 transition-colors">
+                          <td className="px-6 py-4 font-black text-blue-400 text-xs tracking-tighter uppercase">{p.printId}</td>
+                          <td className="px-6 py-4">
+                            <p className={`${t.text} font-bold text-sm`}>{p.nombre}</p>
+                            <p className={`${t.textSecondary} text-xs`}>{p.usuario}</p>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex flex-col">
+                              <span className={`${t.text} text-xs font-bold`}>{p.modulo}</span>
+                              <span className="text-emerald-500 text-[10px] font-bold uppercase">{p.seccion}</span>
+                            </div>
+                          </td>
+                          <td className={`px-6 py-4 ${t.textSecondary} text-xs`}>
+                            {p.fechaImpresion?.toDate().toLocaleString() || "Pendiente..."}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <button 
+                                onClick={() => handleVerPDF(p)}
+                                title="Ver copia de PDF"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white transition-all"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
+                              </button>
+                              <button 
+                                onClick={() => handleEliminarLog(p.id)}
+                                title="Eliminar registro"
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

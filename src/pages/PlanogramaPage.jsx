@@ -5,6 +5,7 @@ import { useTheme } from "../context/ThemeContext";
 import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
 import toast, { Toaster } from "react-hot-toast";
 
 const CATEGORIAS = [
@@ -115,7 +116,7 @@ function getDiasEnMes(year, month) {
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
+export default function PlanogramaPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const { t } = useTheme();
   const [vista, setVista] = useState("semanal"); // semanal | diaria | mensual
   const [fechaBase, setFechaBase] = useState(new Date());
@@ -306,9 +307,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
     }
   };
 
-  const fichasFiltradas = fichas.filter(f =>
-    !busquedaFicha || f.nombre?.toLowerCase().includes(busquedaFicha.toLowerCase())
-  );
+  const fichasFiltradas = fichas.filter(f => matchSearch(f.nombre, busquedaFicha));
 
   // ── Leer planograma con IA ──
   const leerPlanogramaConIA = async (file) => {
@@ -509,7 +508,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar }) {
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <Toaster />
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

@@ -5,8 +5,9 @@ import { useTheme } from "../context/ThemeContext";
 import BottomNav from "../components/BottomNav";
 import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
+import { matchSearch } from "../utils/searchUtils";
 
-export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
+export default function PlanificadorFichas({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
   const [fichas, setFichas] = useState([]);
   const [secciones, setSecciones] = useState([]);
   const [seccionActiva, setSeccionActiva] = useState("todas");
@@ -48,9 +49,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
 
   const fichasFiltradas = fichas.filter((f) => {
     const matchSec = seccionActiva === "todas" || f.seccion === seccionActiva;
-    const matchBusqueda = !busqueda ||
-      f.nombre?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      f.codigo?.toLowerCase().includes(busqueda.toLowerCase());
+    const matchBusqueda = matchSearch(f.nombre, busqueda) || matchSearch(f.codigo, busqueda);
     return matchSec && matchBusqueda;
   });
 
@@ -92,7 +91,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar }) {
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
