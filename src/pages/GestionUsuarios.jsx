@@ -98,9 +98,15 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
 
   useEffect(() => {
     const q = query(collection(db, "log_impresiones"), orderBy("fechaImpresion", "desc"), limit(100));
-    const unsub = onSnapshot(q, (snap) => {
-      setImpresiones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    const unsub = onSnapshot(q, 
+      (snap) => {
+        setImpresiones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      },
+      (error) => {
+        console.error("Error query log_impresiones:", error);
+        toast.error("Error al cargar auditoría: " + error.message);
+      }
+    );
     return () => unsub();
   }, []);
 
@@ -159,10 +165,17 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
     doc.text(`FECHA ORIGINAL: ${p.fechaImpresion?.toDate().toLocaleString()}`, 15, 38);
     doc.text(`MÓDULO: ${p.modulo} | SECCIÓN: ${p.seccion}`, 15, 43);
 
+    const parseSnap = (val) => {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return []; }
+      }
+      return val || [];
+    };
+
     autoTable(doc, {
       startY: 50,
-      head: p.headerSnapshot || [],
-      body: p.dataSnapshot || [],
+      head: parseSnap(p.headerSnapshot),
+      body: parseSnap(p.dataSnapshot),
       theme: 'grid',
       headStyles: { fillColor: [0, 85, 44] }
     });
@@ -568,7 +581,12 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
                   />
                 </div>
                 <div className="flex flex-col gap-3">
-                  {impresiones.filter(p => 
+                  {impresiones.length === 0 ? (
+                    <div className={`${t.bgCard} border ${t.border} p-8 rounded-2xl text-center`}>
+                      <span className="material-symbols-outlined text-slate-500 mb-2" style={{ fontSize: 40 }}>print_disabled</span>
+                      <p className={`${t.textSecondary} text-sm font-medium`}>No hay registros de impresión</p>
+                    </div>
+                  ) : impresiones.filter(p => 
                     p.printId?.toLowerCase().includes(busquedaPrint.toLowerCase()) || 
                     p.nombre?.toLowerCase().includes(busquedaPrint.toLowerCase())
                   ).map(p => (
@@ -987,7 +1005,17 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
                       </tr>
                     </thead>
                     <tbody className={`divide-y ${t.border}`}>
-                      {impresiones.filter(p => 
+                      {impresiones.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-6 py-12 text-center">
+                            <div className="flex flex-col items-center gap-2">
+                              <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 48 }}>print_disabled</span>
+                              <p className={`${t.textSecondary} text-sm font-bold`}>No se han encontrado registros de impresión</p>
+                              <p className={`${t.textSecondary} text-xs opacity-60`}>Cada vez que alguien exporte un PDF de trazabilidad aparecerá aquí.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      ) : impresiones.filter(p => 
                         p.printId?.toLowerCase().includes(busquedaPrint.toLowerCase()) || 
                         p.nombre?.toLowerCase().includes(busquedaPrint.toLowerCase())
                       ).map(p => (

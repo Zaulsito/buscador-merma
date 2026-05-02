@@ -99,10 +99,8 @@ export default function SandwichModule({ rol }) {
 
   // Estados para las listas de productos (permiten edición)
   const [materiasState, setMateriasState] = useState(CATEGORIAS_MATERIAS);
-  const [produccionState, setProduccionState] = useState(PRODUCTOS_PRODUCCION);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [cooldown, setCooldown] = useState(false);
+  const [showAuditModal, setShowAuditModal] = useState(false);
 
   // ── PERSISTENCIA: Cargar Configuración y Datos ──
   useEffect(() => {
@@ -362,19 +360,69 @@ export default function SandwichModule({ rol }) {
 
   // ── EXPORTAR A PDF (Esquema Oficial Jumbo) ──
   const handleExportPDF = () => {
-    if (cooldown) {
-      toast.error("Por favor, espera 20 segundos antes de generar otra impresión oficial.");
-      return;
+    const lastPrint = localStorage.getItem('last_print_sandwich');
+    if (lastPrint) {
+      const diff = Date.now() - parseInt(lastPrint);
+      if (diff < 20000) {
+        const segs = Math.ceil((20000 - diff) / 1000);
+        toast.error(`Seguridad: Por favor, espera ${segs} segundos antes de generar otra impresión oficial.`);
+        return;
+      }
     }
+    setShowAuditModal(true);
+  };
 
-    if (!window.confirm("⚠️ AVISO DE AUDITORÍA\n\nCada exportación genera un ID único e irrepetible que queda vinculado a tu nombre en el registro central.\n\n¿Estás seguro de que deseas generar este documento oficial?")) {
-      return;
+  const confirmExport = async () => {
+    setShowAuditModal(false);
+    const isMaterias = activeTab === 'materias';
+    const state = isMaterias ? materiasState : produccionState;
+    const currentKey = toKey(fechaBase);
+    const printId = `ID-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    // Captura de datos para el snapshot de auditoría
+    let head = [];
+    let body = [];
+    if (vista === 'semanal') {
+      head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
+      state.forEach(cat => {
+        cat.items.forEach(item => {
+          const row = [item];
+          diasSemana.forEach(dia => row.push(data[item]?.[toKey(dia)] || ""));
+          body.push(row);
+        });
+      });
+    } else {
+      head = [["Categoría", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
+      state.forEach(cat => {
+        cat.items.forEach(item => {
+          body.push([cat.nombre, item, data[item]?.[currentKey] || ""]);
+        });
+      });
     }
 
     try {
-      setCooldown(true);
-      setTimeout(() => setCooldown(false), 20000); // 20 segundos de espera
-      
+      // Registrar timestamp para coldown persistente
+      localStorage.setItem('last_print_sandwich', Date.now().toString());
+      // ── REGISTRO OBLIGATORIO DE AUDITORÍA ──
+      await toast.promise(
+        addDoc(collection(db, 'log_impresiones'), {
+          printId,
+          usuario: user?.email || 'Desconocido',
+          nombre: user?.displayName || 'Usuario Anónimo',
+          modulo: 'Sandwich',
+          seccion: isMaterias ? 'Materias Primas' : 'Producción',
+          fechaImpresion: serverTimestamp(),
+          reporteFecha: currentKey,
+          headerSnapshot: JSON.stringify(head),
+          dataSnapshot: JSON.stringify(body)
+        }),
+        {
+          loading: 'Registrando auditoría de seguridad...',
+          success: 'Auditoría registrada (ID: ' + printId + ')',
+          error: (err) => 'Error de auditoría: ' + err.message
+        }
+      );
+
       const doc = new jsPDF({
         orientation: vista === 'semanal' ? 'landscape' : 'portrait',
         unit: 'mm',
@@ -382,7 +430,6 @@ export default function SandwichModule({ rol }) {
       });
       
       const pageWidth = doc.internal.pageSize.getWidth();
-      const isMaterias = activeTab === 'materias';
       const verdeCorporativo = [0, 85, 44]; // #00552c
       
       // 1. Logo y Encabezado
@@ -431,9 +478,10 @@ export default function SandwichModule({ rol }) {
       doc.line(15, 36, pageWidth - 15, 36);
 
       // 2. Tabla de Datos
-      const state = isMaterias ? materiasState : produccionState;
-      let head = [];
-      let body = [];
+      // (Reutilizamos head y body capturados arriba para la auditoría)
+      // Pero si queremos regenerarlos para el PDF con el estilo jsPDF-autoTable:
+      head = [];
+      body = [];
 
       if (vista === 'semanal') {
         head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
@@ -558,25 +606,7 @@ export default function SandwichModule({ rol }) {
       doc.setFont("helvetica", "normal");
       doc.text("NOMBRE AUTOMATIZADO POR APLICACIÓN", col2 + 5, finalY + 15);
 
-      // Generar ID único de impresión para auditoría
-      const printId = `ID-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-      
-      // Registrar impresión en Firebase (Audit Trail)
-      try {
-        addDoc(collection(db, 'log_impresiones'), {
-          printId,
-          usuario: user?.email || 'Desconocido',
-          nombre: user?.displayName || 'Usuario Anónimo',
-          modulo: 'Sandwich',
-          seccion: isMaterias ? 'Materias Primas' : 'Producción',
-          fechaImpresion: serverTimestamp(),
-          reporteFecha: currentKey,
-          headerSnapshot: head,
-          dataSnapshot: body
-        });
-      } catch (e) {
-        console.error("Error al registrar auditoría:", e);
-      }
+      /* Ya no necesitamos el try-catch aquí porque lo movimos arriba */
 
       // Metadatos inferiores
       doc.setFontSize(6);
@@ -588,7 +618,7 @@ export default function SandwichModule({ rol }) {
       toast.success("Esquema oficial generado con éxito 📄");
     } catch (error) {
       console.error("Error al generar PDF:", error);
-      toast.error("Error al replicar el esquema. Revisa la consola.");
+      toast.error("Error crítico: " + error.message);
     }
   };
 
@@ -1070,7 +1100,7 @@ export default function SandwichModule({ rol }) {
         </div>
       )}
       
-      <Toaster />
+
       {/* Action Footer */}
       <div className="mt-8 pt-6 border-t border-gray-700 flex flex-wrap justify-end gap-4">
         <button 
@@ -1094,6 +1124,40 @@ export default function SandwichModule({ rol }) {
           {saving ? "Guardando..." : "Guardar Registros"}
         </button>
       </div>
+
+      {/* ── Modal de Advertencia de Auditoría ── */}
+      {showAuditModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999] px-4 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className={`${t.bgCard} border ${t.border} w-full max-w-sm rounded-3xl p-8 shadow-2xl border-emerald-500/30 animate-in zoom-in-95 duration-300`}>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-6">
+                <span className="material-symbols-outlined text-emerald-500" style={{ fontSize: 32 }}>gavel</span>
+              </div>
+              <h3 className={`${t.text} text-xl font-black mb-3`}>Aviso de Auditoría</h3>
+              <p className={`${t.textSecondary} text-sm leading-relaxed mb-8`}>
+                Cada exportación genera un <span className="text-emerald-500 font-bold">ID ÚNICO</span> e irrepetible que queda vinculado a tu usuario en el registro central de seguridad.
+              </p>
+              
+              <div className="flex flex-col w-full gap-3">
+                <button 
+                  onClick={confirmExport}
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-600/20 transition-all active:scale-95"
+                >
+                  GENERAR DOCUMENTO
+                </button>
+                <button 
+                  onClick={() => setShowAuditModal(false)}
+                  className={`w-full ${t.bgInput} ${t.textSecondary} font-bold py-4 rounded-2xl transition-all`}
+                >
+                  CANCELAR
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

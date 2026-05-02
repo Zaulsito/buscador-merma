@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useAuth } from "./context/AuthContext";
+import { Toaster } from "react-hot-toast";
 import LoginPage from "./pages/LoginPage";
 import InicioPage from "./pages/InicioPage";
 import { collection, getDocs, addDoc } from "firebase/firestore";
@@ -30,5 +31,21 @@ export default function App() {
     );
   }
 
-  return user ? <InicioPage user={user} rol={rol} /> : <LoginPage />;
+  return (
+    <>
+      {user ? <InicioPage user={user} rol={rol} /> : <LoginPage />}
+      <Toaster 
+        position="top-center" 
+        containerStyle={{ 
+          zIndex: 9999999,
+          top: 30
+        }} 
+        toastOptions={{
+          style: {
+            zIndex: 9999999,
+          }
+        }}
+      />
+    </>
+  );
 }
