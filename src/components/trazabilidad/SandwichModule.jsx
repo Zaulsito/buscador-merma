@@ -99,6 +99,8 @@ export default function SandwichModule({ rol }) {
 
   // Estados para las listas de productos (permiten edición)
   const [materiasState, setMateriasState] = useState(CATEGORIAS_MATERIAS);
+  const [produccionState, setProduccionState] = useState(PRODUCTOS_PRODUCCION);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
 
@@ -124,7 +126,7 @@ export default function SandwichModule({ rol }) {
     };
 
     // 2. Escuchar Datos (Registros de trazabilidad)
-    const unsubData = onSnapshot(doc(db, 'trazabilidad_data', 'sandwich'), (snap) => {
+    const unsubData = onSnapshot(doc(db, 'trazabilidad_materias', 'sandwich'), (snap) => {
       if (snap.exists()) {
         const serverData = snap.data();
         setData(prev => {
@@ -171,7 +173,7 @@ export default function SandwichModule({ rol }) {
   const handleGuardarDatos = async () => {
     setSaving(true);
     try {
-      await setDoc(doc(db, 'trazabilidad_data', 'sandwich'), {
+      await setDoc(doc(db, 'trazabilidad_materias', 'sandwich'), {
         ...data,
         updatedAt: new Date()
       });
@@ -1101,27 +1103,29 @@ export default function SandwichModule({ rol }) {
       )}
       
 
-      {/* Action Footer */}
-      <div className="mt-8 pt-6 border-t border-gray-700 flex flex-wrap justify-end gap-4">
+      {/* Botones Flotantes de Acción */}
+      <div className="fixed bottom-24 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-50">
         <button 
           onClick={handleExportPDF}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-700 text-white font-bold shadow-lg hover:bg-slate-600 transition-all`}
+          className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-slate-950/40 backdrop-blur-md text-slate-200 font-bold shadow-2xl hover:bg-slate-900/60 transition-all flex items-center justify-center gap-2 border border-white/10 group"
+          title="Exportar PDF"
         >
           <span className="material-symbols-outlined">picture_as_pdf</span>
-          Exportar PDF
+          <span className="hidden md:inline">PDF</span>
         </button>
 
         <button 
           onClick={handleGuardarDatos}
           disabled={saving}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl ${t.accent} text-white font-bold shadow-lg shadow-blue-500/20 hover:scale-105 transition-all disabled:opacity-50`}
+          className={`w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-purple-600 text-white font-bold shadow-2xl shadow-purple-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group`}
+          title="Guardar Registros"
         >
           {saving ? (
             <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
           ) : (
-            <span className="material-symbols-outlined">save</span>
+            <span className="material-symbols-outlined">cloud_upload</span>
           )}
-          {saving ? "Guardando..." : "Guardar Registros"}
+          <span className="hidden md:inline">{saving ? "Guardando..." : "Guardar"}</span>
         </button>
       </div>
 

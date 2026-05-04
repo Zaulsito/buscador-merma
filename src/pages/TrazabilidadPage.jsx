@@ -5,6 +5,8 @@ import AppSidebar from "../components/AppSidebar";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import SandwichModule from "../components/trazabilidad/SandwichModule";
+import PostresModule from "../components/trazabilidad/PostresModule";
+import CoccionEnfriadoModule from "../components/trazabilidad/CoccionEnfriadoModule";
 
 const SECCIONES = [
   { id: "caliente", nombre: "Cuarto Caliente", icon: "local_fire_department", color: "text-red-500", bg: "bg-red-500/10", borderB: "border-b-red-500", hoverBg: "group-hover:bg-red-500" },
@@ -112,6 +114,8 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal
             <div className="max-w-6xl mx-auto relative z-10">
               {seccionActiva === 'sandwich' ? (
                 <SandwichModule rol={rol} />
+              ) : seccionActiva === 'postres' ? (
+                <PostresModule rol={rol} />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center py-20">
                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${SECCIONES.find(s => s.id === seccionActiva)?.bg} ${SECCIONES.find(s => s.id === seccionActiva)?.color}`}>
