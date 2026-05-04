@@ -375,6 +375,7 @@ export default function PostresModule({ rol }) {
     const isMaterias = activeTab === 'materias';
     const state = activeTab === 'materias' ? materiasState : produccionState;
     const seccionNombre = activeTab === 'materias' ? 'Materias Primas' : 'Producción';
+    const safeSeccion = activeTab === 'materias' ? 'MATERIAS_PRIMAS' : 'PRODUCCION';
     const currentKey = toKey(fechaBase);
     const printId = `ID-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
@@ -431,12 +432,21 @@ export default function PostresModule({ rol }) {
       const pageWidth = doc.internal.pageSize.getWidth();
       const verdeCorporativo = [0, 85, 44]; // #00552c
       
-      // 1. Logo y Encabezado
-      const logoUrl = "https://lh3.googleusercontent.com/aida/ADBb0uir5XMMhq-pUU60m0zK39TGOy5T0JEuUO1VZ8IA1CXCqZVSr4F97l2TN61EFQapjfuKAkxb1H4YY2pNuWs1HFtUn8NQfaM7jXPcuLu6BtNd7xmDp6wSbvDh9okieUGu-yuCbCwa3YaJCbK97SZUduKZJ35hZu35PhhHpGJMB58ipKx1sQCTkxNiKLnPyXZ3ZXkaN2l7HmWqAWhQwFF41qNOG_HJeg01QG_Hahr6Amg7zJLp9t-9KXFau3q5B-8pwAFS9o-r9eKBqA";
+      // 1. Logo y Encabezado (Jumbo Cencosud Local)
+      const logoUrl = "/jumbo_logo.png";
       
       try {
-        doc.addImage(logoUrl, 'PNG', 15, 10, 18, 18);
+        // Usamos una promesa para cargar la imagen y asegurar que jsPDF la procese correctamente
+        const img = new Image();
+        img.src = logoUrl;
+        img.crossOrigin = "Anonymous";
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        doc.addImage(img, 'PNG', 15, 10, 18, 18);
       } catch (e) {
+        console.warn("Fallo al cargar logo circular, usando alternativa...");
         doc.setDrawColor(0, 85, 44);
         doc.setLineWidth(0.5);
         doc.circle(24, 19, 9, 'S');
@@ -452,7 +462,7 @@ export default function PostresModule({ rol }) {
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       doc.setFont("helvetica", "normal");
-      doc.text(`Trazabilidad de ${seccionNombre}`, 38, 23);
+      doc.text(isMaterias ? "Trazabilidad de Materias Primas" : "Planilla de Producción Diaria", 38, 23);
       doc.setFontSize(7);
       doc.text("CUARTO DE PRODUCCIÓN", 38, 27);
       doc.setFont("helvetica", "bold");
@@ -502,7 +512,7 @@ export default function PostresModule({ rol }) {
           }
         });
       } else {
-        head = [["Categoría", "Producto", "Ingreso"]];
+        head = [["Categoría", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
         state.forEach(cat => {
           const rowsForCat = [];
           cat.items.forEach(item => {
@@ -596,7 +606,7 @@ export default function PostresModule({ rol }) {
       doc.text(`© 2026 RINCON JUMBO INFORMACIONES / IMPRESION DE ALTO CONTRASTE`, 15, pageHeight - 10);
       doc.text(`ID ÚNICO: ${printId}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
 
-      doc.save(`REGISTRO_TRAZABILIDAD_POSTRES_${seccionNombre.toUpperCase()}_${currentKey}_${printId}.pdf`);
+      doc.save(`REGISTRO_TRAZABILIDAD_POSTRES_${safeSeccion}_${currentKey}_${printId}.pdf`);
       toast.success("Esquema oficial generado con éxito 📄");
     } catch (error) {
       console.error("Error al generar PDF postres:", error);

@@ -193,6 +193,7 @@ export default function SandwichModule({ rol }) {
   // Estado para el modal de editar ingrediente
   const [modalEditOpen, setModalEditOpen] = useState(false);
   const [editingItem, setEditingItem] = useState({ catId: null, originalCatId: null, oldName: '', newName: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const navegar = (dir) => {
     const d = new Date(fechaBase);
@@ -295,7 +296,14 @@ export default function SandwichModule({ rol }) {
   };
 
   const handleDeleteItem = (catId, itemName) => {
-    if (!window.confirm(`¿Seguro que deseas eliminar "${itemName}"?`)) return;
+    // Patrón de doble clic para seguridad Luxe
+    const deleteId = `${catId}-${itemName}`;
+    if (confirmDeleteId !== deleteId) {
+      setConfirmDeleteId(deleteId);
+      setTimeout(() => setConfirmDeleteId(null), 3000);
+      return;
+    }
+    setConfirmDeleteId(null);
     const isMaterias = activeTab === 'materias';
     const state = isMaterias ? materiasState : produccionState;
     const setState = isMaterias ? setMateriasState : setProduccionState;
@@ -377,7 +385,9 @@ export default function SandwichModule({ rol }) {
   const confirmExport = async () => {
     setShowAuditModal(false);
     const isMaterias = activeTab === 'materias';
-    const state = isMaterias ? materiasState : produccionState;
+    const state = activeTab === 'materias' ? materiasState : produccionState;
+    const seccionNombre = activeTab === 'materias' ? 'Materias Primas' : 'Producción';
+    const safeSeccion = activeTab === 'materias' ? 'MATERIAS_PRIMAS' : 'PRODUCCION';
     const currentKey = toKey(fechaBase);
     const printId = `ID-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
@@ -412,7 +422,7 @@ export default function SandwichModule({ rol }) {
           usuario: user?.email || 'Desconocido',
           nombre: user?.displayName || 'Usuario Anónimo',
           modulo: 'Sandwich',
-          seccion: isMaterias ? 'Materias Primas' : 'Producción',
+          seccion: seccionNombre,
           fechaImpresion: serverTimestamp(),
           reporteFecha: currentKey,
           headerSnapshot: JSON.stringify(head),
@@ -434,13 +444,21 @@ export default function SandwichModule({ rol }) {
       const pageWidth = doc.internal.pageSize.getWidth();
       const verdeCorporativo = [0, 85, 44]; // #00552c
       
-      // 1. Logo y Encabezado
-      const logoUrl = "https://lh3.googleusercontent.com/aida/ADBb0uir5XMMhq-pUU60m0zK39TGOy5T0JEuUO1VZ8IA1CXCqZVSr4F97l2TN61EFQapjfuKAkxb1H4YY2pNuWs1HFtUn8NQfaM7jXPcuLu6BtNd7xmDp6wSbvDh9okieUGu-yuCbCwa3YaJCbK97SZUduKZJ35hZu35PhhHpGJMB58ipKx1sQCTkxNiKLnPyXZ3ZXkaN2l7HmWqAWhQwFF41qNOG_HJeg01QG_Hahr6Amg7zJLp9t-9KXFau3q5B-8pwAFS9o-r9eKBqA";
+      // 1. Logo y Encabezado (Jumbo Cencosud Local)
+      const logoUrl = "/jumbo_logo.png";
       
       try {
-        doc.addImage(logoUrl, 'PNG', 15, 10, 18, 18);
+        // Usamos una promesa para cargar la imagen y asegurar que jsPDF la procese correctamente
+        const img = new Image();
+        img.src = logoUrl;
+        img.crossOrigin = "Anonymous";
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        doc.addImage(img, 'PNG', 15, 10, 18, 18);
       } catch (e) {
-        // Fallback si falla el logo por CORS
+        console.warn("Fallo al cargar logo circular, usando alternativa...");
         doc.setDrawColor(0, 85, 44);
         doc.setLineWidth(0.5);
         doc.circle(24, 19, 9, 'S');
@@ -616,7 +634,7 @@ export default function SandwichModule({ rol }) {
       doc.text(`© 2026 RINCON JUMBO INFORMACIONES / IMPRESION DE ALTO CONTRASTE`, 15, pageHeight - 10);
       doc.text(`ID ÚNICO: ${printId}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
 
-      doc.save(`REGISTRO_TRAZABILIDAD_SANDWICH_${currentKey}_${printId}.pdf`);
+      doc.save(`REGISTRO_TRAZABILIDAD_SANDWICH_${safeSeccion}_${currentKey}_${printId}.pdf`);
       toast.success("Esquema oficial generado con éxito 📄");
     } catch (error) {
       console.error("Error al generar PDF:", error);
@@ -799,9 +817,16 @@ export default function SandwichModule({ rol }) {
                                 </button>
                                 <button 
                                   onClick={() => handleDeleteItem(cat.id, item)}
-                                  className={`w-5 h-5 flex items-center justify-center rounded-md ${t.bgInput} ${t.textSecondary} hover:text-red-400 border ${t.border}`}
+                                  className={`w-5 h-5 flex items-center justify-center rounded-md border transition-all ${
+                                    confirmDeleteId === `${cat.id}-${item}` 
+                                      ? "bg-red-600 border-red-500 text-white animate-pulse" 
+                                      : `${t.bgInput} ${t.textSecondary} hover:text-red-400 border ${t.border}`
+                                  }`}
+                                  title={confirmDeleteId === `${cat.id}-${item}` ? "Clic de nuevo para borrar" : "Eliminar"}
                                 >
-                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>delete</span>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                                    {confirmDeleteId === `${cat.id}-${item}` ? "priority_high" : "delete"}
+                                  </span>
                                 </button>
                               </div>
                             )}
