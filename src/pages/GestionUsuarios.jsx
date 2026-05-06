@@ -21,6 +21,7 @@ const TABS = [
   { label: "Usuarios",    icon: "group"       },
   { label: "Secciones",   icon: "domain"      },
   { label: "Categorías",  icon: "category"    },
+  { label: "Proveedores", icon: "inventory"   },
   { label: "Funciones",   icon: "shield_person"},
   { label: "Impresiones", icon: "print"        },
 ];
@@ -66,6 +67,15 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
   const [editandoCat, setEditandoCat] = useState(null);
   const [guardandoCat, setGuardandoCat] = useState(false);
 
+  // Proveedores
+  const [proveedores, setProveedores] = useState([]);
+  const [nuevoProv, setNuevoProv] = useState("");
+  const [editandoProv, setEditandoProv] = useState(null);
+  const [nombreEditadoProv, setNombreEditadoProv] = useState("");
+  const [busquedaProv, setBusquedaProv] = useState("");
+  const [paginaProv, setPaginaProv] = useState(1);
+  const itemsPorPaginaProv = 50;
+
   // Funciones
   // Impresiones
   const [impresiones, setImpresiones] = useState([]);
@@ -92,6 +102,13 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "categorias"), (snap) => {
       setCategorias(snap.docs.map(d => ({ id: d.id, nombre: d.data().nombre, color: d.data().color || "blue" })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "proveedores"), (snap) => {
+      setProveedores(snap.docs.map(d => ({ id: d.id, nombre: d.data().nombre, activo: d.data().activo !== false })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
     });
     return () => unsub();
   }, []);
@@ -269,6 +286,35 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
     setGuardandoCat(false);
   };
 
+  // ── Lógica Proveedores ──
+  const handleAgregarProv = async () => {
+    if (!nuevoProv.trim()) return;
+    if (proveedores.some(p => p.nombre.toLowerCase() === nuevoProv.toLowerCase())) { toast.error("Proveedor ya existe"); return; }
+    await addDoc(collection(db, "proveedores"), { nombre: nuevoProv.trim(), activo: true });
+    toast.success("Proveedor agregado ✅");
+    setNuevoProv("");
+  };
+
+  const handleEliminarProv = async (id) => {
+    if (!confirm("¿Eliminar este proveedor?")) return;
+    await deleteDoc(doc(db, "proveedores", id));
+    toast.success("Proveedor eliminado ✅");
+  };
+
+  const handleEditarProv = async (id) => {
+    if (!nombreEditadoProv.trim()) return;
+    await updateDoc(doc(db, "proveedores", id), { nombre: nombreEditadoProv.trim() });
+    toast.success("Proveedor actualizado ✅");
+    setEditandoProv(null);
+  };
+
+  const handleToggleProvActivo = async (p) => {
+    try {
+      await updateDoc(doc(db, "proveedores", p.id), { activo: !p.activo });
+      toast.success(p.activo ? "Proveedor desactivado 🌑" : "Proveedor activado 🌟");
+    } catch { toast.error("Error al cambiar estado"); }
+  };
+
   // ── Funciones ──
   const eliminarDuplicados = async () => {
     if (!confirm("¿Eliminar duplicados en Merma? No se puede deshacer.")) return;
@@ -349,10 +395,10 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
 
             {/* Tabs móvil */}
             <div className="flex gap-5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {TABS.filter((t, i) => i !== 4 || rol === 'unico').map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 4 : i)}
+              {TABS.filter((t, i) => i !== 5 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 5 : i)}
                   className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                    tabActiva === (tab.label === "Impresiones" ? 4 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
+                    tabActiva === (tab.label === "Impresiones" ? 5 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
                   }`}>
                   {tab.label}
                 </button>
@@ -538,8 +584,83 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
               </>
             )}
 
-            {/* ── FUNCIONES móvil ── */}
+            {/* ── PROVEEDORES móvil ── */}
             {tabActiva === 3 && (
+              <>
+                <div className={`${t.bgCard} border ${t.border} rounded-xl p-4 mb-4`}>
+                  <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nuevo proveedor</p>
+                  <div className="flex gap-2">
+                    <input value={nuevoProv} onChange={e => setNuevoProv(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleAgregarProv()}
+                      className={inputCls} placeholder="Nombre del proveedor..." />
+                    <button onClick={handleAgregarProv} className="flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white px-4 rounded-xl font-bold text-sm transition">
+                      + Añadir
+                    </button>
+                  </div>
+                </div>
+                <div className={`${t.bgInput} border ${t.border} rounded-xl p-3 mb-2 flex items-center gap-2`}>
+                  <span className="material-symbols-outlined text-sm opacity-50">search</span>
+                  <input value={busquedaProv} onChange={e => { setBusquedaProv(e.target.value); setPaginaProv(1); }}
+                    className={`flex-1 bg-transparent ${t.text} text-xs outline-none`} placeholder="Buscar proveedor..." />
+                </div>
+                <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest px-1 mb-2`}>
+                  Listado — {proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length} encontrados
+                </p>
+                <div className="space-y-2">
+                  {proveedores
+                    .filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase()))
+                    .slice((paginaProv - 1) * itemsPorPaginaProv, paginaProv * itemsPorPaginaProv)
+                    .map(p => (
+                      <div key={p.id} className={`${t.bgCard} border ${t.border} rounded-xl p-4`}>
+                        {editandoProv === p.id ? (
+                          <div className="flex gap-2">
+                            <input value={nombreEditadoProv} onChange={e => setNombreEditadoProv(e.target.value)}
+                              className={`flex-1 ${t.bgInput} ${t.text} px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`} autoFocus />
+                            <button onClick={() => handleEditarProv(p.id)} className="bg-blue-600 text-white text-xs font-bold px-3 rounded-lg">✓</button>
+                            <button onClick={() => setEditandoProv(null)} className={`${t.bgInput} ${t.textSecondary} text-xs px-3 rounded-lg`}>✕</button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-lg ${p.activo ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500'} flex items-center justify-center transition-colors`}>
+                                <span className="material-symbols-outlined text-sm">{p.activo ? 'inventory' : 'inventory_2'}</span>
+                              </div>
+                              <div>
+                                <p className={`${t.text} font-semibold text-sm`}>{p.nombre}</p>
+                                <p className={`${p.activo ? 'text-emerald-400' : 'text-slate-500'} text-[10px] uppercase font-bold`}>
+                                  {p.activo ? 'Activo' : 'Inactivo'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleToggleProvActivo(p)} className={`p-1.5 ${p.activo ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                <span className="material-symbols-outlined">{p.activo ? 'toggle_on' : 'toggle_off'}</span>
+                              </button>
+                              <button onClick={() => { setEditandoProv(p.id); setNombreEditadoProv(p.nombre); }}
+                                className={`${t.bgInput} border ${t.border} ${t.textSecondary} text-xs p-1.5 rounded-lg hover:text-blue-400 transition`}><span className="material-symbols-outlined text-sm">edit</span></button>
+                              <button onClick={() => handleEliminarProv(p.id)}
+                                className={`${t.bgInput} border ${t.border} ${t.textSecondary} text-xs p-1.5 rounded-lg hover:text-red-400 transition`}><span className="material-symbols-outlined text-sm">delete</span></button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+                {/* Paginación móvil */}
+                {proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length > itemsPorPaginaProv && (
+                  <div className="flex items-center justify-between mt-6 px-1">
+                    <button disabled={paginaProv === 1} onClick={() => setPaginaProv(p => p - 1)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border ${t.border} ${t.text} disabled:opacity-30`}>Anterior</button>
+                    <span className={`${t.textSecondary} text-xs font-bold`}>Página {paginaProv}</span>
+                    <button disabled={paginaProv * itemsPorPaginaProv >= proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length} onClick={() => setPaginaProv(p => p + 1)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border ${t.border} ${t.text} disabled:opacity-30`}>Siguiente</button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ── FUNCIONES móvil ── */}
+            {tabActiva === 4 && (
               <>
                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-start gap-3">
                   <span className="material-symbols-outlined text-orange-400 flex-shrink-0" style={{ fontSize: 20 }}>warning</span>
@@ -570,7 +691,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── IMPRESIONES mobile ── */}
-            {tabActiva === 4 && (
+            {tabActiva === 5 && (
               <div className="flex flex-col gap-4">
                 <div className={`${t.bgInput} border ${t.border} rounded-xl p-4`}>
                   <input 
@@ -635,10 +756,10 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
 
             {/* Tabs desktop */}
             <div className="flex gap-6">
-              {TABS.filter((t, i) => i !== 4 || rol === 'unico').map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 4 : i)}
+              {TABS.filter((t, i) => i !== 5 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 5 : i)}
                   className={`pb-4 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${
-                    tabActiva === (tab.label === "Impresiones" ? 4 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
+                    tabActiva === (tab.label === "Impresiones" ? 5 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
                   }`}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
                   {tab.label}
@@ -949,8 +1070,87 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
               </div>
             )}
 
-            {/* ── FUNCIONES desktop ── */}
+            {/* ── PROVEEDORES desktop ── */}
             {tabActiva === 3 && (
+              <div>
+                <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 mb-6`}>
+                  <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nuevo proveedor</p>
+                  <div className="flex gap-3">
+                    <input value={nuevoProv} onChange={e => setNuevoProv(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleAgregarProv()}
+                      className={`flex-1 ${t.bgInput} border ${t.border} ${t.text} px-4 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
+                      placeholder="Nombre del nuevo proveedor (ej: Soprole, Nestle, Natfruit...)" />
+                    <button onClick={handleAgregarProv} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-blue-500/20">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span> Registrar Proveedor
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`${t.text} font-bold text-lg`}>Base de Datos de Proveedores — {proveedores.length} registros</h3>
+                  <div className={`${t.bgInput} border ${t.border} px-4 py-2 rounded-xl flex items-center gap-3 w-80`}>
+                    <span className="material-symbols-outlined text-sm opacity-50">search</span>
+                    <input value={busquedaProv} onChange={e => { setBusquedaProv(e.target.value); setPaginaProv(1); }}
+                      className={`bg-transparent ${t.text} text-sm outline-none w-full`} placeholder="Buscar por nombre..." />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {proveedores
+                    .filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase()))
+                    .slice((paginaProv - 1) * itemsPorPaginaProv, paginaProv * itemsPorPaginaProv)
+                    .map(p => (
+                    <div key={p.id} className={`${t.bgCard} border ${t.border} rounded-2xl p-5 group hover:border-blue-500/30 transition-all ${!p.activo ? 'opacity-60' : ''}`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className={`w-10 h-10 rounded-xl ${p.activo ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-500'} flex items-center justify-center transition-colors`}>
+                          <span className="material-symbols-outlined">{p.activo ? 'inventory' : 'inventory_2'}</span>
+                        </div>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleToggleProvActivo(p)} className={`p-1.5 ${p.activo ? 'hover:text-emerald-400' : 'hover:text-blue-400'} transition`} title={p.activo ? "Desactivar" : "Activar"}>
+                            <span className="material-symbols-outlined text-sm">{p.activo ? 'toggle_on' : 'toggle_off'}</span>
+                          </button>
+                          <button onClick={() => { setEditandoProv(p.id); setNombreEditadoProv(p.nombre); }} className="p-1.5 hover:text-blue-400 transition"><span className="material-symbols-outlined text-sm">edit</span></button>
+                          <button onClick={() => handleEliminarProv(p.id)} className="p-1.5 hover:text-red-400 transition"><span className="material-symbols-outlined text-sm">delete</span></button>
+                        </div>
+                      </div>
+                      {editandoProv === p.id ? (
+                        <div className="flex gap-2">
+                          <input value={nombreEditadoProv} onChange={e => setNombreEditadoProv(e.target.value)}
+                            className={`flex-1 ${t.bgInput} ${t.text} px-2 py-1.5 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500`} autoFocus />
+                          <button onClick={() => handleEditarProv(p.id)} className="text-blue-500 font-bold px-1">✓</button>
+                          <button onClick={() => setEditandoProv(null)} className="text-slate-500 px-1">✕</button>
+                        </div>
+                      ) : (
+                        <p className={`${t.text} font-bold tracking-tight truncate`}>{p.nombre}</p>
+                      )}
+                      <p className={`${p.activo ? 'text-emerald-400' : 'text-slate-500'} text-[10px] uppercase font-black tracking-widest mt-1`}>
+                        {p.activo ? 'Proveedor Activo' : 'Proveedor Inactivo'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Paginación desktop */}
+                {proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length > itemsPorPaginaProv && (
+                  <div className="flex items-center justify-center gap-4 mt-10">
+                    <button disabled={paginaProv === 1} onClick={() => setPaginaProv(p => p - 1)}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold border ${t.border} ${t.bgCard} ${t.text} hover:border-blue-500 transition disabled:opacity-30`}>
+                      <span className="material-symbols-outlined">chevron_left</span> Anterior
+                    </button>
+                    <div className={`${t.bgCard} border ${t.border} px-6 py-3 rounded-2xl font-black ${t.text} text-sm`}>
+                      PÁGINA {paginaProv} de {Math.ceil(proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length / itemsPorPaginaProv)}
+                    </div>
+                    <button disabled={paginaProv * itemsPorPaginaProv >= proveedores.filter(p => p.nombre.toLowerCase().includes(busquedaProv.toLowerCase())).length} onClick={() => setPaginaProv(p => p + 1)}
+                      className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold border ${t.border} ${t.bgCard} ${t.text} hover:border-blue-500 transition disabled:opacity-30`}>
+                      Siguiente <span className="material-symbols-outlined">chevron_right</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── FUNCIONES desktop ── */}
+            {tabActiva === 4 && (
               <div className="max-w-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <h3 className={`${t.text} text-2xl font-black`}>Funciones del Sistema</h3>
@@ -982,7 +1182,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── IMPRESIONES desktop ── */}
-            {tabActiva === 4 && (
+            {tabActiva === 5 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex gap-4 items-center mb-6`}
                   style={{ background: "rgba(37,140,244,0.04)", backdropFilter: "blur(12px)" }}>

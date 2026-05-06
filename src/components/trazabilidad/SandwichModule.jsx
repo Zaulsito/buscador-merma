@@ -5,8 +5,8 @@ import { normalizeText } from '../../utils/searchUtils';
 import { db } from '../../firebase/config';
 import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import toast, { Toaster } from 'react-hot-toast';
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const CATEGORIAS_MATERIAS = [
   {
@@ -475,10 +475,9 @@ export default function SandwichModule({ rol }) {
       doc.setTextColor(100, 100, 100);
       doc.setFont("helvetica", "normal");
       doc.text(isMaterias ? "Trazabilidad de Materias Primas" : "Planilla de Producción Diaria", 38, 23);
-      doc.setFontSize(7);
-      doc.text("CUARTO DE PRODUCCIÓN", 38, 27);
-      doc.setFont("helvetica", "bold");
-      doc.text("SANDWICH", 38, 31);
+      doc.setFontSize(8);
+      doc.text("SECCIÓN: RINCON", 38, 27);
+      doc.text("CUARTO: SANDWICH", 38, 31);
       doc.setFont("helvetica", "normal");
 
       // Info Local y Fecha (Derecha) - Swapped and moved left
@@ -506,7 +505,6 @@ export default function SandwichModule({ rol }) {
       if (vista === 'semanal') {
         head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
         state.forEach(cat => {
-          const rowsForCat = [];
           cat.items.forEach(item => {
             const row = [item];
             let hasData = false;
@@ -515,47 +513,36 @@ export default function SandwichModule({ rol }) {
               if (val && val !== "—") hasData = true;
               row.push(val || "—");
             });
-            if (hasData) rowsForCat.push(row);
+            if (hasData) body.push(row);
           });
-
-          if (rowsForCat.length > 0) {
-            body.push([{ 
-              content: cat.nombre.toUpperCase(), 
-              colSpan: 8, 
-              styles: { fillColor: [230, 240, 230], fontStyle: 'bold', halign: 'center', textColor: [0, 85, 44] } 
-            }]);
-            body.push(...rowsForCat);
-          }
         });
       } else {
-        head = [["Categoría", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
+        const allRows = [];
+        head = [["Producto", isMaterias ? "Ingreso" : "Cantidad", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
         state.forEach(cat => {
-          const rowsForCat = [];
           cat.items.forEach(item => {
             const val = data[item]?.[currentKey];
             if (val && val !== "—") {
-              rowsForCat.push([item, val]); // Solo Producto e Ingreso por ahora
+              allRows.push([item, val]);
             }
           });
-          
-          if (rowsForCat.length > 0) {
-            // Insertar la celda de Categoría con RowSpan solo en la primera fila de este grupo
-            const firstRow = [
-              { content: cat.nombre, rowSpan: rowsForCat.length, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0, 85, 44] } },
-              ...rowsForCat[0]
-            ];
-            body.push(firstRow);
-            
-            // Las demás filas del grupo solo llevan sus 2 columnas originales
-            for (let i = 1; i < rowsForCat.length; i++) {
-              body.push(rowsForCat[i]);
-            }
-          }
         });
+
+        // Dividir en dos columnas
+        const half = Math.ceil(allRows.length / 2);
+        const leftSide = allRows.slice(0, half);
+        const rightSide = allRows.slice(half);
+
+        for (let i = 0; i < half; i++) {
+          const leftRow = leftSide[i] || ["", ""];
+          const rightRow = rightSide[i] || ["", ""];
+          const combinedRow = [...leftRow, ...rightRow];
+          body.push(combinedRow);
+        }
       }
 
       if (body.length === 0) {
-        body.push([{ content: "No se encontraron registros en el periodo seleccionado", colSpan: vista === 'semanal' ? 8 : 3, styles: { halign: 'center', fontStyle: 'italic', cellPadding: 10 } }]);
+        body.push([{ content: "No se encontraron registros en el periodo seleccionado", colSpan: vista === 'semanal' ? 8 : 4, styles: { halign: 'center', fontStyle: 'italic', cellPadding: 10 } }]);
       }
 
       autoTable(doc, {
@@ -563,11 +550,13 @@ export default function SandwichModule({ rol }) {
         head: head,
         body: body,
         theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3, halign: 'center' },
+        styles: { fontSize: 8, cellPadding: 3, halign: 'center', lineColor: [220, 220, 220], lineWidth: 0.1 },
         headStyles: { fillColor: verdeCorporativo, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 10 },
         columnStyles: { 
-          0: { cellWidth: vista === 'semanal' ? 'auto' : 40 },
-          1: { halign: 'left' }
+          0: { cellWidth: 65, halign: 'left' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 65, halign: 'left' },
+          3: { cellWidth: 25, halign: 'center' }
         },
         alternateRowStyles: { fillColor: [248, 250, 248] },
         margin: { left: 15, right: 15 }
@@ -634,7 +623,25 @@ export default function SandwichModule({ rol }) {
       doc.text(`© 2026 RINCON JUMBO INFORMACIONES / IMPRESION DE ALTO CONTRASTE`, 15, pageHeight - 10);
       doc.text(`ID ÚNICO: ${printId}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
 
-      doc.save(`REGISTRO_TRAZABILIDAD_SANDWICH_${safeSeccion}_${currentKey}_${printId}.pdf`);
+      // 4. Numeración de páginas
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${i} - ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+
+      // Método de descarga manual más robusto para Chrome
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `SANDWICH_${currentKey}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success("Esquema oficial generado con éxito 📄");
     } catch (error) {
       console.error("Error al generar PDF:", error);
@@ -660,14 +667,13 @@ export default function SandwichModule({ rol }) {
   const diasSemana = Array.from({ length: 7 }, (_, i) => addDays(lunesSemana, i));
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header: Tabs + Vista + Nav */}
+    <div className="flex flex-col gap-8 pb-20">
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         {/* Tabs de categoría */}
         <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} w-fit`}>
           <button
             onClick={() => setActiveTab('materias')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'materias' ? `${t.accent} text-white shadow-lg` : `${t.textSecondary} hover:text-white`}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'materias' ? `bg-emerald-600 text-white shadow-lg shadow-emerald-500/30` : `${t.textSecondary} hover:text-white`}`}
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">inventory_2</span>
@@ -676,7 +682,7 @@ export default function SandwichModule({ rol }) {
           </button>
           <button
             onClick={() => setActiveTab('produccion')}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'produccion' ? `${t.accent} text-white shadow-lg` : `${t.textSecondary} hover:text-white`}`}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'produccion' ? `bg-emerald-600 text-white shadow-lg shadow-emerald-500/30` : `${t.textSecondary} hover:text-white`}`}
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">lunch_dining</span>
@@ -684,36 +690,65 @@ export default function SandwichModule({ rol }) {
             </div>
           </button>
         </div>
-
-        {/* Vista Selector (Día/Semana/Mes) */}
-        <div className="flex items-center gap-3">
-          <div className={`flex ${t.bgCard} border ${t.border} rounded-xl overflow-hidden`}>
-            {['diaria', 'semanal', 'mensual'].map(v => (
-              <button key={v} onClick={() => setVista(v)}
-                className={`px-3 py-2 text-xs font-bold capitalize transition-colors ${
-                  vista === v ? "bg-blue-600 text-white" : `${t.textSecondary} hover:${t.text}`
-                }`}>
-                {v === "diaria" ? "Día" : v === "semanal" ? "Semana" : "Mes"}
-              </button>
-            ))}
-          </div>
-
-          {/* Navegación temporal */}
-          <div className="flex items-center gap-1">
-            <button onClick={() => navegar(-1)}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 transition`}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-            </button>
-            <button onClick={() => navegar(1)}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-blue-400 transition`}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-            </button>
-          </div>
-        </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <h2 className={`${t.text} text-lg font-bold tracking-tight`}>{getTitulo()}</h2>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/10 border border-emerald-500/20">
+              <span className="material-symbols-outlined" style={{ fontSize: 32 }}>{activeTab === 'materias' ? 'inventory_2' : 'lunch_dining'}</span>
+            </div>
+            <div>
+              <h1 className={`${t.text} text-2xl font-black tracking-tight leading-none mb-1 uppercase`}>
+                {activeTab === 'materias' ? 'Control de Materias Primas' : 'Planilla de Producción'}
+              </h1>
+              <h2 className={`${t.textSecondary} text-[10px] uppercase font-black tracking-[0.2em] opacity-60`}>
+                {activeTab === 'materias' ? 'Trazabilidad de Insumos' : 'Trazabilidad de Elaborados'}
+              </h2>
+            </div>
+            </div>
+          </div>
+
+          {/* 2. Barra de Control: Vista y Navegación de Fecha */}
+          <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl ${t.bgCard} border ${t.border} shadow-sm`}>
+            <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} w-fit shadow-inner`}>
+              {['diaria', 'semanal', 'mensual'].map(v => (
+                <button key={v} onClick={() => setVista(v)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${vista === v ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' : `${t.textSecondary} hover:text-white`}`}>{v}</button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-4">
+              <h2 className={`${t.text} text-base font-bold tracking-tight`}>{getTitulo()}</h2>
+              <div className="flex items-center gap-1">
+                <button onClick={() => navegar(-1)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-emerald-500 hover:border-emerald-500/50 transition-all shadow-sm active:scale-90`}><span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span></button>
+                
+                {/* Selector de Fecha (Calendario) */}
+                <div className="relative">
+                  <button 
+                    onClick={() => document.getElementById('date-picker-sandwich').showPicker()}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-emerald-500 hover:border-emerald-500/50 transition-all shadow-sm active:scale-90`}
+                    title="Elegir fecha"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>calendar_month</span>
+                  </button>
+                  <input 
+                    id="date-picker-sandwich"
+                    type="date" 
+                    className="absolute inset-0 opacity-0 pointer-events-none"
+                    value={fechaBase.toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setFechaBase(new Date(e.target.value + 'T12:00:00'));
+                      }
+                    }}
+                  />
+                </div>
+
+                <button onClick={() => navegar(1)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-emerald-500 hover:border-emerald-500/50 transition-all shadow-sm active:scale-90`}><span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span></button>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
           <div className="relative flex-1 max-w-md">
@@ -723,7 +758,7 @@ export default function SandwichModule({ rol }) {
               placeholder={`Buscar en ${activeTab === 'materias' ? 'materias primas' : 'producción'}...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full ${t.bgCard} ${t.text} text-sm pl-10 pr-4 py-2.5 rounded-xl border ${t.border} focus:outline-none focus:border-purple-500/50 transition-all`}
+              className={`w-full ${t.bgCard} ${t.text} text-sm pl-10 pr-4 py-2.5 rounded-xl border ${t.border} focus:outline-none focus:border-emerald-500/50 transition-all`}
             />
             {searchTerm && (
               <button 
@@ -742,13 +777,12 @@ export default function SandwichModule({ rol }) {
                 setTargetCatId(list[0]?.id);
                 setModalAddOpen(true);
               }}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-purple-500/20 hover:scale-[1.02] active:scale-95 transition-all"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
               Nuevo Item
             </button>
-          )}
-        </div>
+        )}
       </div>
 
       {/* ── CONTENIDO SEGÚN VISTA ── */}
@@ -760,16 +794,16 @@ export default function SandwichModule({ rol }) {
 
             return (
               <div key={cat.id} className="flex flex-col gap-6">
-                {/* Header Categoría Centralizado */}
-                <div className="flex flex-col items-center gap-3 relative">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${cat.bg || 'bg-emerald-500/10'} ${cat.color || 'text-emerald-400'} shadow-xl border border-white/5`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 28 }}>{cat.icon || 'lunch_dining'}</span>
+                {/* Header Categoría Lateral (Icono a la izquierda) */}
+                <div className="flex items-center gap-4 relative">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${cat.bg || 'bg-emerald-500/10'} ${cat.color || 'text-emerald-400'} shadow-xl border border-white/5`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 24 }}>{cat.icon || 'lunch_dining'}</span>
                   </div>
-                  <div className="text-center">
-                    <h3 className={`text-2xl font-black uppercase tracking-tight ${cat.color || 'text-emerald-400'} leading-none`}>
+                  <div className="text-left">
+                    <h3 className={`text-xl font-black uppercase tracking-tight ${cat.color || 'text-emerald-400'} leading-none`}>
                       {cat.nombre}
                     </h3>
-                    <div className={`h-1 w-24 mx-auto rounded-full mt-3 ${cat.bg || 'bg-emerald-500/20'} opacity-50`}></div>
+                    <div className={`h-1 w-12 rounded-full mt-2 ${cat.bg || 'bg-emerald-500/20'} opacity-50`}></div>
                   </div>
                 </div>
 
@@ -801,11 +835,12 @@ export default function SandwichModule({ rol }) {
                           </div>
                         )}
 
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                          <div className="flex items-center gap-2">
-                            <span className={`${t.text} text-sm font-bold leading-tight`}>{item}</span>
+                        <div className="flex flex-col items-center gap-1 relative">
+                          <div className="flex items-center gap-2 justify-center w-full">
+                            <span className={`${t.text} text-sm font-bold leading-tight text-center`}>{item}</span>
+                            
                             {esAdmin && (
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0">
                                 <button 
                                   onClick={() => {
                                     setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item });
@@ -831,7 +866,7 @@ export default function SandwichModule({ rol }) {
                               </div>
                             )}
                           </div>
-                          <span className={`text-[10px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-purple-400' : 'text-emerald-400'} font-black whitespace-nowrap`}>
+                          <span className={`text-[9px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-purple-400' : 'text-emerald-400'} font-black opacity-50`}>
                             {activeTab === 'materias' ? 'Ingreso (DD/MM)' : 'Cantidad'}
                           </span>
                         </div>
@@ -1104,7 +1139,7 @@ export default function SandwichModule({ rol }) {
                   value={editingItem.newName}
                   onChange={(e) => setEditingItem(prev => ({ ...prev, newName: e.target.value }))}
                   onKeyDown={(e) => e.key === 'Enter' && handleEditItem()}
-                  className={`w-full ${t.bgInput} ${t.text} p-3.5 rounded-2xl border ${t.border} focus:outline-none focus:border-blue-500 transition-all`}
+                  className={`w-full ${t.bgInput} ${t.text} p-3.5 rounded-2xl border ${t.border} focus:outline-none focus:border-emerald-500 transition-all`}
                 />
               </div>
               <div className="flex gap-3 pt-2">
@@ -1117,7 +1152,7 @@ export default function SandwichModule({ rol }) {
                 <button 
                   onClick={handleEditItem}
                   disabled={!editingItem.newName.trim() || (editingItem.newName === editingItem.oldName && editingItem.catId === editingItem.originalCatId)}
-                  className={`flex-1 py-3.5 rounded-2xl bg-blue-600 text-white font-black shadow-lg shadow-blue-500/30 hover:bg-blue-500 transition-all disabled:opacity-50`}
+                  className={`flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-black shadow-lg shadow-emerald-500/30 hover:bg-emerald-500 transition-all disabled:opacity-50`}
                 >
                   Guardar Cambios
                 </button>
@@ -1132,7 +1167,7 @@ export default function SandwichModule({ rol }) {
       <div className="fixed bottom-24 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-50">
         <button 
           onClick={handleExportPDF}
-          className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-slate-950/40 backdrop-blur-md text-slate-200 font-bold shadow-2xl hover:bg-slate-900/60 transition-all flex items-center justify-center gap-2 border border-white/10 group"
+          className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-emerald-950/40 backdrop-blur-md text-emerald-200 font-bold shadow-2xl hover:bg-emerald-900/60 transition-all flex items-center justify-center gap-2 border border-white/10 group"
           title="Exportar PDF"
         >
           <span className="material-symbols-outlined">picture_as_pdf</span>
@@ -1142,7 +1177,7 @@ export default function SandwichModule({ rol }) {
         <button 
           onClick={handleGuardarDatos}
           disabled={saving}
-          className={`w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-purple-600 text-white font-bold shadow-2xl shadow-purple-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group`}
+          className={`w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-emerald-600 text-white font-bold shadow-2xl shadow-emerald-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group`}
           title="Guardar Registros"
         >
           {saving ? (

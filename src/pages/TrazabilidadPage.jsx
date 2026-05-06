@@ -67,17 +67,38 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal
 
           {/* Desktop header if section is active */}
           {seccionActiva && (
-            <div className="hidden md:flex items-center gap-3 mb-6">
+            <div className="hidden md:flex items-center justify-center relative mb-12 py-2">
               <button
                 onClick={() => setSeccionActiva(null)}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl ${t.bgInput} ${t.hover} transition-all border ${t.border}`}
+                className={`absolute left-0 w-12 h-12 flex items-center justify-center rounded-2xl ${t.bgCard} ${t.hover} transition-all border ${t.border} shadow-xl group/back`}
+                title="Volver a secciones"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
+                <span className="material-symbols-outlined text-gray-500 group-hover:text-white transition-colors" style={{ fontSize: 24 }}>arrow_back</span>
               </button>
-              <h2 className={`${t.text} text-2xl font-bold flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-purple-400">{SECCIONES.find(s => s.id === seccionActiva)?.icon}</span>
-                {SECCIONES.find(s => s.id === seccionActiva)?.nombre}
-              </h2>
+              
+              <div className="flex flex-col items-center">
+                <h2 className={`${t.text} text-4xl font-black flex items-center gap-4 tracking-tighter`}>
+                  <span className={`material-symbols-outlined ${SECCIONES.find(s => s.id === seccionActiva)?.color} animate-in fade-in zoom-in duration-500`} style={{ fontSize: 44 }}>
+                    {SECCIONES.find(s => s.id === seccionActiva)?.icon}
+                  </span>
+                  <span className="uppercase tracking-[0.15em] animate-in slide-in-from-bottom-2 duration-500">{SECCIONES.find(s => s.id === seccionActiva)?.nombre}</span>
+                </h2>
+                <div 
+                  className={`h-1.5 w-24 rounded-full mt-4 bg-pink-500 shadow-lg`} 
+                  style={{ 
+                    backgroundColor: SECCIONES.find(s => s.id === seccionActiva)?.id === 'postres' ? '#ec4899' : 
+                                     SECCIONES.find(s => s.id === seccionActiva)?.id === 'caliente' ? '#ef4444' :
+                                     SECCIONES.find(s => s.id === seccionActiva)?.id === 'frio' ? '#3b82f6' :
+                                     SECCIONES.find(s => s.id === seccionActiva)?.id === 'sandwich' ? '#10b981' :
+                                     '#f59e0b',
+                    boxShadow: `0 4px 14px 0 ${SECCIONES.find(s => s.id === seccionActiva)?.id === 'postres' ? 'rgba(236, 72, 153, 0.39)' : 
+                                 SECCIONES.find(s => s.id === seccionActiva)?.id === 'caliente' ? 'rgba(239, 68, 68, 0.39)' :
+                                 SECCIONES.find(s => s.id === seccionActiva)?.id === 'frio' ? 'rgba(59, 130, 246, 0.39)' :
+                                 SECCIONES.find(s => s.id === seccionActiva)?.id === 'sandwich' ? 'rgba(16, 185, 129, 0.39)' :
+                                 'rgba(245, 158, 11, 0.39)'}` 
+                  }}
+                ></div>
+              </div>
             </div>
           )}
 

@@ -18,8 +18,10 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [entries, setEntries] = useState([]);
+  const [showTooltip, setShowTooltip] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [cuartoActivo, setCuartoActivo] = useState(cuarto || CUARTOS[0]);
   const [vista, setVista] = useState('diaria'); // diaria, semanal, mensual
   const [editingId, setEditingId] = useState(null); // ID del registro en edición
@@ -212,34 +214,57 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
     const printId = `PCC-${Date.now().toString(36).toUpperCase()}`;
 
     try {
+      const { start, end } = getStartEnd();
       await addDoc(collection(db, 'log_impresiones'), {
         printId, usuario: user?.email, modulo: 'PCC Cocción y Enfriado',
-        cuarto: cuartoActivo, fechaReporte: currentKey, fechaImpresion: serverTimestamp()
+        cuarto: cuartoActivo, fechaReporte: currentKey, fechaImpresion: serverTimestamp(),
+        displayName: user?.displayName
       });
 
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = doc.internal.pageSize.getWidth();
-      const verdeJumbo = [0, 85, 44];
+      const verdeJumbo = [0, 85, 44]; // Verde oscuro
+      const verdeClaro = [30, 115, 74]; // Verde un poco más claro
 
-      // Encabezado profesional
-      doc.setFont("helvetica", "bold"); doc.setFontSize(14); doc.setTextColor(verdeJumbo[0], verdeJumbo[1], verdeJumbo[2]);
-      doc.text("REGISTRO PCC COCCIÓN Y ENFRIADO", 15, 15);
+      // 1. Logo y Encabezado
+      const logoUrl = "/jumbo_logo.png";
+      try {
+        const img = new Image();
+        img.src = logoUrl;
+        img.crossOrigin = "Anonymous";
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+        });
+        doc.addImage(img, 'PNG', 15, 10, 15, 15);
+      } catch (e) {
+        console.warn("Fallo al cargar logo en PCC");
+      }
+
+      // Título y Metadatos (Desplazados por el logo)
+      doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(verdeJumbo[0], verdeJumbo[1], verdeJumbo[2]);
+      doc.text("REGISTRO PCC COCCIÓN Y ENFRIADO", 32, 16);
       
-      doc.setFontSize(8); doc.setTextColor(100, 100, 100); doc.setFont("helvetica", "normal");
-      doc.text(`CUARTO: ${cuartoActivo.toUpperCase()}`, 15, 20);
-      doc.text(`MONITOR: ${user?.displayName || 'Personal de Turno'}`, 15, 24);
+      doc.setFontSize(8); doc.setTextColor(80, 80, 80); doc.setFont("helvetica", "bold");
+      doc.text("SECCIÓN: RINCON", 32, 21);
+      doc.text(`CUARTO: ${cuartoActivo.includes('Postre') ? 'POSTRE' : cuartoActivo.toUpperCase()}`, 32, 25);
+      doc.setFont("helvetica", "normal");
+      doc.text(`MONITOR: ${user?.displayName || 'Personal de Turno'}`, 32, 29);
 
+      doc.setFontSize(8); doc.setTextColor(100, 100, 100);
       doc.text(`FECHA: ${currentKey}`, pageWidth - 15, 15, { align: 'right' });
       doc.text(`LOCAL: J781 - RINCON JUMBO`, pageWidth - 15, 20, { align: 'right' });
 
       const head = [[
         { content: 'Producto', rowSpan: 2 },
-        { content: 'Cocción', colSpan: 3 },
+        { content: 'Cocción', colSpan: 1 },
+        { content: 'Acción Correctiva (Cocción)', colSpan: 2 },
         { content: 'Enfriamiento', colSpan: 3 },
-        { content: 'Acción Correctiva', colSpan: 2 }
+        { content: 'Acción Correctiva (Enfriamiento)', colSpan: 2 }
       ], [
-        'Ini/Fin/Temp', 'AC Cocción', 'T/H', 
-        'Ini (H/T)', 'T1 (H/T)', 'T2 (H/T)',
+        'Inicio / Fin / Temperatura',
+        'AC Cocción', 'T/H', 
+        'Inicio (H/T)', 'T1 (H/T)', 'T2 (H/T)',
         'Detalle AC', 'Temp/Hora'
       ]];
 
@@ -254,79 +279,217 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
       ]);
 
       autoTable(doc, {
-        startY: 30, head: head, body: body, theme: 'grid',
+        startY: 35,
+        head: head,
+        body: body,
+        theme: 'grid',
         styles: { fontSize: 7, cellPadding: 2, halign: 'center', valign: 'middle' },
-        headStyles: { fillColor: verdeJumbo, textColor: [255, 255, 255], fontStyle: 'bold' }
+        headStyles: { fillColor: verdeJumbo, textColor: [255, 255, 255], fontStyle: 'bold', lineWidth: 0.2, lineColor: [255, 255, 255] },
+        didParseCell: function(data) {
+          if (data.section === 'head') {
+            const colIdx = data.column.index;
+            // Alternar colores por grupos funcionales
+            if (colIdx === 0) { // Producto
+              data.cell.styles.fillColor = verdeJumbo;
+            } else if (colIdx === 1) { // Cocción
+              data.cell.styles.fillColor = verdeClaro;
+            } else if (colIdx >= 2 && colIdx <= 3) { // AC Cocción
+              data.cell.styles.fillColor = verdeJumbo;
+            } else if (colIdx >= 4 && colIdx <= 6) { // Enfriamiento
+              data.cell.styles.fillColor = verdeClaro;
+            } else if (colIdx >= 7 && colIdx <= 8) { // AC Enfriamiento
+              data.cell.styles.fillColor = verdeJumbo;
+            }
+          }
+        }
       });
 
-      // Firmas
-      const finalY = doc.lastAutoTable.finalY + 15;
-      doc.setFontSize(8); doc.text("FIRMA RESPONSABLE", 30, finalY + 10); doc.line(15, finalY + 8, 80, finalY + 8);
-      doc.text("VERIFICACIÓN ASEGURAMIENTO CALIDAD", pageWidth - 80, finalY + 10); doc.line(pageWidth - 95, finalY + 8, pageWidth - 15, finalY + 8);
+      // 3. Firmas y Footer
+      const finalY = doc.lastAutoTable.finalY + 20;
+      
+      // Línea de firma responsable
+      doc.setDrawColor(150, 150, 150);
+      doc.line(15, finalY + 10, 80, finalY + 10);
+      
+      // Firma "Digital" (Nombre del usuario en cursiva sobre la línea)
+      doc.setFont("courier", "bolditalic");
+      doc.setFontSize(10);
+      doc.setTextColor(0, 0, 0);
+      doc.text(user?.displayName || "Monitor Responsable", 20, finalY + 8);
+      
+      // Texto debajo de la línea
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      doc.setTextColor(100, 100, 100);
+      doc.text("FIRMA RESPONSABLE", 30, finalY + 14);
+
+      // Verificación AC
+      doc.line(pageWidth - 95, finalY + 10, pageWidth - 15, finalY + 10);
+      doc.text("VERIFICACIÓN ASEGURAMIENTO CALIDAD", pageWidth - 80, finalY + 14);
+
+      // 4. Nota de Límites Críticos (Opcional en PDF si el usuario tiene el panel abierto o como pie de página fijo)
+      const footerY = doc.internal.pageSize.getHeight() - 15;
+      doc.setFontSize(6);
+      doc.setTextColor(150, 150, 150);
+      doc.text("ESPECIFICACIONES PCC: Cocción ≥ 74°C x 15s | Enfriamiento: 74°C a 21°C (2h) y 21°C a 5°C (4h).", 15, footerY);
+      doc.text("AC: Cocción: Re-cocer o mermar. Enfriado: Abatidor o recalentar a 74°C.", 15, footerY + 3);
 
       doc.save(`PCC_${cuartoActivo}_${currentKey}.pdf`);
       toast.success("PDF generado 📄");
     } catch (err) {
+      console.error(err);
       toast.error("Error al generar PDF");
     }
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/10">
-            <span className="material-symbols-outlined" style={{ fontSize: 28 }}>thermostat</span>
-          </div>
-          <div>
-            <h1 className={`${t.text} text-2xl font-black tracking-tight`}>PCC COCCIÓN Y ENFRIADO</h1>
-            <p className={`${t.textSecondary} text-xs uppercase font-bold tracking-widest`}>Control Crítico de Temperaturas</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <input 
-            type="date" 
-            value={currentKey} 
-            onChange={(e) => setFechaBase(new Date(e.target.value + 'T12:00:00'))}
-            className={`px-4 py-2 rounded-xl ${t.bgInput} ${t.text} border ${t.border} text-sm font-bold focus:outline-none focus:ring-2 focus:ring-amber-500/50`}
-          />
-        </div>
-      </div>
-
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {!cuarto && (
-            <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} w-fit`}>
-              {CUARTOS.map(c => (
-                <button key={c} onClick={() => setCuartoActivo(c)} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${cuartoActivo === c ? 'bg-amber-500 text-white shadow-lg' : `${t.textSecondary} hover:text-white`}`}>{c}</button>
-              ))}
+    <div className="flex flex-col gap-8 pb-20">
+      {/* 1. Encabezado Principal: Título y Categorías */}
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/10 border border-amber-500/20">
+              <span className="material-symbols-outlined" style={{ fontSize: 32 }}>thermostat</span>
             </div>
-          )}
+            <div>
+              <h1 className={`${t.text} text-2xl font-black tracking-tight leading-none mb-1`}>PCC COCCIÓN Y ENFRIADO</h1>
+              <p className={`${t.textSecondary} text-[10px] uppercase font-black tracking-[0.2em] opacity-60`}>Control Crítico de Temperaturas</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {!cuarto && (
+              <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} shadow-inner`}>
+                {CUARTOS.map(c => (
+                  <button key={c} onClick={() => setCuartoActivo(c)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${cuartoActivo === c ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : `${t.textSecondary} hover:text-white`}`}>{c}</button>
+                ))}
+              </div>
+            )}
+            <button 
+              onClick={() => setShowInfo(!showInfo)}
+              className={`w-10 h-10 rounded-xl border ${showInfo ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]' : `${t.bgCard} ${t.border} ${t.textSecondary} hover:border-amber-500/50 hover:text-amber-500`} transition-all flex items-center justify-center`}
+              title="Ver Límites y Procedimientos"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>info</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Barra de Control: Vista y Navegación de Fecha */}
+        <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl ${t.bgCard} border ${t.border} shadow-sm`}>
           <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} w-fit`}>
             {['diaria', 'semanal', 'mensual'].map(v => (
-              <button key={v} onClick={() => setVista(v)} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${vista === v ? 'bg-amber-500 text-white shadow-lg' : `${t.textSecondary} hover:text-white`}`}>{v}</button>
+              <button key={v} onClick={() => setVista(v)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${vista === v ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' : `${t.textSecondary} hover:text-white`}`}>{v}</button>
             ))}
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <h2 className={`${t.text} text-sm font-bold opacity-80`}>{getPeriodoTitulo()}</h2>
-          <div className="flex items-center gap-1">
-            <button onClick={() => navegar(-1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-amber-500 transition`}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span></button>
+
+          <div className="flex items-center gap-4">
+            <h2 className={`${t.text} text-base font-bold tracking-tight`}>{getPeriodoTitulo()}</h2>
+            <div className="flex items-center gap-1">
+              <button onClick={() => navegar(-1)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-amber-500 hover:border-amber-500/50 transition-all shadow-sm active:scale-90`}><span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span></button>
+            
+            {/* Selector de Fecha (Calendario) */}
+            <div className="relative">
+              <button 
+                onClick={() => document.getElementById('date-picker-pcc').showPicker()}
+                className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-amber-500 transition shadow-sm`}
+                title="Elegir fecha"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>calendar_month</span>
+              </button>
+              <input 
+                id="date-picker-pcc"
+                type="date" 
+                className="absolute inset-0 opacity-0 pointer-events-none"
+                value={fechaBase.toISOString().split('T')[0]}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setFechaBase(new Date(e.target.value + 'T12:00:00'));
+                  }
+                }}
+              />
+            </div>
+
             <button onClick={() => navegar(1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-amber-500 transition`}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span></button>
           </div>
         </div>
       </div>
+      
+      {/* Banner de Información y Límites (PCC) */}
+      {showInfo && (
+        <div className={`${t.bgCard} border border-amber-500/20 rounded-2xl p-5 flex gap-5 items-start animate-in fade-in zoom-in duration-300 relative overflow-hidden mb-6`}>
+          <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 shadow-inner">
+            <span className="material-symbols-outlined" style={{ fontSize: 28 }}>verified_user</span>
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className={`${t.text} text-xs font-black uppercase tracking-widest flex items-center gap-2`}>
+                Límites Críticos y Acciones Correctivas
+              </h4>
+              <button onClick={() => setShowInfo(false)} className={`${t.textSecondary} hover:text-white transition`}><span className="material-symbols-outlined text-sm">close</span></button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-3">
+                <p className={`${t.textSecondary} text-[10px] font-black uppercase tracking-widest opacity-60 border-b border-white/5 pb-1`}>Especificaciones de Temperatura</p>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <span className="font-bold text-amber-500">Cocción:</span>
+                  <span className={t.text}>≥ 74°C por 15 segundos</span>
+                  <span className="font-bold text-amber-500">Enfriamiento 1:</span>
+                  <span className={t.text}>74°C a 21°C en 2 horas</span>
+                  <span className="font-bold text-amber-500">Enfriamiento 2:</span>
+                  <span className={t.text}>21°C a 5°C en 4 horas</span>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <p className={`${t.textSecondary} text-[10px] font-black uppercase tracking-widest opacity-60 border-b border-white/5 pb-1`}>Acciones Correctivas</p>
+                <div className="space-y-2 text-[10px] leading-relaxed">
+                  <p className={t.text}><span className="font-bold text-amber-500 uppercase text-[9px] mr-1">[Cocción]</span> Continuar hasta alcanzar 74°C. Si falla 2da vez, mermar.</p>
+                  <p className={t.text}><span className="font-bold text-amber-500 uppercase text-[9px] mr-1">[Enfriado]</span> 1. Con abatidor: Golpe de frío hasta 5°C. 2. Sin abatidor: Recalentar a 74°C y re-enfriar.</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-white/5">
+              <p className={`${t.textSecondary} text-[9px] italic opacity-70`}>
+                * PRODUCTOS MUESTREADOS: Diariamente se debe controlar la temperatura de cocción y enfriado a la totalidad de la producción.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
-      <div className={`${t.bgCard} border ${t.border} rounded-3xl p-6 shadow-xl overflow-hidden`}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className={`${t.text} font-bold`}>Registros del Día</h2>
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all"
-          >
-            <span className="material-symbols-outlined text-sm">add</span> Nuevo Registro
-          </button>
+      <div className={`${t.bgCard} border ${t.border} rounded-3xl p-6 shadow-xl overflow-visible`}>
+        <div className="relative flex items-center justify-center mb-10">
+          <h2 className={`${t.text} font-black uppercase tracking-[0.3em] text-xs opacity-40`}>Registros del Día</h2>
+          
+          <div className="absolute right-0">
+            {/* Tooltip Onboarding */}
+            {showTooltip && (
+              <div className="absolute -top-14 right-0 animate-bounce pointer-events-none z-50">
+                <div className="relative bg-amber-500 text-white text-[11px] font-black uppercase tracking-tight px-4 py-2.5 rounded-2xl shadow-[0_10px_25px_-5px_rgba(245,158,11,0.5)] whitespace-nowrap">
+                  Agregar registro
+                  <div className="absolute -bottom-1 right-6 w-3 h-3 bg-amber-500 rotate-45 rounded-sm"></div>
+                </div>
+              </div>
+            )}
+
+            <button 
+              onClick={() => {
+                setShowAddModal(true);
+                setShowTooltip(false);
+              }}
+              onMouseEnter={() => setShowTooltip(false)}
+              className="group flex items-center gap-0 hover:gap-3 px-3 py-3 hover:px-6 rounded-2xl bg-amber-500 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all duration-500 ease-in-out overflow-hidden animate-glow-pulse hover:animate-none"
+            >
+              <span className="material-symbols-outlined text-xl transition-transform duration-500 group-hover:rotate-90">add</span>
+              <span className="max-w-0 group-hover:max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-500 ease-in-out whitespace-nowrap">
+                Nuevo Registro
+              </span>
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -341,69 +504,96 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+            <table className="w-full text-left border-separate border-spacing-y-2 min-w-[1000px]">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary}`}>Producto</th>
-                  {vista !== 'diaria' && <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary}`}>Fecha</th>}
-                  <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary} text-center`}>Cocción</th>
-                  <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary} text-center`}>Enfriamiento</th>
-                  <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary} text-center`}>Acciones AC</th>
-                  <th className={`p-4 text-[10px] font-black uppercase tracking-wider ${t.textSecondary} text-right`}>Acciones</th>
+                <tr>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50`}>Producto</th>
+                  {vista !== 'diaria' && <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50`}>Fecha</th>}
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50 text-center`}>Cocción</th>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50 text-center`}>Enfriamiento</th>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50 text-center`}>Acciones AC</th>
+                  <th className={`px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] ${t.textSecondary} opacity-50 text-right`}>Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800/50">
+              <tbody className="divide-y-0">
                 {entries.map((e, index) => (
-                  <tr key={e.id || index} className="hover:bg-white/5 transition-colors group">
-                    <td className={`p-4 font-bold ${t.text}`}>{e.producto}</td>
+                  <tr key={e.id || index} className={`${t.bgInput} hover:bg-white/5 transition-all duration-300 group`}>
+                    {/* Producto */}
+                    <td className="px-6 py-5 rounded-l-2xl border-y border-l border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                        <span className={`text-base font-black ${t.text} tracking-tight`}>{e.producto}</span>
+                      </div>
+                    </td>
+
+                    {/* Fecha (opcional) */}
                     {vista !== 'diaria' && (
-                      <td className="p-4">
-                        <span className="text-[10px] font-black text-amber-500/80 bg-amber-500/5 px-2 py-1 rounded border border-amber-500/10 uppercase">{e.fechaStr?.split('-').reverse().slice(0,2).join('/')}</span>
+                      <td className="px-6 py-5 border-y border-white/5">
+                        <span className="text-[10px] font-black text-amber-500/80 bg-amber-500/5 px-2.5 py-1 rounded-lg border border-amber-500/10 uppercase tracking-widest">{e.fechaStr?.split('-').reverse().slice(0,2).join('/')}</span>
                       </td>
                     )}
-                    <td className="p-4">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[7px] text-gray-500 uppercase font-black">Cocción</span>
+
+                    {/* Cocción */}
+                    <td className="px-6 py-5 border-y border-white/5">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-1 bg-emerald-500/5 px-2 py-1 rounded-xl border border-emerald-500/10">
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold">{e.coccion_inicio || '--:--'}</span>
+                          <span className="text-emerald-500/30 text-[10px] mx-0.5">➔</span>
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold">{e.coccion_fin_hora || '--:--'}</span>
+                        </div>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-emerald-500 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">{e.coccion_inicio || '--:--'}</span>
-                          <span className="text-gray-600 text-[10px]">➔</span>
-                          <span className="text-[10px] text-emerald-500 font-mono bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">{e.coccion_fin_hora || '--:--'}</span>
-                        </div>
-                        <span className="text-xs font-black text-white mt-0.5">{e.coccion_fin_temp || '--'}°C</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex justify-center gap-4">
-                        <div className="flex flex-col items-center">
-                          <span className="text-[7px] text-gray-500 uppercase font-black">Inicio</span>
-                          <span className="text-xs font-bold text-white leading-tight">{e.enfrio_inicio_temp || '--'}°C</span>
-                          <span className="text-[9px] text-blue-400 font-mono">{e.enfrio_inicio_hora || '--:--'}</span>
-                        </div>
-                        <div className="flex flex-col items-center border-l border-white/5 pl-4">
-                          <span className="text-[7px] text-gray-500 uppercase font-black">T1 (2h)</span>
-                          <span className="text-xs font-bold text-white leading-tight">{e.enfrio_t1_temp || '--'}°C</span>
-                          <span className="text-[9px] text-blue-400 font-mono">{e.enfrio_t1_hora || '--:--'}</span>
-                        </div>
-                        <div className="flex flex-col items-center border-l border-white/5 pl-4">
-                          <span className="text-[7px] text-gray-500 uppercase font-black">T2 (4h)</span>
-                          <span className="text-xs font-bold text-white leading-tight">{e.enfrio_t2_temp || '--'}°C</span>
-                          <span className="text-[9px] text-blue-400 font-mono">{e.enfrio_t2_hora || '--:--'}</span>
+                          <span className="material-symbols-outlined text-amber-500 text-sm">local_fire_department</span>
+                          <span className="text-lg font-black text-white tracking-tighter italic">{e.coccion_fin_temp || '--'}°C</span>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4">
-                      <div className="max-w-[200px] mx-auto text-center">
-                        <p className="text-[10px] text-gray-500 italic truncate">{e.coccion_ac || e.enfrio_ac || 'Sin incidencias'}</p>
+
+                    {/* Enfriamiento */}
+                    <td className="px-6 py-5 border-y border-white/5">
+                      <div className="flex justify-center gap-6">
+                        <div className="flex flex-col items-center group/item">
+                          <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1 group-hover/item:text-blue-400 transition-colors">Inicio</span>
+                          <span className="text-sm font-black text-white leading-tight">{e.enfrio_inicio_temp || '--'}°C</span>
+                          <span className="text-[9px] text-blue-400/60 font-mono font-bold">{e.enfrio_inicio_hora || '--:--'}</span>
+                        </div>
+                        <div className="w-px h-8 bg-white/5 self-center"></div>
+                        <div className="flex flex-col items-center group/item">
+                          <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1 group-hover/item:text-blue-400 transition-colors">T1 (2h)</span>
+                          <span className="text-sm font-black text-white leading-tight">{e.enfrio_t1_temp || '--'}°C</span>
+                          <span className="text-[9px] text-blue-400/60 font-mono font-bold">{e.enfrio_t1_hora || '--:--'}</span>
+                        </div>
+                        <div className="w-px h-8 bg-white/5 self-center"></div>
+                        <div className="flex flex-col items-center group/item">
+                          <span className="text-[8px] text-gray-500 uppercase font-black tracking-widest mb-1 group-hover/item:text-blue-400 transition-colors">T2 (4h)</span>
+                          <span className="text-sm font-black text-white leading-tight">{e.enfrio_t2_temp || '--'}°C</span>
+                          <span className="text-[9px] text-blue-400/60 font-mono font-bold">{e.enfrio_t2_hora || '--:--'}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="p-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button onClick={() => openEditModal(e)} className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white transition-all">
-                          <span className="material-symbols-outlined text-sm">edit</span>
+
+                    {/* Acciones AC */}
+                    <td className="px-6 py-5 border-y border-white/5">
+                      <div className="max-w-[180px] mx-auto text-center">
+                        {e.coccion_ac || e.enfrio_ac ? (
+                          <div className="flex flex-col gap-1">
+                            <p className="text-[10px] text-rose-400 font-bold leading-tight italic line-clamp-2">"{e.coccion_ac || e.enfrio_ac}"</p>
+                            <span className="text-[9px] text-rose-500/50 font-black uppercase tracking-tighter">{e.coccion_ac_res || e.enfrio_ac_res}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-gray-600 italic font-medium opacity-40 tracking-wide">Sin incidencias</span>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Acciones */}
+                    <td className="px-6 py-5 rounded-r-2xl border-y border-r border-white/5 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                        <button onClick={() => openEditModal(e)} className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 hover:bg-blue-500 hover:text-white hover:shadow-lg hover:shadow-blue-500/20 transition-all flex items-center justify-center">
+                          <span className="material-symbols-outlined text-lg">edit</span>
                         </button>
                         {esAdmin && (
-                          <button onClick={() => removeEntry(e.id)} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all">
-                            <span className="material-symbols-outlined text-sm">delete</span>
+                          <button onClick={() => removeEntry(e.id)} className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-500/20 transition-all flex items-center justify-center">
+                            <span className="material-symbols-outlined text-lg">delete</span>
                           </button>
                         )}
                       </div>
@@ -432,8 +622,36 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className={`${t.bgCard} border ${t.border} rounded-3xl p-6 max-w-4xl w-full shadow-2xl my-8`}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className={`${t.text} text-xl font-bold`}>Nuevo Control PCC</h3>
-              <button onClick={() => setShowAddModal(false)} className={t.textSecondary}><span className="material-symbols-outlined">close</span></button>
+              <h3 className={`${t.text} text-xl font-bold`}>{editEntry ? 'Editar Control PCC' : 'Nuevo Control PCC'}</h3>
+              <div className="flex items-center gap-2">
+                {!editEntry && entries.length > 0 && (
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const last = entries[0];
+                      setFormData({
+                        ...formData,
+                        producto: last.producto,
+                        coccion_inicio: last.coccion_inicio,
+                        coccion_fin_hora: last.coccion_fin_hora,
+                        coccion_fin_temp: last.coccion_fin_temp,
+                        enfrio_inicio_hora: last.enfrio_inicio_hora,
+                        enfrio_inicio_temp: last.enfrio_inicio_temp,
+                        enfrio_t1_hora: last.enfrio_t1_hora,
+                        enfrio_t1_temp: last.enfrio_t1_temp,
+                        enfrio_t2_hora: last.enfrio_t2_hora,
+                        enfrio_t2_temp: last.enfrio_t2_temp
+                      });
+                      toast.success("Datos copiados");
+                    }}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg ${t.bgInput} ${t.text} text-[10px] font-black uppercase tracking-widest border ${t.border} hover:bg-amber-500/10 hover:text-amber-500 transition-all`}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>content_copy</span>
+                    Copiar último
+                  </button>
+                )}
+                <button onClick={() => { setShowAddModal(false); setEditEntry(null); }} className={t.textSecondary}><span className="material-symbols-outlined">close</span></button>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -498,6 +716,7 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

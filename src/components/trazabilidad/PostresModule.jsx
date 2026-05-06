@@ -5,8 +5,8 @@ import { normalizeText } from '../../utils/searchUtils';
 import { db } from '../../firebase/config';
 import { doc, getDoc, setDoc, onSnapshot, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import toast from 'react-hot-toast';
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import CoccionEnfriadoModule from './CoccionEnfriadoModule';
 import SanitizacionModule from './SanitizacionModule';
 
@@ -463,10 +463,9 @@ export default function PostresModule({ rol }) {
       doc.setTextColor(100, 100, 100);
       doc.setFont("helvetica", "normal");
       doc.text(isMaterias ? "Trazabilidad de Materias Primas" : "Planilla de Producción Diaria", 38, 23);
-      doc.setFontSize(7);
-      doc.text("CUARTO DE PRODUCCIÓN", 38, 27);
-      doc.setFont("helvetica", "bold");
-      doc.text("POSTRES", 38, 31);
+      doc.setFontSize(8);
+      doc.text("SECCIÓN: RINCON", 38, 27);
+      doc.text("CUARTO: POSTRE", 38, 31);
 
       doc.setFontSize(9);
       doc.setTextColor(60, 60, 60);
@@ -490,7 +489,6 @@ export default function PostresModule({ rol }) {
       if (vista === 'semanal') {
         head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
         state.forEach(cat => {
-          const rowsForCat = [];
           cat.items.forEach(item => {
             const row = [item];
             let hasData = false;
@@ -499,44 +497,35 @@ export default function PostresModule({ rol }) {
               if (val && val !== "—") hasData = true;
               row.push(val || "—");
             });
-            if (hasData) rowsForCat.push(row);
+            if (hasData) body.push(row);
           });
-
-          if (rowsForCat.length > 0) {
-            body.push([{ 
-              content: cat.nombre.toUpperCase(), 
-              colSpan: 8, 
-              styles: { fillColor: [230, 240, 230], fontStyle: 'bold', halign: 'center', textColor: [0, 85, 44] } 
-            }]);
-            body.push(...rowsForCat);
-          }
         });
       } else {
-        head = [["Categoría", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
+        const allRows = [];
+        head = [["Producto", isMaterias ? "Ingreso" : "Cantidad", "Producto", isMaterias ? "Ingreso" : "Cantidad"]];
         state.forEach(cat => {
-          const rowsForCat = [];
           cat.items.forEach(item => {
             const val = data[item]?.[currentKey];
             if (val && val !== "—") {
-              rowsForCat.push([item, val]);
+              allRows.push([item, val]);
             }
           });
-          
-          if (rowsForCat.length > 0) {
-            const firstRow = [
-              { content: cat.nombre, rowSpan: rowsForCat.length, styles: { valign: 'middle', halign: 'center', fontStyle: 'bold', textColor: [0, 85, 44] } },
-              ...rowsForCat[0]
-            ];
-            body.push(firstRow);
-            for (let i = 1; i < rowsForCat.length; i++) {
-              body.push(rowsForCat[i]);
-            }
-          }
         });
+
+        const half = Math.ceil(allRows.length / 2);
+        const leftSide = allRows.slice(0, half);
+        const rightSide = allRows.slice(half);
+
+        for (let i = 0; i < half; i++) {
+          const leftRow = leftSide[i] || ["", ""];
+          const rightRow = rightSide[i] || ["", ""];
+          const combinedRow = [...leftRow, ...rightRow];
+          body.push(combinedRow);
+        }
       }
 
       if (body.length === 0) {
-        body.push([{ content: "No se encontraron registros en el periodo seleccionado", colSpan: vista === 'semanal' ? 8 : 3, styles: { halign: 'center', fontStyle: 'italic', cellPadding: 10 } }]);
+        body.push([{ content: "No se encontraron registros en el periodo seleccionado", colSpan: vista === 'semanal' ? 8 : 4, styles: { halign: 'center', fontStyle: 'italic', cellPadding: 10 } }]);
       }
 
       autoTable(doc, {
@@ -544,11 +533,13 @@ export default function PostresModule({ rol }) {
         head: head,
         body: body,
         theme: 'grid',
-        styles: { fontSize: 8, cellPadding: 3, halign: 'center' },
+        styles: { fontSize: 8, cellPadding: 3, halign: 'center', lineColor: [220, 220, 220], lineWidth: 0.1 },
         headStyles: { fillColor: verdeCorporativo, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 10 },
         columnStyles: { 
-          0: { cellWidth: vista === 'semanal' ? 'auto' : 40 },
-          1: { halign: 'left' }
+          0: { cellWidth: 65, halign: 'left' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 65, halign: 'left' },
+          3: { cellWidth: 25, halign: 'center' }
         },
         alternateRowStyles: { fillColor: [248, 250, 248] },
         margin: { left: 15, right: 15 }
@@ -606,7 +597,25 @@ export default function PostresModule({ rol }) {
       doc.text(`© 2026 RINCON JUMBO INFORMACIONES / IMPRESION DE ALTO CONTRASTE`, 15, pageHeight - 10);
       doc.text(`ID ÚNICO: ${printId}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
 
-      doc.save(`REGISTRO_TRAZABILIDAD_POSTRES_${safeSeccion}_${currentKey}_${printId}.pdf`);
+      // 4. Numeración de páginas
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`${i} - ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+      }
+
+      // Método de descarga manual más robusto para Chrome
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `POSTRES_${currentKey}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       toast.success("Esquema oficial generado con éxito 📄");
     } catch (error) {
       console.error("Error al generar PDF postres:", error);
@@ -643,37 +652,32 @@ export default function PostresModule({ rol }) {
         <div className={`flex p-1.5 rounded-2xl ${t.bgCard} border ${t.border} w-fit shadow-xl`}>
           <button 
             onClick={() => setActiveTab('materias')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'materias' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'materias' ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
           >
+            <span className="material-symbols-outlined text-base">inventory_2</span>
             Materias Primas
           </button>
           <button 
             onClick={() => setActiveTab('produccion')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'produccion' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'produccion' ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
           >
+            <span className="material-symbols-outlined text-base">icecream</span>
             Producción
           </button>
           <button 
             onClick={() => setActiveTab('pcc')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'pcc' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'pcc' ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
           >
+            <span className="material-symbols-outlined text-base">thermostat</span>
             PCC Cocción
           </button>
           <button 
             onClick={() => setActiveTab('sanitizacion')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'sanitizacion' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${activeTab === 'sanitizacion' ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30 scale-105' : `${t.textSecondary} hover:${t.text}`}`}
           >
+            <span className="material-symbols-outlined text-base">clean_hands</span>
             PCC Sanitización
           </button>
-        </div>
-        <div className="flex items-center gap-3">
-          {(activeTab === 'materias' || activeTab === 'produccion' || activeTab === 'sanitizacion') && (
-            <div className={`flex ${t.bgCard} border ${t.border} rounded-xl overflow-hidden`}>
-              {['diaria', 'semanal', 'mensual'].map(v => (
-                <button key={v} onClick={() => setVista(v)} className={`px-3 py-2 text-xs font-bold capitalize transition-colors ${vista === v ? "bg-rose-600 text-white" : `${t.textSecondary} hover:${t.text}`}`}>{v}</button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -683,13 +687,60 @@ export default function PostresModule({ rol }) {
         <SanitizacionModule rol={rol} cuarto="postres" />
       ) : (
         <>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-8">
+            {/* 1. Título e Icono */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <h2 className={`${t.text} text-lg font-bold tracking-tight`}>{getTitulo()}</h2>
+                <div className="w-14 h-14 rounded-2xl bg-pink-500/20 text-pink-500 flex items-center justify-center shadow-lg shadow-pink-500/10 border border-pink-500/20">
+                  <span className="material-symbols-outlined" style={{ fontSize: 32 }}>{activeTab === 'materias' ? 'inventory_2' : 'icecream'}</span>
+                </div>
+                <div>
+                  <h1 className={`${t.text} text-2xl font-black tracking-tight leading-none mb-1 uppercase`}>
+                    {activeTab === 'materias' ? 'Control de Materias Primas' : 'Planilla de Producción'}
+                  </h1>
+                  <h2 className={`${t.textSecondary} text-[10px] uppercase font-black tracking-[0.2em] opacity-60`}>
+                    {activeTab === 'materias' ? 'Trazabilidad de Insumos' : 'Trazabilidad de Elaborados'}
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Barra de Control: Vista y Navegación de Fecha */}
+            <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl ${t.bgCard} border ${t.border} shadow-sm`}>
+              <div className={`flex p-1 rounded-xl ${t.bgInput} border ${t.border} w-fit shadow-inner`}>
+                {['diaria', 'semanal', 'mensual'].map(v => (
+                  <button key={v} onClick={() => setVista(v)} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${vista === v ? 'bg-pink-600 text-white shadow-lg shadow-pink-500/30' : `${t.textSecondary} hover:text-white`}`}>{v}</button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-4">
+                <h2 className={`${t.text} text-base font-bold tracking-tight`}>{getTitulo()}</h2>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => navegar(-1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-rose-400 transition`}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span></button>
-                  <button onClick={() => navegar(1)} className={`w-8 h-8 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-rose-400 transition`}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span></button>
+                  <button onClick={() => navegar(-1)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-pink-500 hover:border-pink-500/50 transition-all shadow-sm active:scale-90`}><span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span></button>
+                  
+                  {/* Selector de Fecha (Calendario) */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => document.getElementById('date-picker-postres').showPicker()}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-pink-500 hover:border-pink-500/50 transition-all shadow-sm active:scale-90`}
+                      title="Elegir fecha"
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 20 }}>calendar_month</span>
+                    </button>
+                    <input 
+                      id="date-picker-postres"
+                      type="date" 
+                      className="absolute inset-0 opacity-0 pointer-events-none"
+                      value={fechaBase.toISOString().split('T')[0]}
+                      onChange={(e) => {
+                        if (e.target.value) {
+                          setFechaBase(new Date(e.target.value + 'T12:00:00'));
+                        }
+                      }}
+                    />
+                  </div>
+
+                  <button onClick={() => navegar(1)} className={`w-9 h-9 flex items-center justify-center rounded-lg ${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-pink-500 hover:border-pink-500/50 transition-all shadow-sm active:scale-90`}><span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span></button>
                 </div>
               </div>
             </div>
@@ -721,11 +772,16 @@ export default function PostresModule({ rol }) {
             if (filteredItems.length === 0) return null;
             return (
               <div key={cat.id} className="flex flex-col gap-6">
-                <div className="flex flex-col items-center gap-3 relative">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${cat.bg} ${cat.color} shadow-xl border border-white/5`}><span className="material-symbols-outlined" style={{ fontSize: 28 }}>{cat.icon || 'icecream'}</span></div>
-                  <div className="text-center">
-                    <h3 className={`text-2xl font-black uppercase tracking-tight ${cat.color} leading-none`}>{cat.nombre}</h3>
-                    <div className={`h-1 w-24 mx-auto rounded-full mt-3 ${cat.bg} opacity-50`}></div>
+                {/* Header Categoría Lateral (Icono a la izquierda) */}
+                <div className="flex items-center gap-4 relative">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${cat.bg} ${cat.color} shadow-xl border border-white/5`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 24 }}>{cat.icon || 'icecream'}</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className={`text-xl font-black uppercase tracking-tight ${cat.color} leading-none`}>
+                      {cat.nombre}
+                    </h3>
+                    <div className={`h-1 w-12 rounded-full mt-2 ${cat.bg} opacity-50`}></div>
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -750,10 +806,10 @@ export default function PostresModule({ rol }) {
                       )}
 
                       <div className="flex-1 flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                          <span className={`${t.text} text-sm font-bold`}>{item}</span>
+                        <div className="flex items-center justify-center relative">
+                          <span className={`${t.text} text-sm font-bold text-center`}>{item}</span>
                           {esAdmin && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0">
                               <button onClick={() => { setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item }); setModalEditOpen(true); }} className={`w-6 h-6 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-rose-400 border ${t.border}`}><span className="material-symbols-outlined text-xs">edit</span></button>
                               <button onClick={() => handleDeleteItem(cat.id, item)} className={`w-6 h-6 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-red-400 border ${t.border}`}><span className="material-symbols-outlined text-xs">delete</span></button>
                             </div>
@@ -903,7 +959,7 @@ export default function PostresModule({ rol }) {
             </div>
             <div className="flex gap-3 mt-8">
               <button onClick={() => setModalAddOpen(false)} className={`flex-1 py-3 rounded-xl ${t.bgInput} ${t.text} font-bold`}>Cancelar</button>
-              <button onClick={handleAddItem} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold">Agregar</button>
+              <button onClick={handleAddItem} className="flex-1 py-3 rounded-xl bg-pink-600 text-white font-bold">Agregar</button>
             </div>
           </div>
         </div>
@@ -916,18 +972,18 @@ export default function PostresModule({ rol }) {
             <div className="flex flex-col gap-4">
               <div>
                 <label className={`text-xs font-bold ${t.textSecondary} uppercase mb-1 block`}>Nuevo Nombre</label>
-                <input type="text" value={editingItem.newName} onChange={(e) => setEditingItem(prev => ({ ...prev, newName: e.target.value }))} className={`w-full ${t.bgInput} ${t.text} p-3 rounded-xl border ${t.border} focus:outline-none focus:border-rose-500`} />
+                <input type="text" value={editingItem.newName} onChange={(e) => setEditingItem(prev => ({ ...prev, newName: e.target.value }))} className={`w-full ${t.bgInput} ${t.text} p-3 rounded-xl border ${t.border} focus:outline-none focus:border-pink-500`} />
               </div>
               <div>
                 <label className={`text-xs font-bold ${t.textSecondary} uppercase mb-1 block`}>Cambiar Categoría</label>
-                <select value={editingItem.catId} onChange={(e) => setEditingItem(prev => ({ ...prev, catId: e.target.value }))} className={`w-full ${t.bgInput} ${t.text} p-3 rounded-xl border ${t.border} focus:outline-none focus:border-rose-500`}>
+                <select value={editingItem.catId} onChange={(e) => setEditingItem(prev => ({ ...prev, catId: e.target.value }))} className={`w-full ${t.bgInput} ${t.text} p-3 rounded-xl border ${t.border} focus:outline-none focus:border-pink-500`}>
                   {(activeTab === 'materias' ? materiasState : produccionState).map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-3 mt-8">
               <button onClick={() => setModalEditOpen(false)} className={`flex-1 py-3 rounded-xl ${t.bgInput} ${t.text} font-bold`}>Cancelar</button>
-              <button onClick={handleEditItem} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold">Guardar</button>
+              <button onClick={handleEditItem} className="flex-1 py-3 rounded-xl bg-pink-600 text-white font-bold">Guardar</button>
             </div>
           </div>
         </div>
@@ -936,7 +992,7 @@ export default function PostresModule({ rol }) {
           <div className="fixed bottom-24 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-50">
             <button 
               onClick={handleExportPDF}
-              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-rose-950/40 backdrop-blur-md text-rose-200 font-bold shadow-2xl hover:bg-rose-900/60 transition-all flex items-center justify-center gap-2 border border-rose-500/20 group"
+              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-pink-950/40 backdrop-blur-md text-pink-200 font-bold shadow-2xl hover:bg-pink-900/60 transition-all flex items-center justify-center gap-2 border border-pink-500/20 group"
               title="Exportar PDF"
             >
               <span className="material-symbols-outlined">picture_as_pdf</span>
@@ -946,7 +1002,7 @@ export default function PostresModule({ rol }) {
             <button 
               onClick={handleGuardarDatos}
               disabled={saving}
-              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-rose-600 text-white font-bold shadow-2xl shadow-rose-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group"
+              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-pink-600 text-white font-bold shadow-2xl shadow-pink-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group"
               title="Guardar Registros"
             >
               {saving ? (
