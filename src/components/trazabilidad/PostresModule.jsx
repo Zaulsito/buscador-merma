@@ -988,27 +988,27 @@ export default function PostresModule({ rol }) {
           </div>
         </div>
       )}
-          {/* Botones Flotantes de Acción — solo para materias */}
-          <div className="fixed bottom-24 right-6 md:bottom-10 md:right-10 flex flex-col gap-3 z-50">
+          {/* Botones Flotantes de Acción — ARQUITECTURA LUXE */}
+          <div className="fixed bottom-10 right-10 flex flex-col gap-3 z-[100]">
             <button 
-              onClick={handleExportPDF}
-              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-pink-950/40 backdrop-blur-md text-pink-200 font-bold shadow-2xl hover:bg-pink-900/60 transition-all flex items-center justify-center gap-2 border border-pink-500/20 group"
+              onClick={() => setShowAuditModal(true)}
+              className="w-14 h-14 md:w-auto md:h-auto md:px-7 md:py-4 rounded-full md:rounded-2xl bg-slate-900/90 backdrop-blur-xl border border-white/10 text-pink-400 font-bold text-[15px] tracking-tight shadow-2xl hover:bg-slate-800 transition-all flex items-center justify-center gap-3 group"
               title="Exportar PDF"
             >
-              <span className="material-symbols-outlined">picture_as_pdf</span>
+              <span className="material-symbols-outlined group-hover:scale-110 transition-transform" style={{ fontSize: 24 }}>picture_as_pdf</span>
               <span className="hidden md:inline">PDF</span>
             </button>
 
             <button 
               onClick={handleGuardarDatos}
               disabled={saving}
-              className="w-14 h-14 md:w-auto md:h-auto md:px-6 md:py-3 rounded-full md:rounded-xl bg-pink-600 text-white font-bold shadow-2xl shadow-pink-500/20 hover:scale-110 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 group"
+              className="w-14 h-14 md:w-auto md:h-auto md:px-7 md:py-4 rounded-full md:rounded-2xl bg-pink-600 text-white font-bold text-[15px] tracking-tight shadow-2xl shadow-black/40 hover:brightness-110 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50 group"
               title="Guardar Registros"
             >
               {saving ? (
                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
               ) : (
-                <span className="material-symbols-outlined">cloud_upload</span>
+                <span className="material-symbols-outlined group-hover:scale-110 transition-transform" style={{ fontSize: 24 }}>cloud_upload</span>
               )}
               <span className="hidden md:inline">{saving ? "Guardando..." : "Guardar"}</span>
             </button>

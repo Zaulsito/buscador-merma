@@ -6,7 +6,11 @@ import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
 import SandwichModule from "../components/trazabilidad/SandwichModule";
 import PostresModule from "../components/trazabilidad/PostresModule";
+import BolleriaModule from "../components/trazabilidad/BolleriaModule";
 import CoccionEnfriadoModule from "../components/trazabilidad/CoccionEnfriadoModule";
+import FrioModule from "../components/trazabilidad/FrioModule";
+import CalienteModule from "../components/trazabilidad/CalienteModule";
+import SizzlingModule from "../components/trazabilidad/SizzlingModule";
 
 const SECCIONES = [
   { id: "caliente", nombre: "Cuarto Caliente", icon: "local_fire_department", color: "text-red-500", bg: "bg-red-500/10", borderB: "border-b-red-500", hoverBg: "group-hover:bg-red-500" },
@@ -137,6 +141,14 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal
                 <SandwichModule rol={rol} />
               ) : seccionActiva === 'postres' ? (
                 <PostresModule rol={rol} />
+              ) : seccionActiva === 'bolleria' ? (
+                <BolleriaModule rol={rol} />
+              ) : seccionActiva === 'frio' ? (
+                <FrioModule rol={rol} />
+              ) : seccionActiva === 'caliente' ? (
+                <CalienteModule rol={rol} />
+              ) : seccionActiva === 'sizzling' ? (
+                <SizzlingModule rol={rol} />
               ) : (
                 <div className="flex flex-col items-center justify-center text-center py-20">
                    <div className={`w-20 h-20 rounded-2xl flex items-center justify-center mb-6 ${SECCIONES.find(s => s.id === seccionActiva)?.bg} ${SECCIONES.find(s => s.id === seccionActiva)?.color}`}>
