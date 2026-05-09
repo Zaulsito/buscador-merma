@@ -89,13 +89,13 @@ const PRODUCTOS_PRODUCCION = [
     color: "text-rose-400",
     bg: "bg-rose-500/10",
     items: [
-      "AMERICANO", "ARROZ CON LECHE UN", "ARROZ INTEGRAL CON LECHE STEVIA", "BUDIN DIPLOMATICO UN",
-      "BUMCHOCOLAT", "CLAFOUTTI UN", "COMPOTA DE FRUTA UN", "COOKIE CREAM", "CREME BRULLE",
-      "DAMASCAKE SIN AZUCAR", "LECHE ASADA UN", "LECHE NEVADA UN", "MIX DE FRUTAS",
-      "MOTE CON HUESILLO UN", "MOUSSE DE CAFÉ", "MOUSSE DE FRAMBUESA SIN AZUCAR", "MOUSSE DE FRUTILLA",
-      "PANACOTA PAPAYA", "PANQUEQUE CELESTINO UN", "PASION CHOCOLATE SIN AZUCAR", "PASTEL DE MANZANA",
-      "POSTRE TRES LECHES UN", "SEMOLA CON LECHE UN", "SEMOLA DEL BOSQUE STEVIA", "SUSPIRO LIMEÑO UN",
-      "SUSPIRO MARACUYA", "TARTA ROJA", "TENTACION MARACUYA SIN AZUCAR", "TIRAMISU UN"
+      "Americano", "Arroz con Leche UN", "Arroz Integral con Leche Stevia", "Budín Diplomático UN",
+      "Bumchocolat", "Clafoutti UN", "Compota de Fruta UN", "Cookie Cream", "Creme Brulle",
+      "Damascake sin Azúcar", "Leche Asada UN", "Leche Nevada UN", "Mix de Frutas",
+      "Mote con Huesillo UN", "Mousse de Café", "Mousse de Frambuesa sin Azúcar", "Mousse de Frutilla",
+      "Panacota Papaya", "Panqueque Celestino UN", "Pasión Chocolate sin Azúcar", "Pastel de Manzana",
+      "Postre Tres Leches UN", "Sémola con Leche UN", "Sémola del Bosque Stevia", "Suspiro Limeño UN",
+      "Suspiro Maracuyá", "Tarta Roja", "Tentación Maracuyá sin Azúcar", "Tiramisú UN"
     ]
   }
 ];
@@ -125,6 +125,11 @@ function toKey(date) {
 }
 function formatFechaShort(date) {
   return `${date.getDate()} ${MESES[date.getMonth()].slice(0, 3).toUpperCase()}`;
+}
+
+function formatName(str) {
+  if (!str) return '';
+  return str.toLowerCase().split(' ').map(w => w === 'un' ? 'UN' : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 export default function PostresModule({ rol }) {
@@ -386,7 +391,7 @@ export default function PostresModule({ rol }) {
       head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
       state.forEach(cat => {
         cat.items.forEach(item => {
-          const row = [item];
+          const row = [formatName(item)];
           diasSemana.forEach(dia => row.push(data[item]?.[toKey(dia)] || ""));
           body.push(row);
         });
@@ -395,7 +400,7 @@ export default function PostresModule({ rol }) {
       head = [["Categoría", "Producto", "Ingreso"]];
       state.forEach(cat => {
         cat.items.forEach(item => {
-          body.push([cat.nombre, item, data[item]?.[currentKey] || ""]);
+          body.push([cat.nombre, formatName(item), data[item]?.[currentKey] || ""]);
         });
       });
     }
@@ -490,7 +495,7 @@ export default function PostresModule({ rol }) {
         head = [["Producto", ...diasSemana.map(d => formatFechaShort(d))]];
         state.forEach(cat => {
           cat.items.forEach(item => {
-            const row = [item];
+            const row = [formatName(item)];
             let hasData = false;
             diasSemana.forEach(d => {
               const val = data[item]?.[toKey(d)];
@@ -507,7 +512,7 @@ export default function PostresModule({ rol }) {
           cat.items.forEach(item => {
             const val = data[item]?.[currentKey];
             if (val && val !== "—") {
-              allRows.push([item, val]);
+              allRows.push([formatName(item), val]);
             }
           });
         });
@@ -786,56 +791,66 @@ export default function PostresModule({ rol }) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredItems.map((item, idx) => (
-                    <div key={item} className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex gap-3 hover:border-rose-500/30 transition-all group relative`}>
-                      {/* Flechas de ordenamiento */}
+                    <div key={item} className={`${t.bgCard} border ${t.border} rounded-3xl p-5 flex flex-col gap-5 hover:border-rose-500/40 hover:shadow-2xl hover:shadow-rose-500/10 transition-all duration-500 group relative overflow-hidden`}>
+                      
+                      {/* Glow Background */}
+                      <div className="absolute -top-24 -right-24 w-48 h-48 bg-rose-500/10 rounded-full blur-3xl group-hover:bg-rose-500/20 transition-all duration-700 pointer-events-none"></div>
+
+                      {/* Header */}
+                      <div className="flex items-center gap-3 w-full relative z-10">
+                        {/* Icono de la categoría decorativo */}
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${cat.bg || 'bg-rose-500/10'} ${cat.color || 'text-rose-400'} border border-white/5 shadow-inner shrink-0`}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{cat.icon || 'icecream'}</span>
+                        </div>
+                        
+                        {/* Texto del Producto */}
+                        <div className="flex-1">
+                          <h4 className={`${t.text} text-[14px] font-black tracking-tight leading-tight drop-shadow-sm`}>
+                            {formatName(item)}
+                          </h4>
+                          <span className={`text-[9px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-rose-400' : 'text-orange-400'} opacity-70 font-bold`}>
+                            {activeTab === 'materias' ? 'Materia Prima' : 'Elaborado'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Botonera de Admin Flotante (Solo visible en hover) */}
                       {esAdmin && !searchTerm && (
-                        <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity justify-center">
-                          <button 
-                            onClick={() => moveItem(cat.id, idx, -1)}
-                            className={`w-6 h-6 flex items-center justify-center rounded-md ${t.bgInput} ${t.textSecondary} hover:text-rose-400 border ${t.border}`}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_less</span>
-                          </button>
-                          <button 
-                            onClick={() => moveItem(cat.id, idx, 1)}
-                            className={`w-6 h-6 flex items-center justify-center rounded-md ${t.bgInput} ${t.textSecondary} hover:text-rose-400 border ${t.border}`}
-                          >
-                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_more</span>
-                          </button>
+                        <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-[#0f172a]/90 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-20 translate-y-2 group-hover:translate-y-0">
+                          <button onClick={() => moveItem(cat.id, idx, -1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_upward</span></button>
+                          <button onClick={() => moveItem(cat.id, idx, 1)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_downward</span></button>
+                          <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+                          <button onClick={() => { setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item }); setModalEditOpen(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/20 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span></button>
+                          <button onClick={() => handleDeleteItem(cat.id, item)} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/20 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span></button>
                         </div>
                       )}
-
-                      <div className="flex-1 flex flex-col gap-3">
-                        <div className="flex items-center justify-center relative">
-                          <span className={`${t.text} text-sm font-bold text-center`}>{item}</span>
-                          {esAdmin && (
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0">
-                              <button onClick={() => { setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item }); setModalEditOpen(true); }} className={`w-6 h-6 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-rose-400 border ${t.border}`}><span className="material-symbols-outlined text-xs">edit</span></button>
-                              <button onClick={() => handleDeleteItem(cat.id, item)} className={`w-6 h-6 flex items-center justify-center rounded-lg ${t.bgInput} ${t.textSecondary} hover:text-red-400 border ${t.border}`}><span className="material-symbols-outlined text-xs">delete</span></button>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
+                      
+                      {/* Divider */}
+                      <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent relative z-10"></div>
+                      
+                      {/* Input y Botón de Copiar */}
+                      <div className="flex gap-3 relative z-10 w-full">
+                        <div className="relative flex-1">
                           <input 
                             type="text" 
                             value={data[item]?.[currentKey] || ""} 
                             onChange={(e) => handleInputChange(item, currentKey, e.target.value)}
-                            placeholder={activeTab === 'materias' ? "DD/MM" : "Cant."}
-                            className={`flex-1 ${t.bgInput} ${t.text} text-center py-2.5 rounded-xl border ${t.border} focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10 transition-all font-mono font-bold placeholder:opacity-30`}
+                            placeholder={activeTab === 'materias' ? "DD/MM" : "0"}
+                            className={`w-full bg-black/20 ${t.text} text-center py-3.5 pl-4 pr-4 rounded-2xl border ${t.border} focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10 focus:bg-rose-500/5 transition-all font-mono font-bold text-[15px] placeholder:opacity-30`}
                           />
-                          <button 
-                            title="Copiar del día anterior"
-                            onClick={() => {
-                              const prevDate = new Date(fechaBase);
-                              prevDate.setDate(prevDate.getDate() - 1);
-                              const prevKey = toKey(prevDate);
-                              handleInputChange(item, currentKey, data[item]?.[prevKey] || '');
-                            }}
-                            className={`p-2.5 rounded-xl ${t.bgInput} ${t.textSecondary} hover:text-rose-400 border ${t.border} transition-all`}
-                          >
-                            <span className="material-symbols-outlined text-sm">content_copy</span>
-                          </button>
                         </div>
+                        <button 
+                          title="Copiar del día anterior"
+                          onClick={() => {
+                            const prevDate = new Date(fechaBase);
+                            prevDate.setDate(prevDate.getDate() - 1);
+                            const prevKey = toKey(prevDate);
+                            handleInputChange(item, currentKey, data[item]?.[prevKey] || '');
+                          }}
+                          className={`w-14 flex items-center justify-center rounded-2xl bg-black/20 ${t.textSecondary} hover:text-rose-400 hover:bg-rose-500/10 border ${t.border} hover:border-rose-500/30 transition-all active:scale-95 group/btn`}
+                        >
+                          <span className="material-symbols-outlined text-[20px] group-hover/btn:scale-110 transition-transform">content_copy</span>
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -867,7 +882,7 @@ export default function PostresModule({ rol }) {
                   </tr>
                   {filterItems(cat.items).map(item => (
                     <tr key={item} className="hover:bg-white/5 transition-colors group">
-                      <td className={`p-4 text-sm font-bold ${t.text} sticky left-0 ${t.bgCard} z-10 border-r ${t.border}`}>{item}</td>
+                      <td className={`p-4 text-sm font-bold ${t.text} sticky left-0 ${t.bgCard} z-10 border-r ${t.border}`}>{formatName(item)}</td>
                       {diasSemana.map(d => {
                         const key = toKey(d);
                         return (

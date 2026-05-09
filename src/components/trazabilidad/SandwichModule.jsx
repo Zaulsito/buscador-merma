@@ -813,83 +813,79 @@ export default function SandwichModule({ rol }) {
                     return (
                       <div 
                         key={item} 
-                        className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex flex-col gap-3 hover:border-purple-500/30 hover:shadow-xl hover:shadow-purple-500/5 transition-all group relative`}
+                        className={`${t.bgCard} border ${t.border} rounded-3xl p-5 flex flex-col gap-5 hover:border-emerald-500/40 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 group relative overflow-hidden`}
                       >
-                        {/* Controles de Reordenar (Solo Admin) */}
+                        
+                        {/* Glow Background (Usa el color de la categoría o esmeralda por defecto) */}
+                        <div className={`absolute -top-24 -right-24 w-48 h-48 ${cat.bg ? cat.bg.replace('/10', '/5') : 'bg-emerald-500/5'} rounded-full blur-3xl group-hover:${cat.bg ? cat.bg.replace('/10', '/20') : 'bg-emerald-500/20'} transition-all duration-700 pointer-events-none`}></div>
+
+                        {/* Header */}
+                        <div className="flex items-center gap-3 w-full relative z-10">
+                          {/* Icono de la categoría decorativo */}
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${cat.bg || 'bg-emerald-500/10'} ${cat.color || 'text-emerald-400'} border border-white/5 shadow-inner shrink-0`}>
+                            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{cat.icon || 'fastfood'}</span>
+                          </div>
+                          
+                          {/* Texto del Producto */}
+                          <div className="flex-1">
+                            <h4 className={`${t.text} text-[14px] font-black tracking-tight leading-tight drop-shadow-sm`}>
+                              {item}
+                            </h4>
+                            <span className={`text-[9px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-purple-400' : 'text-emerald-400'} opacity-70 font-bold`}>
+                              {activeTab === 'materias' ? 'Ingreso (DD/MM)' : 'Cantidad'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Botonera de Admin Flotante (Solo visible en hover) */}
                         {esAdmin && !searchTerm && (
-                          <div className="absolute -left-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-[#0f172a]/90 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-20 translate-y-2 group-hover:translate-y-0">
+                            <button onClick={() => moveItem(cat.id, originalIdx, -1)} disabled={originalIdx === 0} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_upward</span></button>
+                            <button onClick={() => moveItem(cat.id, originalIdx, 1)} disabled={originalIdx === cat.items.length - 1} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_downward</span></button>
+                            <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+                            <button onClick={() => { setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item }); setModalEditOpen(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/20 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span></button>
                             <button 
-                              onClick={() => moveItem(cat.id, originalIdx, -1)}
-                              disabled={originalIdx === 0}
-                              className={`w-6 h-6 rounded-full ${t.bgInput} border ${t.border} ${t.text} flex items-center justify-center hover:bg-purple-500/20 disabled:opacity-30`}
+                              onClick={() => handleDeleteItem(cat.id, item)} 
+                              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                                confirmDeleteId === `${cat.id}-${item}` 
+                                  ? "bg-red-600 text-white animate-pulse border-red-500" 
+                                  : "text-white/50 hover:text-red-400 hover:bg-red-500/20 border-transparent"
+                              }`}
+                              title={confirmDeleteId === `${cat.id}-${item}` ? "Clic de nuevo para borrar" : "Eliminar"}
                             >
-                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_less</span>
-                            </button>
-                            <button 
-                              onClick={() => moveItem(cat.id, originalIdx, 1)}
-                              disabled={originalIdx === cat.items.length - 1}
-                              className={`w-6 h-6 rounded-full ${t.bgInput} border ${t.border} ${t.text} flex items-center justify-center hover:bg-purple-500/20 disabled:opacity-30`}
-                            >
-                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>expand_more</span>
+                              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                {confirmDeleteId === `${cat.id}-${item}` ? "priority_high" : "delete"}
+                              </span>
                             </button>
                           </div>
                         )}
-
-                        <div className="flex flex-col items-center gap-1 relative">
-                          <div className="flex items-center gap-2 justify-center w-full">
-                            <span className={`${t.text} text-sm font-bold leading-tight text-center`}>{item}</span>
-                            
-                            {esAdmin && (
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute right-0">
-                                <button 
-                                  onClick={() => {
-                                    setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item });
-                                    setModalEditOpen(true);
-                                  }}
-                                  className={`w-5 h-5 flex items-center justify-center rounded-md ${t.bgInput} ${t.textSecondary} hover:text-blue-400 border ${t.border}`}
-                                >
-                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>edit</span>
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteItem(cat.id, item)}
-                                  className={`w-5 h-5 flex items-center justify-center rounded-md border transition-all ${
-                                    confirmDeleteId === `${cat.id}-${item}` 
-                                      ? "bg-red-600 border-red-500 text-white animate-pulse" 
-                                      : `${t.bgInput} ${t.textSecondary} hover:text-red-400 border ${t.border}`
-                                  }`}
-                                  title={confirmDeleteId === `${cat.id}-${item}` ? "Clic de nuevo para borrar" : "Eliminar"}
-                                >
-                                  <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                                    {confirmDeleteId === `${cat.id}-${item}` ? "priority_high" : "delete"}
-                                  </span>
-                                </button>
-                              </div>
-                            )}
+                        
+                        {/* Divider */}
+                        <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent relative z-10"></div>
+                        
+                        {/* Input y Botón de Copiar */}
+                        <div className="flex gap-3 relative z-10 w-full">
+                          <div className="relative flex-1">
+                            <input 
+                              type="text"
+                              placeholder={activeTab === 'materias' ? "30/04" : "0"}
+                              value={data[item]?.[currentKey] || ''}
+                              onChange={(e) => handleInputChange(item, currentKey, e.target.value)}
+                              className={`w-full bg-black/20 ${t.text} text-center py-3.5 pl-4 pr-4 rounded-2xl border ${t.border} focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 focus:bg-emerald-500/5 transition-all font-mono font-bold text-[15px] placeholder:opacity-30`}
+                            />
                           </div>
-                          <span className={`text-[9px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-purple-400' : 'text-emerald-400'} font-black opacity-50`}>
-                            {activeTab === 'materias' ? 'Ingreso (DD/MM)' : 'Cantidad'}
-                          </span>
-                        </div>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text"
-                            placeholder={activeTab === 'materias' ? "30/04" : "0"}
-                            value={data[item]?.[currentKey] || ''}
-                            onChange={(e) => handleInputChange(item, currentKey, e.target.value)}
-                            className={`flex-1 ${t.bgInput} ${t.text} ${activeTab === 'materias' ? 'text-xs font-medium' : 'text-base font-black text-center'} p-2.5 rounded-xl border ${t.border} focus:outline-none focus:border-purple-500/50 transition-all`}
-                          />
                           {activeTab === 'materias' && (
                             <button 
                               title="Copiar del día anterior"
-                              className={`p-2.5 rounded-xl ${t.bgInput} ${t.textSecondary} hover:text-purple-400 border ${t.border} transition-all`}
                               onClick={() => {
                                 const prevDate = new Date(fechaBase);
                                 prevDate.setDate(prevDate.getDate() - 1);
                                 const prevKey = toKey(prevDate);
                                 handleInputChange(item, currentKey, data[item]?.[prevKey] || '');
                               }}
+                              className={`w-14 flex items-center justify-center rounded-2xl bg-black/20 ${t.textSecondary} hover:text-emerald-400 hover:bg-emerald-500/10 border ${t.border} hover:border-emerald-500/30 transition-all active:scale-95 group/btn`}
                             >
-                              <span className="material-symbols-outlined text-sm">content_copy</span>
+                              <span className="material-symbols-outlined text-[20px] group-hover/btn:scale-110 transition-transform">content_copy</span>
                             </button>
                           )}
                         </div>

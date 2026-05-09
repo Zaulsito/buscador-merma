@@ -296,7 +296,7 @@ const SanitizacionModule = ({ rol, cuarto = 'postres' }) => {
                     <td className="p-4 rounded-l-2xl border-y border-l border-white/5">
                       <div className="flex flex-col">
                         <span className="text-xs font-black text-white">{formatDateOnly(r.fecha)}</span>
-                        <span className={`text-[10px] ${accentText400}/80 font-mono font-bold`}>{formatTimeOnly(r.fecha)}</span>
+                        <span className={`text-[10px] ${accentText400} opacity-80 font-mono font-bold`}>{formatTimeOnly(r.fecha)}</span>
                       </div>
                     </td>
                     <td className="p-4 border-y border-white/5">
@@ -311,13 +311,13 @@ const SanitizacionModule = ({ rol, cuarto = 'postres' }) => {
                     <td className="p-4 border-y border-white/5 text-center">
                       <div className="flex flex-col items-center">
                         <span className={`text-sm font-black ${accentText} drop-shadow-[0_0_8px_rgba(236,72,153,0.3)]`}>{r.concentracion}</span>
-                        <span className={`text-[8px] font-black uppercase ${accentText}/60 tracking-widest -mt-1`}>PPM</span>
+                        <span className={`text-[8px] font-black uppercase ${accentText} opacity-60 tracking-widest -mt-1`}>PPM</span>
                       </div>
                     </td>
                     <td className="p-4 border-y border-white/5 text-center">
                       <div className="flex flex-col items-center">
                         <span className="text-sm font-black text-amber-500 drop-shadow-[0_0_8px_rgba(245,158,11,0.3)]">{r.tiempo}</span>
-                        <span className="text-[8px] font-black uppercase text-amber-500/60 tracking-widest -mt-1">MIN</span>
+                        <span className="text-[8px] font-black uppercase text-amber-500 opacity-60 tracking-widest -mt-1">MIN</span>
                       </div>
                     </td>
                     <td className="p-4 border-y border-white/5">
@@ -327,7 +327,7 @@ const SanitizacionModule = ({ rol, cuarto = 'postres' }) => {
                           <span className="text-[10px] font-bold italic line-clamp-1 group-hover:line-clamp-none transition-all text-white/80">"{r.accionCorrectiva}"</span>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-gray-500 font-bold opacity-30 uppercase tracking-widest italic">Sin incidencias</span>
+                        <span className="text-[10px] text-white opacity-40 font-bold uppercase tracking-widest italic">Sin incidencias</span>
                       )}
                     </td>
                     <td className="p-4 rounded-r-2xl border-y border-r border-white/5 text-right">
@@ -421,7 +421,7 @@ const SanitizacionModule = ({ rol, cuarto = 'postres' }) => {
 
       {showAuditModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className={`${t.bgCard} border ${t.border} rounded-3xl p-8 max-sm w-full shadow-2xl text-center`}>
+          <div className={`${t.bgCard} border ${t.border} rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center`}>
             <div className={`w-16 h-16 rounded-2xl ${accentBg} ${accentText} flex items-center justify-center mx-auto mb-6`}><span className="material-symbols-outlined" style={{ fontSize: 32 }}>shield_person</span></div>
             <h3 className="text-white text-xl font-bold mb-2">Registro de Seguridad</h3>
             <p className="text-white/60 text-sm mb-8">Esta exportación quedará vinculada a tu usuario.</p>

@@ -10,8 +10,67 @@ import autoTable from 'jspdf-autotable';
 import CoccionEnfriadoModule from './CoccionEnfriadoModule';
 import SanitizacionModule from './SanitizacionModule';
 
-const DEFAULT_CATEGORIAS = [
-  { id: 'principal', nombre: 'Materias Primas', icon: 'inventory_2', color: 'text-cyan-400', bg: 'bg-cyan-500/10', items: ['Insumo 1', 'Insumo 2'] }
+const CATEGORIAS_MATERIAS_CALIENTE = [
+  {
+    id: 'carnes_aves',
+    nombre: 'Carnes y Aves',
+    icon: 'kebab_dining',
+    color: 'text-red-400',
+    bg: 'bg-red-500/10',
+    items: [
+      'CARNE MOLIDA', 'TAPAPECHO', 'LOMO CERDO', 'MILANESA VACUNO', 'JAMON', 'COSTILLAR', 'TOCINO', 'CHORICILLO', 'PECHUGA DE POLLO', 'TRUTRO ALA'
+    ]
+  },
+  {
+    id: 'pescados_mariscos',
+    nombre: 'Pescados y Mariscos',
+    icon: 'set_meal',
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-500/10',
+    items: [
+      'SALMON', 'CHORITOS', 'CHOLGAS', 'ALMEJAS', 'CAMARON SMALL', 'CAMARON GRANDE'
+    ]
+  },
+  {
+    id: 'vegetales',
+    nombre: 'Vegetales y Frescos',
+    icon: 'eco',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    items: [
+      'CHAMPIÑON', 'CILANTRO', 'ZANAHORIA', 'CEBOLLA', 'CEBOLLIN', 'CIBOULETTE', 'PIMENTON', 'ARVEJAS', 'AJI JALAPEÑO'
+    ]
+  },
+  {
+    id: 'lacteos',
+    nombre: 'Lácteos y Quesos',
+    icon: 'egg_alt',
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10',
+    items: [
+      'QUESO MOZARELLA RALLADO', 'QUESO RALLADO', 'QUESO MOZARELLA', 'CREMA'
+    ]
+  },
+  {
+    id: 'abarrotes',
+    nombre: 'Abarrotes y Aceites',
+    icon: 'inventory_2',
+    color: 'text-amber-500',
+    bg: 'bg-amber-500/10',
+    items: [
+      'ARROZ PREGRANEADO', 'ARROZ', 'ACEITE ALTO OLEICO', 'ACEITE', 'MAICENA', 'SALSA TOMATE', 'CALDO CONGRIO', 'CIRUELA'
+    ]
+  },
+  {
+    id: 'condimentos',
+    nombre: 'Condimentos y Especias',
+    icon: 'grain',
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10',
+    items: [
+      'SAL', 'PIMIENTA NEGRA', 'AJO EN POLVO', 'AJO EN SALSA', 'OREGANO', 'AJI COLOR', 'CURRY', 'ROMERO', 'LAUREL', 'VINO BLANCO', 'BLACKENED SPICY', 'RUBB BRISKET', 'HUMO LIQUIDO', 'CONDIMENTOS'
+    ]
+  }
 ];
 
 const PRODUCTOS_ACOMPANAMIENTOS = [
@@ -121,11 +180,11 @@ const PRODUCTOS_PLATOS_FONDO = [
     ] 
   },
   { 
-    id: 'aves', 
-    nombre: 'Pollo y Pavo', 
-    icon: 'restaurant', 
-    color: 'text-orange-400', 
-    bg: 'bg-orange-500/10', 
+    id: 'pollo', 
+    nombre: 'Pollo', 
+    icon: 'kebab_dining', 
+    color: 'text-yellow-500', 
+    bg: 'bg-yellow-500/10', 
     items: [
       'AJI DE GALLINA', 'CANELON DE POLLO GRIEGO', 'CAZUELA DE POLLO UN', 'CORDON BLUE DE POLLO', 'ESCALOPA DE POLLO',
       'PECHUGA DE POLLO EN SALSA ARVEJADA', 'PECHUGA DE POLLO MILAN', 'PECHUGA DE POLLO SALSA ESCABECHADA',
@@ -134,7 +193,17 @@ const PRODUCTOS_PLATOS_FONDO = [
       'TRUTRO A LA CHILENA', 'TRUTRO AL AJILLO', 'TRUTRO ALA COREANO', 'TRUTRO ALA TAMARINDO', 'TRUTRO BBQ',
       'TRUTRO DE ALA SWEET CHILI', 'TRUTRO DE POLLO A LA MOSTAZA', 'TRUTRO DE POLLO AL CHIMICHURRI',
       'TRUTRO DE POLLO AL JUGO', 'TRUTRO DE POLLO AL LIMON', 'TRUTRO DE POLLO AL OREGANO', 'TRUTRO DE POLLO ITALIANO',
-      'TRUTRO FINAS HIERBAS', 'TRUTRO POLLLO AL COGNAC', 'TRUTRO POLLO AL MERKEN', 'PAVO EN SALSA DE CHAMPIGNON',
+      'TRUTRO FINAS HIERBAS', 'TRUTRO POLLLO AL COGNAC', 'TRUTRO POLLO AL MERKEN'
+    ] 
+  },
+  { 
+    id: 'pavo', 
+    nombre: 'Pavo', 
+    icon: 'restaurant', 
+    color: 'text-orange-400', 
+    bg: 'bg-orange-500/10', 
+    items: [
+      'PAVO EN SALSA DE CHAMPIGNON',
       'PAVO EN SALSA DE CIRUELA Y CABERNET', 'PAVO EN SALSA DE MEMBRILLO', 'PAVO EN SALSA DE MOSTAZA', 'PAVO ASADO',
       'PAVO CON SALSA NOGADA', 'PAVO SALSA CILANTRO', 'PAVO SALSA VERDURAS'
     ] 
@@ -171,6 +240,10 @@ const PRODUCTOS_PLATOS_FONDO = [
   }
 ];
 
+const DEFAULT_ACEITES = [
+  { id: 'freidoras', nombre: 'Control de Freidoras', icon: 'water_drop', color: 'text-amber-400', bg: 'bg-amber-500/10', items: ['Freidora 1'] }
+];
+
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -191,6 +264,14 @@ function toKey(date) {
 }
 function formatFechaShort(date) { return `${date.getDate()} ${MESES[date.getMonth()].slice(0, 3).toUpperCase()}`; }
 
+function formatName(str) {
+  if (!str) return '';
+  return str.split(' ').map(word => {
+    if (word === 'UN' || word === 'BBQ') return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
 export default function CalienteModule({ rol }) {
   const { t } = useTheme();
   const { user } = useAuth();
@@ -202,9 +283,13 @@ export default function CalienteModule({ rol }) {
   const [data, setData] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [materiasState, setMateriasState] = useState(DEFAULT_CATEGORIAS);
+  const lunesSemana = getLunes(fechaBase);
+  const diasSemana = Array.from({ length: 7 }, (_, i) => addDays(lunesSemana, i));
+  
+  const [materiasState, setMateriasState] = useState(CATEGORIAS_MATERIAS_CALIENTE);
   const [acomState, setAcomState] = useState(PRODUCTOS_ACOMPANAMIENTOS);
   const [fondoState, setFondoState] = useState(PRODUCTOS_PLATOS_FONDO);
+  const [aceitesState, setAceitesState] = useState(DEFAULT_ACEITES);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -214,16 +299,53 @@ export default function CalienteModule({ rol }) {
   const [newItemName, setNewItemName] = useState('');
   const [targetCatId, setTargetCatId] = useState(null);
 
+  // Admin Edición
+  const [modalEditOpen, setModalEditOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState({ catId: null, originalCatId: null, oldName: '', newName: '' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
   useEffect(() => {
     const loadConfig = async () => {
       try {
         const docRef = doc(db, 'trazabilidad_config', 'caliente');
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const { materias, acom, fondo } = docSnap.data();
-          if (materias) setMateriasState(materias);
+          const { materias, acom, fondo, aceites } = docSnap.data();
+          
+          let migratedMaterias = materias;
+          if (materias) {
+            const hasPrincipal = materias.some(c => c.id === 'principal');
+            if (hasPrincipal) {
+              migratedMaterias = CATEGORIAS_MATERIAS_CALIENTE;
+              setMateriasState(CATEGORIAS_MATERIAS_CALIENTE);
+            } else {
+              setMateriasState(materias);
+            }
+          }
+
+          let migratedFondo = fondo;
+          if (fondo) {
+            const hasAves = fondo.some(c => c.id === 'aves');
+            if (hasAves) {
+              migratedFondo = PRODUCTOS_PLATOS_FONDO;
+              setFondoState(PRODUCTOS_PLATOS_FONDO);
+            } else {
+              setFondoState(fondo);
+            }
+          }
+
           if (acom) setAcomState(acom);
-          if (fondo) setFondoState(fondo);
+          if (aceites) setAceitesState(aceites);
+
+          // Si hubo alguna migración, guardar en Firebase inmediatamente
+          if ((materias && materias.some(c => c.id === 'principal')) || (fondo && fondo.some(c => c.id === 'aves'))) {
+            setDoc(docRef, { 
+              materias: migratedMaterias || CATEGORIAS_MATERIAS_CALIENTE, 
+              acom: acom || acomState, 
+              fondo: migratedFondo || PRODUCTOS_PLATOS_FONDO,
+              aceites: aceites || aceitesState
+            }, { merge: true });
+          }
         }
       } catch (err) { console.error("Error al cargar config caliente:", err); }
     };
@@ -237,24 +359,29 @@ export default function CalienteModule({ rol }) {
     return () => unsubData();
   }, []);
 
-  const saveConfig = async (newMaterias, newAcom, newFondo) => {
+  const saveConfig = async (m, a, f, ac) => {
     try {
-      await setDoc(doc(db, 'trazabilidad_config', 'caliente'), {
-        materias: newMaterias || materiasState,
-        acom: newAcom || acomState,
-        fondo: newFondo || fondoState,
-        updatedAt: new Date()
-      });
-    } catch (err) { toast.error("Error al sincronizar lista"); }
+      const payload = { 
+        materias: m || materiasState, 
+        acom: a || acomState, 
+        fondo: f || fondoState,
+        aceites: ac || aceitesState
+      };
+      await setDoc(doc(db, 'trazabilidad_config', 'caliente'), payload, { merge: true });
+    } catch (err) { console.error("Error al guardar config caliente:", err); }
   };
 
   const handleAddItem = () => {
-    if (!newItemName.trim()) return;
-    const state = activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : fondoState;
-    const setState = activeTab === 'materias' ? setMateriasState : activeTab === 'prod_acom' ? setAcomState : setFondoState;
+    if (!newItemName.trim() || !targetCatId) return;
+    
+    let state, setState, type;
+    if (activeTab === 'materias') { state = materiasState; setState = setMateriasState; type = 'materias'; }
+    else if (activeTab === 'prod_acom') { state = acomState; setState = setAcomState; type = 'acom'; }
+    else if (activeTab === 'prod_fondo') { state = fondoState; setState = setFondoState; type = 'fondo'; }
+    else { state = aceitesState; setState = setAceitesState; type = 'aceites'; }
 
     const newState = state.map(cat => {
-      if (cat.id !== (targetCatId || state[0].id)) return cat;
+      if (cat.id !== targetCatId) return cat;
       return { ...cat, items: [...cat.items, newItemName.trim()] };
     });
 
@@ -262,11 +389,77 @@ export default function CalienteModule({ rol }) {
     saveConfig(
       activeTab === 'materias' ? newState : null,
       activeTab === 'prod_acom' ? newState : null,
-      activeTab === 'prod_fondo' ? newState : null
+      activeTab === 'prod_fondo' ? newState : null,
+      activeTab === 'aceites' ? newState : null
     );
     setNewItemName('');
     setModalAddOpen(false);
     toast.success("Item añade ✅");
+  };
+
+  const moveItem = (catId, originalIdx, dir) => {
+    const state = activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState;
+    const setState = activeTab === 'materias' ? setMateriasState : activeTab === 'prod_acom' ? setAcomState : activeTab === 'prod_fondo' ? setFondoState : setAceitesState;
+    
+    const catIndex = state.findIndex(c => c.id === catId);
+    if (catIndex === -1) return;
+    
+    const catItems = [...state[catIndex].items];
+    const targetIdx = originalIdx + dir;
+    if (targetIdx < 0 || targetIdx >= catItems.length) return;
+    
+    [catItems[originalIdx], catItems[targetIdx]] = [catItems[targetIdx], catItems[originalIdx]];
+    
+    const newState = [...state];
+    newState[catIndex] = { ...newState[catIndex], items: catItems };
+    
+    setState(newState);
+    saveConfig(activeTab === 'materias' ? newState : null, activeTab === 'prod_acom' ? newState : null, activeTab === 'prod_fondo' ? newState : null, activeTab === 'aceites' ? newState : null);
+  };
+
+  const handleEditItem = () => {
+    if (!editingItem.newName.trim()) return;
+    const { catId, originalCatId, oldName, newName } = editingItem;
+    
+    const state = activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState;
+    const setState = activeTab === 'materias' ? setMateriasState : activeTab === 'prod_acom' ? setAcomState : activeTab === 'prod_fondo' ? setFondoState : setAceitesState;
+    
+    let newState = [...state];
+    if (catId === originalCatId) {
+      const catIdx = newState.findIndex(c => c.id === catId);
+      newState[catIdx].items = newState[catIdx].items.map(i => i === oldName ? newName.trim() : i);
+    } else {
+      const oldCatIdx = newState.findIndex(c => c.id === originalCatId);
+      const newCatIdx = newState.findIndex(c => c.id === catId);
+      newState[oldCatIdx].items = newState[oldCatIdx].items.filter(i => i !== oldName);
+      newState[newCatIdx].items.push(newName.trim());
+    }
+    
+    setState(newState);
+    saveConfig(activeTab === 'materias' ? newState : null, activeTab === 'prod_acom' ? newState : null, activeTab === 'prod_fondo' ? newState : null, activeTab === 'aceites' ? newState : null);
+    setModalEditOpen(false);
+    toast.success("Item actualizado ✅");
+  };
+
+  const handleDeleteItem = (catId, itemName) => {
+    if (confirmDeleteId !== `${catId}-${itemName}`) {
+      setConfirmDeleteId(`${catId}-${itemName}`);
+      setTimeout(() => setConfirmDeleteId(null), 3000);
+      return;
+    }
+    
+    const state = activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState;
+    const setState = activeTab === 'materias' ? setMateriasState : activeTab === 'prod_acom' ? setAcomState : activeTab === 'prod_fondo' ? setFondoState : setAceitesState;
+    
+    const newState = state.map(cat => {
+      if (cat.id !== catId) return cat;
+      return { ...cat, items: cat.items.filter(i => i !== itemName) };
+    });
+    
+    setState(newState);
+    saveConfig(activeTab === 'materias' ? newState : null, activeTab === 'prod_acom' ? newState : null, activeTab === 'prod_fondo' ? newState : null, activeTab === 'aceites' ? newState : null);
+    setConfirmDeleteId(null);
+    toast.success("Item eliminado 🗑️");
   };
 
   const handleGuardarDatos = async () => {
@@ -278,13 +471,50 @@ export default function CalienteModule({ rol }) {
     setSaving(false);
   };
 
+  const handleOilChange = (item, dateKey, field, value) => {
+    setData(prev => {
+      const currentData = prev[item]?.[dateKey] || {};
+      const parsedData = typeof currentData === 'object' ? { ...currentData } : {};
+      
+      let monitorName = user?.email?.split('@')[0] || '';
+      if (user?.displayName) {
+        const parts = user.displayName.trim().split(/\s+/);
+        monitorName = parts.length >= 4 ? `${parts[0]} ${parts[2]}` : parts.length > 1 ? `${parts[0]} ${parts[1]}` : parts[0];
+      }
+
+      return {
+        ...prev,
+        [item]: {
+          ...(prev[item] || {}),
+          [dateKey]: { 
+            ...parsedData, 
+            [field]: value,
+            monitor: parsedData.monitor !== undefined ? parsedData.monitor : monitorName
+          }
+        }
+      };
+    });
+  };
+
+  const handleClearDay = (item, dateKey) => {
+    setData(prev => {
+      const currentItemData = { ...(prev[item] || {}) };
+      delete currentItemData[dateKey];
+      return {
+        ...prev,
+        [item]: currentItemData
+      };
+    });
+    toast.success("Registro vaciado 🧹");
+  };
+
   const currentKey = toKey(fechaBase);
 
   const confirmExport = async () => {
     setShowAuditModal(false);
     const printId = `CAL-${Date.now().toString(36).toUpperCase()}`;
-    const sections = activeTab === 'materias' ? ['materias'] : ['prod_acom', 'prod_fondo'];
-    const moduloNombre = activeTab === 'materias' ? 'Materias Primas Caliente' : 'Producción Completa Caliente';
+    const sections = activeTab === 'materias' ? ['materias'] : activeTab === 'aceites' ? ['aceites'] : ['prod_acom', 'prod_fondo'];
+    const moduloNombre = activeTab === 'materias' ? 'Materias Primas Caliente' : activeTab === 'aceites' ? 'Control de Aceites' : 'Producción Completa Caliente';
     
     try {
       // 1. Registro Auditoría
@@ -331,12 +561,12 @@ export default function CalienteModule({ rol }) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
       doc.setTextColor(verdeJumbo[0], verdeJumbo[1], verdeJumbo[2]);
-      doc.text(activeTab === 'materias' ? "REGISTRO DE TRAZABILIDAD" : "REGISTRO DE PRODUCCION", 38, 18);
+      doc.text(activeTab === 'materias' ? "REGISTRO DE TRAZABILIDAD" : activeTab === 'aceites' ? "CONTROL DE ACEITES" : "REGISTRO DE PRODUCCION", 38, 18);
       
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
       doc.setFont("helvetica", "normal");
-      doc.text(activeTab === 'materias' ? "Trazabilidad de Materias Primas" : "Planilla de Producción Diaria", 38, 23);
+      doc.text(activeTab === 'materias' ? "Trazabilidad de Materias Primas" : activeTab === 'aceites' ? "Planilla de Control Diario de Aceite en Freidora" : "Planilla de Producción Diaria", 38, 23);
       
       doc.setFontSize(8);
       doc.text("SECCIÓN: RINCON", 38, 27);
@@ -371,11 +601,11 @@ export default function CalienteModule({ rol }) {
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
         doc.setTextColor(0, 0, 0);
-        const seccionTitulo = s === 'materias' ? 'MATERIAS PRIMAS' : s === 'prod_acom' ? 'ACOMPAÑAMIENTOS' : 'PLATOS DE FONDO';
+        const seccionTitulo = s === 'materias' ? 'MATERIAS PRIMAS' : s === 'aceites' ? 'CONTROL DE ACEITE EN FREIDORA' : s === 'prod_acom' ? 'ACOMPAÑAMIENTOS' : 'PLATOS DE FONDO';
         doc.text(seccionTitulo, pageWidth / 2, currentY, { align: 'center' });
 
         // Tabla
-        const state = s === 'materias' ? materiasState : s === 'prod_acom' ? acomState : fondoState;
+        const state = s === 'materias' ? materiasState : s === 'aceites' ? aceitesState : s === 'prod_acom' ? acomState : fondoState;
         let head, body, columnStyles;
 
         if (s === 'materias') {
@@ -388,6 +618,28 @@ export default function CalienteModule({ rol }) {
             });
           });
           columnStyles = { 0: { cellWidth: 40 }, 1: { cellWidth: 80, halign: 'left' } };
+        } else if (s === 'aceites') {
+          head = [['Freidora', 'F. Cambio', 'Temp', 'Reactivo', 'Sólidos', 'Olor', 'Humo', 'Monitor', 'Observación']];
+          body = [];
+          state.forEach(cat => {
+            cat.items.forEach(item => {
+              const val = data[item]?.[currentKey];
+              if (val && Object.keys(val).length > 0) {
+                body.push([
+                  item,
+                  val.fechaCambio || '-',
+                  val.temperatura ? `${val.temperatura} °C` : '-',
+                  val.reactivo || '-',
+                  val.solidos || '-',
+                  val.malOlor || '-',
+                  val.humoNegro || '-',
+                  val.monitor || '-',
+                  val.accion || '-'
+                ]);
+              }
+            });
+          });
+          columnStyles = { 0: { cellWidth: 25 }, 1: { cellWidth: 20 }, 2: { cellWidth: 15 }, 8: { cellWidth: 35 } };
         } else {
           if (vista === 'diaria') {
             head = [["Producto", "Cantidad", "Producto", "Cantidad"]];
@@ -549,6 +801,7 @@ export default function CalienteModule({ rol }) {
             { id: 'materias', label: 'Materias Primas', icon: 'inventory_2' },
             { id: 'prod_acom', label: 'Prod. Acompañamientos', icon: 'restaurant_menu' },
             { id: 'prod_fondo', label: 'Prod. Platos Fondo', icon: 'flatware' },
+            { id: 'aceites', label: 'Control Aceites', icon: 'water_drop' },
             { id: 'pcc', label: 'PCC Cocción', icon: 'thermostat' },
             { id: 'sanitizacion', label: 'PCC Sanitización', icon: 'clean_hands' }
           ].map(tab => (
@@ -577,7 +830,7 @@ export default function CalienteModule({ rol }) {
               </div>
               <div>
                 <h1 className="text-white text-2xl font-black tracking-tight leading-none mb-1 uppercase">
-                  {activeTab === 'materias' ? 'Materias Primas' : activeTab === 'prod_acom' ? 'Acompañamientos' : 'Platos de Fondo'}
+                  {activeTab === 'materias' ? 'Materias Primas' : activeTab === 'prod_acom' ? 'Acompañamientos' : activeTab === 'aceites' ? 'Control de Aceites' : 'Platos de Fondo'}
                 </h1>
                 <h2 className="text-white/60 text-[10px] uppercase font-black tracking-[0.2em] opacity-60">Cuarto Caliente</h2>
               </div>
@@ -610,7 +863,7 @@ export default function CalienteModule({ rol }) {
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/40" style={{ fontSize: 18 }}>search</span>
               <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`w-full ${t.bgCard} text-white text-sm pl-10 pr-4 py-2.5 rounded-xl border ${t.border} focus:outline-none focus:border-red-500/50 transition-all shadow-sm placeholder:text-white/20`} />
             </div>
-            {esAdmin && (
+            {esAdmin && activeTab !== 'aceites' && (
               <button onClick={() => { 
                 const state = activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : fondoState;
                 setTargetCatId(state[0]?.id); 
@@ -619,11 +872,19 @@ export default function CalienteModule({ rol }) {
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span> NUEVO ITEM
               </button>
             )}
+            {esAdmin && activeTab === 'aceites' && (
+              <button onClick={() => { 
+                setTargetCatId(aceitesState[0]?.id); 
+                setModalAddOpen(true); 
+              }} className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-600 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-red-500/20 hover:scale-[1.02] active:scale-95 transition-all">
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span> NUEVA FREIDORA
+              </button>
+            )}
           </div>
 
           {vista === 'diaria' && (
             <div className="flex flex-col gap-10">
-              {(activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : fondoState).map(cat => {
+              {(activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState).map(cat => {
                 const filtered = filterItems(cat.items);
                 if (filtered.length === 0) return null;
                 return (
@@ -636,22 +897,134 @@ export default function CalienteModule({ rol }) {
                       <div className="h-px flex-1 bg-white/5 ml-2"></div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {filtered.map(item => (
-                        <div key={item} className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex flex-col gap-3 group hover:border-red-500/30 transition-all shadow-sm hover:shadow-red-500/10`}>
-                          <div className="flex items-center justify-between">
-                            <span className="text-white font-bold text-sm tracking-tight">{item}</span>
-                            <button onClick={() => {
-                              const prev = addDays(fechaBase, -1);
-                              handleInputChange(item, currentKey, data[item]?.[toKey(prev)] || '');
-                            }} className={`p-1.5 rounded-lg ${t.bgInput} text-white/40 hover:text-red-400 border ${t.border} transition-all`} title="Copiar anterior"><span className="material-symbols-outlined text-xs">content_copy</span></button>
+                      {filtered.map((item, originalIdx) => (
+                        <div 
+                          key={item} 
+                          className={`${t.bgCard} border ${t.border} rounded-3xl p-5 flex flex-col gap-5 hover:border-red-500/40 hover:shadow-2xl hover:shadow-red-500/10 transition-all duration-500 group relative overflow-hidden`}
+                        >
+                          {/* Glow Background */}
+                          <div className={`absolute -top-24 -right-24 w-48 h-48 ${cat.bg ? cat.bg.replace('/10', '/5') : 'bg-red-500/5'} rounded-full blur-3xl group-hover:${cat.bg ? cat.bg.replace('/10', '/20') : 'bg-red-500/20'} transition-all duration-700 pointer-events-none`}></div>
+
+                          {/* Header */}
+                          <div className="flex items-center gap-3 w-full relative z-10">
+                            {/* Icono de la categoría decorativo */}
+                            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${cat.bg || 'bg-red-500/10'} ${cat.color || 'text-red-400'} border border-white/5 shadow-inner shrink-0`}>
+                              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{cat.icon || 'restaurant'}</span>
+                            </div>
+                            
+                            {/* Texto del Producto */}
+                            <div className="flex-1">
+                              <h4 className={`${t.text} text-[14px] font-black tracking-tight leading-tight drop-shadow-sm`}>
+                                {formatName(item)}
+                              </h4>
+                              <span className={`text-[9px] uppercase tracking-widest ${activeTab === 'materias' ? 'text-cyan-400' : activeTab === 'aceites' ? 'text-amber-400' : 'text-orange-400'} opacity-70 font-bold`}>
+                                {activeTab === 'materias' ? 'Ingreso (DD/MM)' : activeTab === 'aceites' ? 'Control Diario' : 'Cantidad'}
+                              </span>
+                            </div>
                           </div>
-                          <input 
-                            type="text" 
-                            value={data[item]?.[currentKey] || ""} 
-                            onChange={(e) => handleInputChange(item, currentKey, e.target.value)}
-                            placeholder={activeTab === 'materias' ? "DD/MM" : "Cant."}
-                            className={`w-full ${t.bgInput} text-white text-center py-2.5 rounded-xl border ${t.border} focus:border-red-500/50 font-mono font-black text-sm shadow-inner`}
-                          />
+                          
+                          {/* Botonera de Admin Flotante (Solo visible en hover) */}
+                          {esAdmin && !searchTerm && (
+                            <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-[#0f172a]/90 backdrop-blur-md p-1.5 rounded-xl border border-white/10 shadow-xl z-20 translate-y-2 group-hover:translate-y-0">
+                              {activeTab !== 'aceites' && (
+                                <>
+                                  <button onClick={() => moveItem(cat.id, originalIdx, -1)} disabled={originalIdx === 0} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_upward</span></button>
+                                  <button onClick={() => moveItem(cat.id, originalIdx, 1)} disabled={originalIdx === cat.items.length - 1} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all disabled:opacity-30"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_downward</span></button>
+                                  <div className="w-[1px] h-4 bg-white/10 mx-1"></div>
+                                  <button onClick={() => { setEditingItem({ catId: cat.id, originalCatId: cat.id, oldName: item, newName: item }); setModalEditOpen(true); }} className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/20 transition-all"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span></button>
+                                </>
+                              )}
+                              <button 
+                                onClick={() => handleDeleteItem(cat.id, item)} 
+                                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                                  confirmDeleteId === `${cat.id}-${item}` 
+                                    ? "bg-red-600 text-white animate-pulse border-red-500" 
+                                    : "text-white/50 hover:text-red-400 hover:bg-red-500/20 border-transparent"
+                                }`}
+                                title={confirmDeleteId === `${cat.id}-${item}` ? "Clic de nuevo para borrar" : "Eliminar"}
+                              >
+                                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                                  {confirmDeleteId === `${cat.id}-${item}` ? "priority_high" : "delete"}
+                                </span>
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Divider */}
+                          <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent relative z-10"></div>
+                          
+                          {/* Input Area */}
+                          {activeTab === 'aceites' ? (
+                            <div className="flex flex-col gap-4 relative z-10 w-full mt-2">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[9px] uppercase font-bold text-white/50 pl-1">Último Cambio</label>
+                                  <input type="date" value={data[item]?.[currentKey]?.fechaCambio || ''} onChange={(e) => handleOilChange(item, currentKey, 'fechaCambio', e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-2 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 font-mono text-xs`} />
+                                </div>
+                                <div className="flex flex-col gap-1.5">
+                                  <label className="text-[9px] uppercase font-bold text-white/50 pl-1">Temp. (°C)</label>
+                                  <input type="number" placeholder="Ej: 170" value={data[item]?.[currentKey]?.temperatura || ''} onChange={(e) => handleOilChange(item, currentKey, 'temperatura', e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-2 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 font-mono text-xs`} />
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[9px] uppercase font-bold text-white/50 pl-1">Evaluación Reactivo</label>
+                                <select value={data[item]?.[currentKey]?.reactivo || ''} onChange={(e) => handleOilChange(item, currentKey, 'reactivo', e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-2 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 text-xs`}>
+                                  <option className="bg-[#0f172a] text-white" value="">Seleccione...</option>
+                                  <option className="bg-[#0f172a] text-white" value="1">1</option><option className="bg-[#0f172a] text-white" value="2">2</option><option className="bg-[#0f172a] text-white" value="3">3</option><option className="bg-[#0f172a] text-white" value="4">4</option><option className="bg-[#0f172a] text-white" value="5">5</option><option className="bg-[#0f172a] text-white" value="Sin reactivo">Sin reactivo</option>
+                                </select>
+                              </div>
+                              <div className="grid grid-cols-3 gap-3">
+                                {['Sólidos', 'Mal Olor', 'Humo Negro'].map((f, idx) => {
+                                  const keyMap = ['solidos', 'malOlor', 'humoNegro'][idx];
+                                  const val = data[item]?.[currentKey]?.[keyMap] || '';
+                                  return (
+                                    <div key={keyMap} className="flex flex-col gap-1.5">
+                                      <label className="text-[8px] uppercase font-bold text-white/50 text-center leading-tight h-6 flex items-center justify-center">{f}</label>
+                                      <select value={val} onChange={(e) => handleOilChange(item, currentKey, keyMap, e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-1 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 text-xs`}>
+                                        <option className="bg-[#0f172a] text-white" value="">-</option><option className="bg-[#0f172a] text-white" value="Sí">Sí</option><option className="bg-[#0f172a] text-white" value="No">No</option>
+                                      </select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[9px] uppercase font-bold text-white/50 pl-1">Acción Correctiva / Obs.</label>
+                                <input type="text" placeholder="N/A" value={data[item]?.[currentKey]?.accion || ''} onChange={(e) => handleOilChange(item, currentKey, 'accion', e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-2 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 text-xs`} />
+                              </div>
+                              <div className="flex flex-col gap-1.5">
+                                <label className="text-[9px] uppercase font-bold text-white/50 pl-1">Monitor</label>
+                                <input type="text" placeholder="Nombre monitor" value={data[item]?.[currentKey]?.monitor !== undefined ? data[item]?.[currentKey]?.monitor : (user?.displayName || user?.email?.split('@')[0] || '')} onChange={(e) => handleOilChange(item, currentKey, 'monitor', e.target.value)} className={`w-full bg-black/20 ${t.text} text-center py-2.5 px-2 rounded-xl border ${t.border} focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/10 text-xs font-bold`} />
+                              </div>
+                              {Object.keys(data[item]?.[currentKey] || {}).some(k => data[item]?.[currentKey]?.[k]) && (
+                                <button onClick={() => handleClearDay(item, currentKey)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all text-[10px] font-black uppercase tracking-[0.2em] mt-2 border border-red-500/20 active:scale-95">
+                                  <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                                  Vaciar Registro
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex gap-3 relative z-10 w-full">
+                              <div className="relative flex-1">
+                                <input 
+                                  type="text"
+                                  placeholder={activeTab === 'materias' ? "30/04" : "0"}
+                                  value={data[item]?.[currentKey] || ''}
+                                  onChange={(e) => handleInputChange(item, currentKey, e.target.value)}
+                                  className={`w-full bg-black/20 ${t.text} text-center py-3.5 pl-4 pr-4 rounded-2xl border ${t.border} focus:border-red-500/50 focus:ring-4 focus:ring-red-500/10 focus:bg-red-500/5 transition-all font-mono font-bold text-[15px] placeholder:opacity-30`}
+                                />
+                              </div>
+                              <button 
+                                title="Copiar del día anterior"
+                                onClick={() => {
+                                  const prev = addDays(fechaBase, -1);
+                                  handleInputChange(item, currentKey, data[item]?.[toKey(prev)] || '');
+                                }}
+                                className={`w-14 flex items-center justify-center rounded-2xl bg-black/20 ${t.textSecondary} hover:text-red-400 hover:bg-red-500/10 border ${t.border} hover:border-red-500/30 transition-all active:scale-95 group/btn`}
+                              >
+                                <span className="material-symbols-outlined text-[20px] group-hover/btn:scale-110 transition-transform">content_copy</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -661,19 +1034,138 @@ export default function CalienteModule({ rol }) {
             </div>
           )}
 
-          {modalAddOpen && (
+          {/* VISTA SEMANAL - ACEITES */}
+          {vista === 'semanal' && activeTab === 'aceites' && (
+            <div className="flex flex-col gap-10">
+              {aceitesState.map(cat => {
+                const filtered = filterItems(cat.items);
+                if (filtered.length === 0) return null;
+                return (
+                  <div key={cat.id} className={`${t.bgCard} border ${t.border} rounded-3xl p-6 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+                    <div className="flex items-center gap-3 mb-6">
+                      <div className={`w-12 h-12 rounded-2xl ${cat.bg || 'bg-amber-500/10'} flex items-center justify-center border border-amber-500/20`}>
+                        <span className={`material-symbols-outlined ${cat.color || 'text-amber-400'}`} style={{ fontSize: 24 }}>{cat.icon || 'water_drop'}</span>
+                      </div>
+                      <h3 className={`text-xl font-black uppercase tracking-widest ${cat.color || 'text-amber-400'}`}>{cat.nombre}</h3>
+                    </div>
+                    
+                    <div className="flex flex-col gap-8">
+                      {filtered.map(item => (
+                        <div key={item} className="flex flex-col gap-3">
+                          <h4 className={`text-sm font-black uppercase tracking-widest ${t.text} pl-2 border-l-2 border-amber-500/50`}>{item}</h4>
+                          <div className="overflow-x-auto pb-4 custom-scrollbar">
+                            <table className="w-full text-left border-separate border-spacing-y-2">
+                              <thead>
+                                <tr className="text-[10px] uppercase tracking-widest text-white/50">
+                                  <th className="px-2 py-2 font-black w-24">Día</th>
+                                  <th className="px-2 py-2 font-black w-32 text-center">F. Cambio</th>
+                                  <th className="px-2 py-2 font-black w-20 text-center">Temp (°C)</th>
+                                  <th className="px-2 py-2 font-black w-24 text-center">Reactivo</th>
+                                  <th className="px-2 py-2 font-black w-20 text-center">Sólidos</th>
+                                  <th className="px-2 py-2 font-black w-20 text-center">Olor</th>
+                                  <th className="px-2 py-2 font-black w-20 text-center">Humo</th>
+                                  <th className="px-2 py-2 font-black">Acción / Obs.</th>
+                                  <th className="px-2 py-2 font-black w-36">Monitor</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {diasSemana.map(d => {
+                                  const dayKey = toKey(d);
+                                  const val = data[item]?.[dayKey] || {};
+                                  const isHoy = dayKey === toKey(new Date());
+                                  return (
+                                    <tr key={dayKey} className={`group/row ${isHoy ? 'bg-blue-500/10' : 'bg-black/20 hover:bg-white/5'} transition-colors rounded-2xl`}>
+                                      <td className={`px-4 py-3 rounded-l-2xl border-y border-l ${isHoy ? 'border-blue-500/30 text-blue-400' : `${t.border} ${t.textSecondary}`} text-xs font-bold whitespace-nowrap relative`}>
+                                        <div className="flex items-center justify-between">
+                                          <span>{DIAS[(d.getDay() + 6) % 7].slice(0, 3).toUpperCase()} {d.getDate()}</span>
+                                          {Object.keys(val).length > 0 && (
+                                            <button 
+                                              onClick={() => handleClearDay(item, dayKey)} 
+                                              className="opacity-0 group-hover/row:opacity-100 text-red-500/50 hover:text-red-500 hover:bg-red-500/10 w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                                              title="Vaciar registro"
+                                            >
+                                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      </td>
+                                      <td className={`px-2 py-3 border-y ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                        <input type="date" value={val.fechaCambio || ''} onChange={(e) => handleOilChange(item, dayKey, 'fechaCambio', e.target.value)} className={`w-full bg-transparent text-center text-[11px] font-mono focus:outline-none ${t.text}`} />
+                                      </td>
+                                      <td className={`px-2 py-3 border-y ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                        <input type="number" placeholder="-" value={val.temperatura || ''} onChange={(e) => handleOilChange(item, dayKey, 'temperatura', e.target.value)} className={`w-full bg-transparent text-center text-xs font-mono focus:outline-none ${t.text}`} />
+                                      </td>
+                                      <td className={`px-2 py-3 border-y ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                        <select value={val.reactivo || ''} onChange={(e) => handleOilChange(item, dayKey, 'reactivo', e.target.value)} className={`w-full bg-transparent text-center text-xs focus:outline-none appearance-none cursor-pointer ${t.text}`}>
+                                          <option className="bg-[#0f172a] text-white" value="">-</option><option className="bg-[#0f172a] text-white" value="1">1</option><option className="bg-[#0f172a] text-white" value="2">2</option><option className="bg-[#0f172a] text-white" value="3">3</option><option className="bg-[#0f172a] text-white" value="4">4</option><option className="bg-[#0f172a] text-white" value="5">5</option><option className="bg-[#0f172a] text-white" value="Sin reactivo">Sin react</option>
+                                        </select>
+                                      </td>
+                                      {['solidos', 'malOlor', 'humoNegro'].map((keyMap) => (
+                                        <td key={keyMap} className={`px-2 py-3 border-y ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                          <select value={val[keyMap] || ''} onChange={(e) => handleOilChange(item, dayKey, keyMap, e.target.value)} className={`w-full bg-transparent text-center text-xs focus:outline-none appearance-none cursor-pointer ${t.text}`}>
+                                            <option className="bg-[#0f172a] text-white" value="">-</option><option className="bg-[#0f172a] text-white" value="Sí">Sí</option><option className="bg-[#0f172a] text-white" value="No">No</option>
+                                          </select>
+                                        </td>
+                                      ))}
+                                      <td className={`px-2 py-3 border-y ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                        <input type="text" placeholder="N/A" value={val.accion || ''} onChange={(e) => handleOilChange(item, dayKey, 'accion', e.target.value)} className={`w-full bg-transparent text-xs focus:outline-none pl-2 ${t.text}`} />
+                                      </td>
+                                      <td className={`px-2 py-3 rounded-r-2xl border-y border-r ${isHoy ? 'border-blue-500/30' : t.border}`}>
+                                        <input type="text" placeholder="-" value={val.monitor || ''} onChange={(e) => handleOilChange(item, dayKey, 'monitor', e.target.value)} className={`w-full bg-transparent text-xs focus:outline-none font-bold pl-2 ${t.text}`} />
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Modal de Edición de Item */}
+          {modalEditOpen && (
             <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <div className={`${t.bgCard} border ${t.border} rounded-3xl p-8 max-md w-full shadow-2xl animate-in zoom-in duration-300`}>
-                <h3 className="text-white text-xl font-black mb-6 uppercase tracking-tight">Agregar Nuevo Item</h3>
+              <div className={`${t.bgCard} border ${t.border} rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300`}>
+                <h3 className="text-white text-xl font-black mb-6 uppercase tracking-tight">Editar {activeTab === 'aceites' ? 'Freidora' : 'Item'}</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block tracking-widest">Nombre del Producto</label>
-                    <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className={`w-full ${t.bgInput} text-white p-4 rounded-2xl border ${t.border} focus:border-red-500 font-bold`} placeholder="Ej: Salsa de Tomate" />
+                    <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block tracking-widest">Nombre {activeTab === 'aceites' ? 'de la Freidora' : 'del Producto'}</label>
+                    <input type="text" value={editingItem.newName} onChange={(e) => setEditingItem({...editingItem, newName: e.target.value})} className={`w-full ${t.bgInput} text-white p-4 rounded-2xl border ${t.border} focus:border-red-500 font-bold`} placeholder={activeTab === 'aceites' ? 'Ej: Freidora 2' : 'Ej: Salsa de Tomate'} />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block tracking-widest">Categoría</label>
+                    <select value={editingItem.catId} onChange={(e) => setEditingItem({...editingItem, catId: e.target.value})} className={`w-full ${t.bgInput} text-white p-4 rounded-2xl border ${t.border} focus:border-red-500 font-bold`}>
+                      {(activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState).map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-4 mt-8">
+                  <button onClick={() => setModalEditOpen(false)} className={`flex-1 py-4 rounded-2xl ${t.bgInput} text-white font-bold hover:bg-white/5`}>Cancelar</button>
+                  <button onClick={handleEditItem} className="flex-1 py-4 rounded-2xl bg-blue-600 text-white font-black shadow-xl shadow-blue-500/30">Guardar Cambios</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {modalAddOpen && (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+              <div className={`${t.bgCard} border ${t.border} rounded-3xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in duration-300`}>
+                <h3 className="text-white text-xl font-black mb-6 uppercase tracking-tight">Agregar {activeTab === 'aceites' ? 'Nueva Freidora' : 'Nuevo Item'}</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block tracking-widest">Nombre {activeTab === 'aceites' ? 'de la Freidora' : 'del Producto'}</label>
+                    <input type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} className={`w-full ${t.bgInput} text-white p-4 rounded-2xl border ${t.border} focus:border-red-500 font-bold`} placeholder={activeTab === 'aceites' ? 'Ej: Freidora 2' : 'Ej: Salsa de Tomate'} />
                   </div>
                   <div>
                     <label className="text-[10px] font-black uppercase text-gray-500 mb-2 block tracking-widest">Categoría</label>
                     <select value={targetCatId} onChange={(e) => setTargetCatId(e.target.value)} className={`w-full ${t.bgInput} text-white p-4 rounded-2xl border ${t.border} focus:border-red-500 font-bold`}>
-                      {(activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : fondoState).map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
+                      {(activeTab === 'materias' ? materiasState : activeTab === 'prod_acom' ? acomState : activeTab === 'prod_fondo' ? fondoState : aceitesState).map(cat => <option key={cat.id} value={cat.id}>{cat.nombre}</option>)}
                     </select>
                   </div>
                 </div>

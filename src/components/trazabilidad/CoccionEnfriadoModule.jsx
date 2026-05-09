@@ -278,7 +278,7 @@ export default function CoccionEnfriadoModule({ rol, cuarto }) {
                     <td className="p-5 border-y border-white/5 text-center">
                       {e.coccion_ac || e.enfrio_ac ? (
                         <div className="flex flex-col gap-1 items-center"><p className="text-[10px] text-rose-400 font-bold leading-tight italic line-clamp-1 group-hover:line-clamp-none">"{e.coccion_ac || e.enfrio_ac}"</p><span className="text-[8px] text-rose-500/50 font-black uppercase tracking-widest">{e.coccion_ac_res || e.enfrio_ac_res}</span></div>
-                      ) : <span className="text-[10px] text-gray-500 font-bold opacity-30 uppercase tracking-widest italic">Sin incidencias</span>}
+                      ) : <span className="text-[10px] text-white opacity-40 font-bold uppercase tracking-widest italic">Sin incidencias</span>}
                     </td>
                     <td className="p-5 rounded-r-2xl border-y border-r border-white/5 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
