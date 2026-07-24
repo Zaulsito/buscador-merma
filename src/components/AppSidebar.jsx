@@ -1,13 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebase/config";
 import { signOut } from "firebase/auth";
 
 const navItems = [
   { id: "fichas",       label: "Fichas Técnicas",     icon: "description"    },
-  { id: "merma",        label: "Gestión de Merma",    icon: "inventory_2"    },
-  { id: "planificador", label: "Planificador",        icon: "account_tree"   },
-  { id: "trazabilidad", label: "Trazabilidad",        icon: "receipt_long"   },
+  { 
+    id: "planificador", 
+    label: "Planificador", 
+    icon: "account_tree",
+    subItems: [
+      { id: "planificador-fichas", label: "Fichas Técnicas", icon: "description" },
+      { id: "planificador-merma",  label: "Control de Merma", icon: "inventory"   }
+    ]
+  },
+  { 
+    id: "trazabilidad", 
+    label: "Trazabilidad", 
+    icon: "receipt_long",
+    subItems: [
+      { id: "trazabilidad-caliente", label: "Cuarto Caliente", icon: "local_fire_department" },
+      { id: "trazabilidad-postres",  label: "Postres",         icon: "cake"                  },
+      { id: "trazabilidad-frio",     label: "Cuarto Frío",     icon: "ac_unit"               },
+      { id: "trazabilidad-sizzling", label: "Sizzling",        icon: "outdoor_grill"         },
+      { id: "trazabilidad-bolleria", label: "Bollería",        icon: "bakery_dining"         },
+      { id: "trazabilidad-sandwich", label: "Sandwich",        icon: "lunch_dining"          },
+    ]
+  },
   { id: "precios",      label: "Lista de Precios",    icon: "sell"           },
   { id: "traspasos",    label: "Traspasos",           icon: "swap_horiz"     },
 ];
@@ -23,6 +42,23 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal
   const iniciales = nombre.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
 
   const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem("sidebar_collapsed") === "true");
+
+  const [planificadorOpen, setPlanificadorOpen] = useState(() => {
+    return moduloActivo?.startsWith("planificador") || false;
+  });
+
+  const [trazabilidadOpen, setTrazabilidadOpen] = useState(() => {
+    return moduloActivo?.startsWith("trazabilidad") || false;
+  });
+
+  useEffect(() => {
+    if (moduloActivo?.startsWith("planificador")) {
+      setPlanificadorOpen(true);
+    }
+    if (moduloActivo?.startsWith("trazabilidad")) {
+      setTrazabilidadOpen(true);
+    }
+  }, [moduloActivo]);
 
   const toggleSidebar = () => {
     const newVal = !isCollapsed;
@@ -88,8 +124,65 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal
         </button>
 
         {items.map(item => {
+          const isPlan = item.id === "planificador";
+          const isTraza = item.id === "trazabilidad";
           const activo = moduloActivo === item.id ||
-            (item.id === "fichas" && moduloActivo === "fichaDetalle");
+            (item.id === "fichas" && moduloActivo === "fichaDetalle") ||
+            (isPlan && moduloActivo?.startsWith("planificador")) ||
+            (isTraza && moduloActivo?.startsWith("trazabilidad"));
+
+          if ((isPlan || isTraza) && item.subItems && !isCollapsed) {
+            const isOpen = isPlan ? planificadorOpen : trazabilidadOpen;
+            const setIsOpen = isPlan ? setPlanificadorOpen : setTrazabilidadOpen;
+            return (
+              <div key={item.id} className="flex flex-col">
+                <button
+                  onClick={() => {
+                    setIsOpen(o => !o);
+                    onNavegar(item.id);
+                  }}
+                  title={item.label}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    activo
+                      ? "bg-blue-500/15 text-blue-400 border border-blue-500/20"
+                      : `${t.textSecondary} ${t.hover}`
+                  }`}
+                >
+                  <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: 20, fontVariationSettings: activo ? "'FILL' 1" : "'FILL' 0" }}>
+                    {item.icon}
+                  </span>
+                  <span className="whitespace-nowrap flex-1 text-left">{item.label}</span>
+                  <span className="material-symbols-outlined transition-transform duration-200" style={{ fontSize: 16, transform: isOpen ? "rotate(180deg)" : "none" }}>
+                    expand_more
+                  </span>
+                </button>
+
+                {/* Sub-items list with transitions */}
+                {isOpen && (
+                  <div className="pl-6 pr-1 py-1 space-y-1 animate-in slide-in-from-top-1 duration-200 flex flex-col">
+                    {item.subItems.map(sub => {
+                      const subActivo = moduloActivo === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          onClick={() => onNavegar(sub.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold transition-colors ${
+                            subActivo
+                              ? "text-blue-400 bg-blue-500/5"
+                              : `${t.textSecondary} hover:text-white hover:bg-white/5`
+                          }`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{sub.icon}</span>
+                          <span className="whitespace-nowrap">{sub.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <button
               key={item.id}

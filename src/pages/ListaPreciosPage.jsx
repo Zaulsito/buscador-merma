@@ -375,13 +375,17 @@ export default function ListaPreciosPage({ user, rol, onBack, onNavegar, rolReal
           />
         </div>
 
-        {/* Header móvil */}
-        <header className={`md:hidden sticky top-0 z-40 flex items-center gap-3 px-4 py-3 ${t.bgNav} border-b ${t.border}`}>
-          <button onClick={onBack} className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text}`}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h2 className={`${t.text} text-base font-bold`}>Lista de Precios</h2>
-        </header>
+        {/* Navbar móvil */}
+        <div className="md:hidden flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo={null} 
+          />
+        </div>
 
         <main className="flex-1 overflow-y-auto relative">
           <DecorativeBackground color1="amber-600" color2="yellow-500" />

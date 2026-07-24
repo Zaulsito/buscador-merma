@@ -66,6 +66,18 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTut
   const [temaOpen, setTemaOpen]   = useState(false);
   const { tema, setTema, t, temas } = useTheme();
 
+  const esAdmin = rol === "admin" || rol === "unico";
+  const itemsNavegacion = [
+    { id: null,            label: "Inicio",              icon: "home",            color: "text-sky-400"     },
+    { id: "fichas",        label: "Fichas Técnicas",     icon: "description",     color: "text-orange-400"  },
+    { id: "planificador",  label: "Planificador",        icon: "account_tree",    color: "text-blue-400"    },
+    { id: "planograma",    label: "Planograma",          icon: "calendar_month",  color: "text-violet-400"  },
+    { id: "trazabilidad",  label: "Trazabilidad",        icon: "receipt_long",    color: "text-purple-400"  },
+    { id: "precios",       label: "Lista de Precios",    icon: "sell",            color: "text-amber-400"   },
+    { id: "traspasos",     label: "Traspasos",           icon: "swap_horiz",      color: "text-cyan-400"    },
+    ...(esAdmin ? [{ id: "usuarios", label: "Gestionamiento", icon: "manage_accounts", color: "text-rose-400" }] : []),
+  ];
+
   // ── Búsqueda ──────────────────────────────────────────────────────────────
   const [query, setQuery]           = useState("");
   const [resultados, setResultados] = useState([]);
@@ -357,6 +369,30 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTut
                     <div className="min-w-0">
                       <p className={`${t.text} text-sm font-bold truncate`}>{user?.displayName || nombre}</p>
                       <p className={`${t.textSecondary} text-xs truncate`}>{user?.email}</p>
+                    </div>
+                  </div>
+
+                  {/* Sección de Navegación */}
+                  <div className={`px-2 py-2 border-b ${t.border}`}>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-3 mb-1">
+                      Navegación
+                    </p>
+                    <div className="grid grid-cols-1 gap-0.5">
+                      {itemsNavegacion.map((item) => (
+                        <button
+                          key={item.id ?? "inicio"}
+                          onClick={() => {
+                            irA(item.id);
+                            cerrarMenus();
+                          }}
+                          className={`w-full text-left px-3 py-2 ${t.text} ${t.hover} rounded-xl transition text-xs flex items-center gap-2.5`}
+                        >
+                          <span className={`material-symbols-outlined ${item.color}`} style={{ fontSize: 18, fontVariationSettings: "'FILL' 1" }}>
+                            {item.icon}
+                          </span>
+                          <span className="font-semibold">{item.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 

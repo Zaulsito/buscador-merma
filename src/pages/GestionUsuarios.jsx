@@ -10,6 +10,7 @@ import Navbar from "../components/Navbar";
 import { matchSearch } from "../utils/searchUtils";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import BuscadorMerma from "./BuscadorMerma";
 
 const ROL_BADGE = {
   unico:   { label: "Único",   cls: "bg-blue-500/15 text-blue-400 border border-blue-500/30"     },
@@ -19,6 +20,7 @@ const ROL_BADGE = {
 
 const TABS = [
   { label: "Usuarios",    icon: "group"       },
+  { label: "Merma",       icon: "inventory_2" },
   { label: "Secciones",   icon: "domain"      },
   { label: "Categorías",  icon: "category"    },
   { label: "Proveedores", icon: "inventory"   },
@@ -40,9 +42,14 @@ const COLORES = [
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
+export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal, setRolSimulado, initialTab = 0 }) {
   const { t } = useTheme();
-  const [tabActiva, setTabActiva] = useState(0);
+  const [tabActiva, setTabActiva] = useState(initialTab);
+
+  useEffect(() => {
+    setTabActiva(initialTab);
+  }, [initialTab]);
+
   const [busqueda, setBusqueda] = useState("");
 
   // Usuarios
@@ -367,15 +374,22 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
         {/* ════════════ MOBILE ════════════ */}
         <div className="md:hidden flex flex-col flex-1 overflow-hidden">
 
-          {/* Header móvil */}
-          <header className={`${t.bgNav} border-b ${t.border} px-4 pt-5 pb-0 flex-shrink-0`}>
+          {/* Navbar móvil */}
+          <div className="flex-shrink-0">
+            <Navbar 
+              user={user} 
+              rol={rol} 
+              onNavegar={onNavegar} 
+              onPerfil={() => onNavegar("perfil")}
+              onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+              titulo={null} 
+            />
+          </div>
+
+          {/* Barra de título + botón crear */}
+          <div className={`${t.bgNav} border-b ${t.border} px-4 pt-3 pb-0 flex-shrink-0`}>
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <button onClick={onBack} className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} ${t.text}`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-                </button>
-                <h2 className={`${t.text} text-xl font-bold`}>Gestionamiento</h2>
-              </div>
+              <h2 className={`${t.text} text-xl font-bold`}>Gestionamiento</h2>
               {tabActiva === 0 && (rol === "admin" || rol === "unico") && (
                 <button onClick={() => setShowCrearUsuario(true)} className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-500/25">
                   <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person_add</span>
@@ -395,16 +409,16 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
 
             {/* Tabs móvil */}
             <div className="flex gap-5 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
-              {TABS.filter((t, i) => i !== 5 || rol === 'unico').map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 5 : i)}
+              {TABS.filter((t, i) => i !== 6 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 6 : (TABS.indexOf(tab)))}
                   className={`pb-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                    tabActiva === (tab.label === "Impresiones" ? 5 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
+                    tabActiva === (tab.label === "Impresiones" ? 6 : (TABS.indexOf(tab))) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary}`
                   }`}>
                   {tab.label}
                 </button>
               ))}
             </div>
-          </header>
+          </div>
 
           <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 relative">
             <DecorativeBackground color1="purple-600" color2="indigo-500" />
@@ -471,8 +485,21 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
               </>
             )}
 
-            {/* ── SECCIONES móvil ── */}
+            {/* ── MERMA móvil ── */}
             {tabActiva === 1 && (
+              <BuscadorMerma 
+                user={user} 
+                rol={rol} 
+                onBack={onBack} 
+                onNavegar={onNavegar} 
+                rolReal={rolReal} 
+                setRolSimulado={setRolSimulado} 
+                isInline={true} 
+              />
+            )}
+
+            {/* ── SECCIONES móvil ── */}
+            {tabActiva === 2 && (
               <>
                 <div className={`${t.bgCard} border ${t.border} rounded-xl p-4`}>
                   <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nueva sección</p>
@@ -522,7 +549,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── CATEGORÍAS móvil ── */}
-            {tabActiva === 2 && (
+            {tabActiva === 3 && (
               <>
                 <div className={`${t.bgCard} border ${t.border} rounded-xl p-4`}>
                   <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nueva categoría</p>
@@ -585,7 +612,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── PROVEEDORES móvil ── */}
-            {tabActiva === 3 && (
+            {tabActiva === 4 && (
               <>
                 <div className={`${t.bgCard} border ${t.border} rounded-xl p-4 mb-4`}>
                   <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nuevo proveedor</p>
@@ -660,7 +687,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── FUNCIONES móvil ── */}
-            {tabActiva === 4 && (
+            {tabActiva === 5 && (
               <>
                 <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4 flex items-start gap-3">
                   <span className="material-symbols-outlined text-orange-400 flex-shrink-0" style={{ fontSize: 20 }}>warning</span>
@@ -691,7 +718,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── IMPRESIONES mobile ── */}
-            {tabActiva === 5 && (
+            {tabActiva === 6 && (
               <div className="flex flex-col gap-4">
                 <div className={`${t.bgInput} border ${t.border} rounded-xl p-4`}>
                   <input 
@@ -756,10 +783,10 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
 
             {/* Tabs desktop */}
             <div className="flex gap-6">
-              {TABS.filter((t, i) => i !== 5 || rol === 'unico').map((tab, i) => (
-                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 5 : i)}
+              {TABS.filter((t, i) => i !== 6 || rol === 'unico').map((tab, i) => (
+                <button key={i} onClick={() => setTabActiva(tab.label === "Impresiones" ? 6 : (TABS.indexOf(tab)))}
                   className={`pb-4 text-sm font-bold border-b-2 flex items-center gap-2 transition-colors ${
-                    tabActiva === (tab.label === "Impresiones" ? 5 : i) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
+                    tabActiva === (tab.label === "Impresiones" ? 6 : (TABS.indexOf(tab))) ? "border-blue-500 text-blue-400" : `border-transparent ${t.textSecondary} hover:${t.text}`
                   }`}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{tab.icon}</span>
                   {tab.label}
@@ -876,8 +903,21 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
               </div>
             )}
 
-            {/* ── SECCIONES desktop ── */}
+            {/* ── MERMA desktop ── */}
             {tabActiva === 1 && (
+              <BuscadorMerma 
+                user={user} 
+                rol={rol} 
+                onBack={onBack} 
+                onNavegar={onNavegar} 
+                rolReal={rolReal} 
+                setRolSimulado={setRolSimulado} 
+                isInline={true} 
+              />
+            )}
+
+            {/* ── SECCIONES desktop ── */}
+            {tabActiva === 2 && (
               <div>
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 mb-6`}>
                   <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nueva sección</p>
@@ -944,7 +984,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── CATEGORÍAS desktop ── */}
-            {tabActiva === 2 && (
+            {tabActiva === 3 && (
               <div>
                 {/* Form nueva categoría — glass card del mockup */}
                 <div className="rounded-2xl p-8 mb-8 shadow-2xl"
@@ -1071,7 +1111,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── PROVEEDORES desktop ── */}
-            {tabActiva === 3 && (
+            {tabActiva === 4 && (
               <div>
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-5 mb-6`}>
                   <p className={`${t.textSecondary} text-xs font-bold uppercase tracking-widest mb-3`}>Nuevo proveedor</p>
@@ -1150,7 +1190,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── FUNCIONES desktop ── */}
-            {tabActiva === 4 && (
+            {tabActiva === 5 && (
               <div className="max-w-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <h3 className={`${t.text} text-2xl font-black`}>Funciones del Sistema</h3>
@@ -1182,7 +1222,7 @@ export default function GestionUsuarios({ user, rol, onBack, onNavegar, rolReal,
             )}
 
             {/* ── IMPRESIONES desktop ── */}
-            {tabActiva === 5 && (
+            {tabActiva === 6 && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className={`${t.bgCard} border ${t.border} rounded-2xl p-4 flex gap-4 items-center mb-6`}
                   style={{ background: "rgba(37,140,244,0.04)", backdropFilter: "blur(12px)" }}>

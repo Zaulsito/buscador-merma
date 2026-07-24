@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import DecorativeBackground from "../components/DecorativeBackground";
 import AppSidebar from "../components/AppSidebar";
@@ -21,15 +21,26 @@ const SECCIONES = [
   { id: "sandwich", nombre: "Sandwich", icon: "lunch_dining", color: "text-emerald-500", bg: "bg-emerald-500/10", borderB: "border-b-emerald-500", hoverBg: "group-hover:bg-emerald-500" },
 ];
 
-export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
+export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal, setRolSimulado, initialSeccion = null }) {
   const { t } = useTheme();
-  const [seccionActiva, setSeccionActiva] = useState(null);
+  const [seccionActiva, setSeccionActiva] = useState(initialSeccion);
+
+  useEffect(() => {
+    setSeccionActiva(initialSeccion);
+  }, [initialSeccion]);
   
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       {/* Sidebar — solo desktop */}
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="trazabilidad" onNavegar={onNavegar} />
+        <AppSidebar 
+          user={user} 
+          rol={rol} 
+          rolReal={rolReal} 
+          setRolSimulado={setRolSimulado} 
+          moduloActivo={seccionActiva ? `trazabilidad-${seccionActiva}` : "trazabilidad"} 
+          onNavegar={onNavegar} 
+        />
       </div>
 
       {/* Columna principal */}
@@ -44,36 +55,29 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal
             titulo="Trazabilidad" 
           />
         </div>
+        {/* Navbar móvil */}
+        <div className="md:hidden flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo={null} 
+          />
+        </div>
 
         <main className="flex-1 overflow-y-auto relative p-4 md:p-8 pb-24">
           <DecorativeBackground color1="purple-600" color2="indigo-500" />
-
-          {/* Header Mobile solo visible en móvil cuando no hay Navbar */}
-          <header className={`md:hidden flex items-center justify-between p-4 mb-6 border-b ${t.border} bg-white/5 backdrop-blur-md rounded-2xl`}>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => seccionActiva ? setSeccionActiva(null) : onBack()}
-                className={`w-10 h-10 flex items-center justify-center rounded-xl ${t.bgInput} ${t.hover} transition-all border ${t.border}`}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>arrow_back</span>
-              </button>
-              <div>
-                <h2 className={`${t.text} text-lg font-bold flex items-center gap-2`}>
-                  <span className="material-symbols-outlined text-purple-400">receipt_long</span>
-                  Trazabilidad
-                </h2>
-                <p className={`${t.textSecondary} text-xs`}>
-                  {seccionActiva ? SECCIONES.find(s => s.id === seccionActiva)?.nombre : "Control de procesos"}
-                </p>
-              </div>
-            </div>
-          </header>
 
           {/* Desktop header if section is active */}
           {seccionActiva && (
             <div className="hidden md:flex items-center justify-center relative mb-12 py-2">
               <button
-                onClick={() => setSeccionActiva(null)}
+                onClick={() => {
+                  setSeccionActiva(null);
+                  onNavegar("trazabilidad");
+                }}
                 className={`absolute left-0 w-12 h-12 flex items-center justify-center rounded-2xl ${t.bgCard} ${t.hover} transition-all border ${t.border} shadow-xl group/back`}
                 title="Volver a secciones"
               >
@@ -117,7 +121,7 @@ export default function TrazabilidadPage({ user, rol, onBack, onNavegar, rolReal
                 {SECCIONES.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => setSeccionActiva(s.id)}
+                    onClick={() => onNavegar(`trazabilidad-${s.id}`)}
                     className={`group relative ${t.bgCard} border ${t.border} border-b-4 ${s.borderB} rounded-2xl p-6 flex flex-col gap-4 text-left w-full hover:shadow-2xl hover:-translate-y-1 transition-all`}
                   >
                     <div className={`w-14 h-14 rounded-xl flex items-center justify-center transition-colors ${s.bg} ${s.color} ${s.hoverBg} group-hover:text-white`}>

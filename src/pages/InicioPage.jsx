@@ -345,7 +345,7 @@ export default function InicioPage({ user, rol }) {
     }
   };
 
-  if (modulo === "merma")        return <BuscadorMerma   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  if (modulo === "merma")        return <GestionUsuarios user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} initialTab={1} />;
   if (modulo === "usuarios")     return <GestionUsuarios user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "perfil")       return <PerfilPage       user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "fichas")       return <FichasTecnicas   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
@@ -353,8 +353,36 @@ export default function InicioPage({ user, rol }) {
   if (modulo === "planograma")  return <PlanogramaPage   user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "precios")      return <ListaPreciosPage user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
   if (modulo === "traspasos")    return <TraspasosPage    user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "planificador") return <Planificador     user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
-  if (modulo === "trazabilidad") return <TrazabilidadPage user={user} rol={rolSimulado} rolReal={rol} setRolSimulado={setRolSimulado} onBack={() => navegarA(null)} onNavegar={navegarA} />;
+  const isPlanificador = modulo === "planificador" || modulo === "planificador-fichas" || modulo === "planificador-merma";
+  if (isPlanificador) {
+    const sub = modulo === "planificador-fichas" ? "fichas" : modulo === "planificador-merma" ? "merma" : null;
+    return (
+      <Planificador 
+        user={user} 
+        rol={rolSimulado} 
+        rolReal={rol} 
+        setRolSimulado={setRolSimulado} 
+        onBack={() => navegarA(null)} 
+        onNavegar={navegarA} 
+        initialSubmodulo={sub} 
+      />
+    );
+  }
+  const isTrazabilidad = modulo === "trazabilidad" || modulo?.startsWith("trazabilidad-");
+  if (isTrazabilidad) {
+    const sub = modulo?.startsWith("trazabilidad-") ? modulo.replace("trazabilidad-", "") : null;
+    return (
+      <TrazabilidadPage 
+        user={user} 
+        rol={rolSimulado} 
+        rolReal={rol} 
+        setRolSimulado={setRolSimulado} 
+        onBack={() => navegarA(null)} 
+        onNavegar={navegarA} 
+        initialSeccion={sub} 
+      />
+    );
+  }
 
   const nombre = user?.displayName?.split(" ")[0] || "Usuario";
   const iniciales = (user?.displayName || "U").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
@@ -387,109 +415,16 @@ export default function InicioPage({ user, rol }) {
     <div className={`h-screen overflow-hidden ${t.bg} flex flex-col`}>
 
       {/* ── TOP NAV mobile ── */}
-      <header className={`md:hidden w-full ${t.bgNav} flex-shrink-0`}>
-        {/* Fila principal */}
-        <div className={`flex items-center justify-between px-4 py-3 border-b ${t.border}`}>
-          <div className="flex items-center gap-3">
-            <img src="/icon-192.png" className="w-9 h-9 rounded-xl object-contain flex-shrink-0" alt="logo"
-              onError={e => { e.target.style.display = "none"; }} />
-            <h1 className={`${t.text} text-sm font-bold tracking-tight leading-tight`}>Rincon<br/>Informaciones</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Botón búsqueda móvil */}
-            <button
-              onClick={() => { setMobileSearchOpen(o => !o); setSearchQuery(""); }}
-              className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} transition ${mobileSearchOpen ? "bg-blue-500/20 text-blue-400" : t.textSecondary}`}>
-              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>
-                {mobileSearchOpen ? "close" : "search"}
-              </span>
-            </button>
-            <button className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} relative`}>
-              <span className={`material-symbols-outlined ${t.textSecondary}`} style={{ fontSize: 22 }}>notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full"></span>
-            </button>
-            <button onClick={() => navegarA("perfil")} className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold text-xs">
-              {iniciales}
-            </button>
-          </div>
-        </div>
-
-        {/* Barra de búsqueda expandible móvil */}
-        {mobileSearchOpen && (
-          <div className={`px-4 py-3 border-b ${t.border}`}>
-            {/* Input */}
-            <div className="relative mb-2">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-500">
-                {searchBuscando
-                  ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                  : <span className="material-symbols-outlined" style={{ fontSize: 18 }}>search</span>
-                }
-              </span>
-              <input
-                ref={mobileSearchInputRef}
-                autoFocus
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => e.key === "Escape" && setMobileSearchOpen(false)}
-                placeholder="Buscar fichas, merma, precios..."
-                className={`w-full pl-9 pr-9 py-2.5 ${t.bgInput} border ${t.border} ${t.text} rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500`}
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")}
-                  className={`absolute right-3 top-1/2 -translate-y-1/2 ${t.textSecondary} hover:text-white`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
-                </button>
-              )}
-            </div>
-
-            {/* Resultados globales */}
-            {searchQuery.length >= 2 && (
-              <div className={`rounded-xl border ${t.border} overflow-hidden`} style={{ maxHeight: 340, overflowY: "auto" }}>
-                {searchResultados.length === 0 && !searchBuscando ? (
-                  <div className="flex flex-col items-center justify-center py-6 gap-1.5">
-                    <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 28 }}>search_off</span>
-                    <p className={`${t.textSecondary} text-sm`}>Sin resultados para "{searchQuery}"</p>
-                  </div>
-                ) : (
-                  <>
-                    <div className={`px-4 py-2 border-b ${t.border} flex items-center justify-between ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
-                      <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>
-                        {searchTotalResultados} resultado{searchTotalResultados !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    {searchResultados.map(grupo => (
-                      <div key={grupo.id}>
-                        <div className={`flex items-center gap-2 px-4 py-2 ${t.isDark ? "bg-white/[0.02]" : "bg-slate-50"}`}>
-                          <div className={`w-5 h-5 rounded-md flex items-center justify-center ${grupo.bg}`}>
-                            <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 12, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
-                          </div>
-                          <span className={`${t.textSecondary} text-[10px] font-black uppercase tracking-wider`}>{grupo.label}</span>
-                          <button onClick={() => { navegarA(grupo.modulo); setSearchQuery(""); setMobileSearchOpen(false); }}
-                            className={`${grupo.color} text-[10px] font-bold ml-auto`}>Ver todos →</button>
-                        </div>
-                        {grupo.items.map(item => (
-                          <button key={item.id}
-                            onClick={() => { navegarA(item.modulo); setSearchQuery(""); setMobileSearchOpen(false); }}
-                            className={`w-full flex items-center gap-3 px-4 py-3 text-left border-t ${t.border} transition-colors ${t.hover}`}>
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${grupo.bg}`}>
-                              <span className={`material-symbols-outlined ${grupo.color}`} style={{ fontSize: 15, fontVariationSettings: "'FILL' 1" }}>{grupo.icon}</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className={`${t.text} text-sm font-semibold truncate`}>{resaltarTexto(item.titulo, searchQuery)}</p>
-                              <p className={`${t.textSecondary} text-xs truncate`}>{item.sub}</p>
-                            </div>
-                            <span className="material-symbols-outlined text-slate-600 flex-shrink-0" style={{ fontSize: 14 }}>arrow_forward</span>
-                          </button>
-                        ))}
-                      </div>
-                    ))}
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </header>
+      <div className="md:hidden">
+        <Navbar 
+          user={user} 
+          rol={rolSimulado} 
+          onNavegar={navegarA} 
+          onPerfil={() => navegarA("perfil")}
+          onTutorial={() => setShowTutorial(true)}
+          titulo={null} 
+        />
+      </div>
 
       {/* ── LAYOUT desktop: sidebar + main ── */}
       <div className="flex flex-1 overflow-hidden">

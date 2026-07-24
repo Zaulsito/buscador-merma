@@ -153,7 +153,7 @@ export default function PlanificadorMerma({ user, rol, onBack, onNavegar, rolRea
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador-merma" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

@@ -523,15 +523,23 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar, rolReal, 
           />
         </div>
 
-        {/* Header móvil */}
-        <header className={`md:hidden sticky top-0 z-40 ${t.bgNav} border-b ${t.border}`}>
-          {/* Fila 1: título + navegación */}
+        {/* Navbar móvil */}
+        <div className="md:hidden flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo={null} 
+          />
+        </div>
+
+        {/* Barra de controles móvil (vista + navegación + IA) */}
+        <div className={`md:hidden flex-shrink-0 sticky top-0 z-30 ${t.bgNav} border-b ${t.border}`}>
+          {/* Fila 1: título + fecha + flechas */}
           <div className="flex items-center gap-2 px-3 py-2">
-            <button onClick={onBack} className={`w-9 h-9 flex items-center justify-center rounded-full ${t.hover} ${t.text} flex-shrink-0`}>
-              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>arrow_back</span>
-            </button>
             <div className="flex-1 min-w-0">
-              <h2 className={`${t.text} text-sm font-bold truncate`}>Planograma</h2>
               <p className={`${t.textSecondary} text-[10px] truncate`}>{getTitulo()}</p>
             </div>
             {/* Navegación temporal */}
@@ -580,7 +588,7 @@ export default function PlanogramaPage({ user, rol, onBack, onNavegar, rolReal, 
               </button>
             )}
           </div>
-        </header>
+        </div>
 
         <main className="flex-1 overflow-y-auto relative">
           <DecorativeBackground color1="purple-600" color2="indigo-500" />

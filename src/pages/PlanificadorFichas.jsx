@@ -91,7 +91,7 @@ export default function PlanificadorFichas({ user, rol, onBack, onNavegar, rolRe
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
       <div className="hidden md:block flex-shrink-0">
-        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador" onNavegar={onNavegar} />
+        <AppSidebar user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} moduloActivo="planificador-fichas" onNavegar={onNavegar} />
       </div>
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">

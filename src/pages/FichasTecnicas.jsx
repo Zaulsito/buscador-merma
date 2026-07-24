@@ -335,6 +335,7 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar, rolReal, 
 
       {/* Columna principal */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Navbar desktop */}
         <div className="hidden md:block flex-shrink-0">
           <Navbar 
             user={user} 
@@ -343,6 +344,17 @@ export default function FichasTecnicas({ user, rol, onBack, onNavegar, rolReal, 
             onPerfil={() => onNavegar("perfil")}
             onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
             titulo="Fichas Técnicas" 
+          />
+        </div>
+        {/* Navbar móvil */}
+        <div className="md:hidden flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo={null} 
           />
         </div>
         <main className="flex-1 overflow-y-auto relative">

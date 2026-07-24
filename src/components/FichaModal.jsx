@@ -93,6 +93,16 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   const [seccionDropdownOpen, setSeccionDropdownOpen] = useState(false);
   const [unidadDropdownPos, setUnidadDropdownPos] = useState({ top: 0, left: 0 });
 
+  const [mainPhotoSource, setMainPhotoSource] = useState(() => {
+    return ficha?.foto?.startsWith("data:") ? "pc" : "url";
+  });
+
+  const [fotosExtraSources, setFotosExtraSources] = useState(() => {
+    return (ficha?.fotosExtra || [""]).map(url => url?.startsWith("data:") ? "pc" : "url");
+  });
+
+
+
   useEffect(() => {
     if (!unidadDropdownIdx) return;
     const handler = (e) => {
@@ -225,6 +235,19 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
     precio: ficha?.precio ?? "",
   });
 
+  // Sincroniza fotosExtraSources cuando cambia el número de fotos en form
+  useEffect(() => {
+    if (form?.fotosExtra) {
+      setFotosExtraSources(prev => {
+        const next = [...prev];
+        while (next.length < form.fotosExtra.length) {
+          next.push("url");
+        }
+        return next.slice(0, form.fotosExtra.length);
+      });
+    }
+  }, [form?.fotosExtra?.length]);
+
   // ── IA ──
   const leerImagenConIA = async (file) => {
     if (!file) return;
@@ -318,6 +341,26 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
   // ── Helpers ──
   const update = (campo, valor) => setForm((f) => ({ ...f, [campo]: valor }));
   const updateLista = (lista, idx, campo, valor) => { const n = [...form[lista]]; n[idx][campo] = valor; update(lista, n); };
+  const handleFileChange = (e, index = null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1.2 * 1024 * 1024) {
+      toast.error("La imagen es muy pesada (máx 1.2MB). Intenta con una de menor resolución.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (index === null) {
+        update("foto", reader.result);
+      } else {
+        const newFotos = [...form.fotosExtra];
+        newFotos[index] = reader.result;
+        update("fotosExtra", newFotos);
+      }
+      toast.success("Imagen cargada correctamente");
+    };
+    reader.readAsDataURL(file);
+  };
   const agregarFila = (lista, modelo) => update(lista, [...form[lista], { ...modelo }]);
   const eliminarFila = (lista, idx) => update(lista, form[lista].filter((_, i) => i !== idx));
   const agregarVariasFila = (lista, cantidad, modelo) => update(lista, [...form[lista], ...Array.from({ length: cantidad }, () => ({ ...modelo }))]);
@@ -623,8 +666,85 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                           )}
                         </div>
                         <div className="md:col-span-2">
-                          <label className={lbl}>URL Foto Principal</label>
-                          <input value={form.foto} onChange={e => update("foto", e.target.value)} className={inp} placeholder="https://..." />
+                          <div className="flex items-center justify-between mb-2">
+                            <label className={lbl}>Foto Principal</label>
+                            <div className="flex bg-slate-900/60 p-0.5 rounded-lg border border-white/5">
+                              <button
+                                type="button"
+                                onClick={() => setMainPhotoSource("pc")}
+                                className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${
+                                  mainPhotoSource === "pc"
+                                    ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                                    : "text-slate-400 hover:text-white"
+                                }`}
+                              >
+                                Desde el PC
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setMainPhotoSource("url")}
+                                className={`text-[10px] font-bold px-3 py-1 rounded-md transition-all ${
+                                  mainPhotoSource === "url"
+                                    ? "bg-blue-500 text-white shadow-md shadow-blue-500/20"
+                                    : "text-slate-400 hover:text-white"
+                                }`}
+                              >
+                                Enlace URL
+                              </button>
+                            </div>
+                          </div>
+
+                          {mainPhotoSource === "url" ? (
+                            <div className="relative">
+                              <input
+                                value={form.foto?.startsWith("data:") ? "" : form.foto}
+                                onChange={e => update("foto", e.target.value)}
+                                className={inp}
+                                placeholder="https://..."
+                              />
+                              {form.foto && !form.foto.startsWith("data:") && (
+                                <button
+                                  type="button"
+                                  onClick={() => update("foto", "")}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-4 bg-slate-900/20 border border-white/5 rounded-2xl p-4">
+                              <div className="w-16 h-16 rounded-xl bg-slate-800/50 overflow-hidden flex-shrink-0 border border-white/5 flex items-center justify-center">
+                                {form.foto && form.foto.startsWith("data:") ? (
+                                  <img src={form.foto} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                  <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 24 }}>image</span>
+                                )}
+                              </div>
+                              <div className="flex-1 flex gap-2">
+                                <label className="flex items-center justify-center gap-2 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>upload</span>
+                                  Seleccionar imagen
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={e => handleFileChange(e)}
+                                  />
+                                </label>
+                                {form.foto && form.foto.startsWith("data:") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => update("foto", "")}
+                                    className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold px-4 py-2.5 rounded-xl transition-all border border-white/5 active:scale-95"
+                                  >
+                                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete</span>
+                                    Eliminar
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1134,21 +1254,103 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
                   <span className="material-symbols-outlined text-blue-400" style={{ fontSize: 20 }}>photo_library</span>Fotos del Proceso
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {form.fotosExtra.map((url, i) => (
-                    <div key={i} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 flex gap-4 items-center">
-                      <div className="w-16 h-16 rounded-xl bg-slate-800/50 overflow-hidden flex-shrink-0 border border-white/5">
-                        {url ? <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display = "none"} />
-                          : <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-slate-600" style={{ fontSize: 24 }}>image</span></div>}
+                  {form.fotosExtra.map((url, i) => {
+                    const source = fotosExtraSources[i] || (url?.startsWith("data:") ? "pc" : "url");
+                    const setSource = (src) => {
+                      setFotosExtraSources(prev => {
+                        const next = [...prev];
+                        next[i] = src;
+                        return next;
+                      });
+                    };
+                    return (
+                      <div key={i} className="bg-slate-900/40 border border-white/5 rounded-2xl p-5 flex flex-col gap-3">
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-[11px] font-bold text-slate-400">Foto {i + 1}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="flex bg-slate-950 p-0.5 rounded-lg border border-white/5">
+                              <button
+                                type="button"
+                                onClick={() => setSource("pc")}
+                                className={`text-[9px] font-black px-2 py-0.5 rounded-md transition-all ${
+                                  source === "pc"
+                                    ? "bg-blue-500 text-white shadow-md"
+                                    : "text-slate-500 hover:text-slate-300"
+                                }`}
+                              >
+                                PC
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setSource("url")}
+                                className={`text-[9px] font-black px-2 py-0.5 rounded-md transition-all ${
+                                  source === "url"
+                                    ? "bg-blue-500 text-white shadow-md"
+                                    : "text-slate-500 hover:text-slate-300"
+                                }`}
+                              >
+                                URL
+                              </button>
+                            </div>
+                            <button onClick={() => update("fotosExtra", form.fotosExtra.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400 transition-colors">
+                              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4 items-center">
+                          <div className="w-14 h-14 rounded-xl bg-slate-800/50 overflow-hidden flex-shrink-0 border border-white/5 flex items-center justify-center">
+                            {url ? (
+                              <img src={url} alt="" className="w-full h-full object-cover" onError={e => e.target.style.display = "none"} />
+                            ) : (
+                              <span className="material-symbols-outlined text-slate-600" style={{ fontSize: 20 }}>image</span>
+                            )}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            {source === "url" ? (
+                              <input
+                                value={url?.startsWith("data:") ? "" : url}
+                                onChange={e => {
+                                  const f = [...form.fotosExtra];
+                                  f[i] = e.target.value;
+                                  update("fotosExtra", f);
+                                }}
+                                className={inpSm}
+                                placeholder="https://..."
+                              />
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <label className="flex items-center justify-center gap-1.5 cursor-pointer bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition-all shadow-md active:scale-95">
+                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>upload</span>
+                                  Subir
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={e => handleFileChange(e, i)}
+                                  />
+                                </label>
+                                {url && url.startsWith("data:") && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const f = [...form.fotosExtra];
+                                      f[i] = "";
+                                      update("fotosExtra", f);
+                                    }}
+                                    className="text-slate-400 hover:text-white text-xs font-bold transition-colors"
+                                  >
+                                    Limpiar
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <label className={lbl}>URL foto {i + 1}</label>
-                        <input value={url} onChange={e => { const f = [...form.fotosExtra]; f[i] = e.target.value; update("fotosExtra", f); }} className={inpSm} placeholder="https://..." />
-                      </div>
-                      <button onClick={() => update("fotosExtra", form.fotosExtra.filter((_, j) => j !== i))} className="text-slate-500 hover:text-red-400 transition-colors flex-shrink-0">
-                        <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <button onClick={() => update("fotosExtra", [...form.fotosExtra, ""])}
                     className="md:col-span-2 py-5 border-2 border-dashed border-blue-500/30 text-blue-400 font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-blue-500/5 transition-all">
                     <span className="material-symbols-outlined">add_photo_alternate</span>+ Agregar foto

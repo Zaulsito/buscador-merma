@@ -4,6 +4,7 @@ import { auth, db } from "../firebase/config";
 import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import Navbar from "../components/Navbar";
+import AppSidebar from "../components/AppSidebar";
 import { useTheme } from "../context/ThemeContext";
 
 const DIAS_LIMITE = 14;

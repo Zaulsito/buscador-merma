@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "../components/BottomNav";
 import { useTheme } from "../context/ThemeContext";
 import AppSidebar from "../components/AppSidebar";
@@ -8,14 +8,18 @@ import PlanificadorMerma from "./PlanificadorMerma";
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function Planificador({ user, rol, onBack, onNavegar, rolReal, setRolSimulado }) {
+export default function Planificador({ user, rol, onBack, onNavegar, rolReal, setRolSimulado, initialSubmodulo = null }) {
   const { t } = useTheme();
-  const [submodulo, setSubmodulo] = useState(null);
+  const [submodulo, setSubmodulo] = useState(initialSubmodulo);
+
+  useEffect(() => {
+    setSubmodulo(initialSubmodulo);
+  }, [initialSubmodulo]);
 
   if (submodulo === "fichas")
-    return <PlanificadorFichas user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
+    return <PlanificadorFichas user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => { setSubmodulo(null); onNavegar("planificador"); }} onNavegar={onNavegar} />;
   if (submodulo === "merma")
-    return <PlanificadorMerma user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => setSubmodulo(null)} onNavegar={onNavegar} />;
+    return <PlanificadorMerma user={user} rol={rol} rolReal={rolReal} setRolSimulado={setRolSimulado} onBack={() => { setSubmodulo(null); onNavegar("planificador"); }} onNavegar={onNavegar} />;
 
   return (
     <div className={`${t.bg} flex h-screen overflow-hidden`}>
@@ -37,15 +41,17 @@ export default function Planificador({ user, rol, onBack, onNavegar, rolReal, se
           />
         </div>
 
-        {/* ── HEADER MÓVIL ── */}
-        <header className={`md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 ${t.bgNav} border-b ${t.border}`}
-          style={{ backdropFilter: "blur(12px)" }}>
-          <button onClick={onBack} className={`w-10 h-10 flex items-center justify-center rounded-full ${t.hover} ${t.text}`}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <h2 className={`${t.text} text-base font-bold`}>Planificador</h2>
-          <div className="w-10" />
-        </header>
+        {/* Navbar móvil */}
+        <div className="md:hidden flex-shrink-0">
+          <Navbar 
+            user={user} 
+            rol={rol} 
+            onNavegar={onNavegar} 
+            onPerfil={() => onNavegar("perfil")}
+            onTutorial={() => { sessionStorage.setItem("trigger_tutorial", "true"); onNavegar(null); }}
+            titulo={null} 
+          />
+        </div>
 
         <main className="flex-1 overflow-y-auto relative">
           <DecorativeBackground color1="blue-600" color2="indigo-500" />
