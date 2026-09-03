@@ -61,7 +61,7 @@ function matchQuery(q, campos) {
   return campos.some(c => c?.toLowerCase().includes(qLow));
 }
 
-export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTutorial, titulo }) {
+export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTutorial, titulo, onBackToSelector }) {
   const [menuOpen, setMenuOpen]   = useState(false);
   const [temaOpen, setTemaOpen]   = useState(false);
   const { tema, setTema, t, temas } = useTheme();
@@ -192,6 +192,19 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTut
 
         {/* Breadcrumbs - Solo visible en Desktop */}
         <div className="hidden md:flex items-center gap-2 text-sm font-medium flex-shrink-0">
+          {onBackToSelector && (
+            <>
+              <button 
+                onClick={onBackToSelector}
+                className={`${t.textSecondary} hover:text-blue-400 transition-colors flex items-center gap-1 group`}
+              >
+                <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+                Portal
+              </button>
+              <span className="text-slate-600 font-light mx-1">/</span>
+            </>
+          )}
+
           <button 
             onClick={() => onNavegar?.(null)}
             className={`${t.textSecondary} hover:text-white transition-colors flex items-center gap-2 group`}
@@ -409,6 +422,14 @@ export default function Navbar({ user, rol, onPerfil, onConfig, onNavegar, onTut
                       className={`w-full text-left px-4 py-3 ${t.text} ${t.hover} transition text-sm flex items-center gap-3`}>
                       <span className="material-symbols-outlined text-emerald-400" style={{ fontSize: 20 }}>help</span>
                       Ver Tutorial
+                    </button>
+                  )}
+
+                  {onBackToSelector && (
+                    <button onClick={() => { onBackToSelector(); cerrarMenus(); }}
+                      className={`w-full text-left px-4 py-3 ${t.text} ${t.hover} transition text-sm flex items-center gap-3`}>
+                      <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20 }}>widgets</span>
+                      Volver al Portal
                     </button>
                   )}
 

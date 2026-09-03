@@ -34,7 +34,7 @@ const navItems = [
 const adminItem = { id: "usuarios",     label: "Gestionamiento",    icon: "manage_accounts" };
 const infoItem  = { id: "informacion",  label: "Información Útil",  icon: "info"            };
 
-export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal, setRolSimulado }) {
+export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal, setRolSimulado, onBackToSelector }) {
   const { t } = useTheme();
 
   const esProgramadorReal = rolReal === 'unico';
@@ -201,6 +201,21 @@ export default function AppSidebar({ user, rol, moduloActivo, onNavegar, rolReal
             </button>
           );
         })}
+        
+        {onBackToSelector && (
+          <div className="mt-4 pt-4 border-t border-white/5">
+            <button
+              onClick={onBackToSelector}
+              title={isCollapsed ? "Volver al Portal" : ""}
+              className={`w-full flex items-center ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-3 text-left'} py-2.5 rounded-lg text-sm font-medium transition-colors ${t.textSecondary} ${t.hover} hover:text-purple-400`}
+            >
+              <span className="material-symbols-outlined flex-shrink-0" style={{ fontSize: 20 }}>
+                widgets
+              </span>
+              {!isCollapsed && <span className="whitespace-nowrap">Volver al Portal</span>}
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Simulación de Rol Global (Solo para el Programador Real) */}

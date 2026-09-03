@@ -110,7 +110,7 @@ const moduloAdmin = {
 
 import DecorativeBackground from "../components/DecorativeBackground";
 
-export default function InicioPage({ user, rol }) {
+export default function InicioPage({ user, rol, onBackToSelector }) {
   const [modulo, setModulo] = useState(window.location.hash.replace("#", "") || null);
   
   // Simulación de roles para el Programador (solo visible si rol real es 'unico')
@@ -422,6 +422,7 @@ export default function InicioPage({ user, rol }) {
           onNavegar={navegarA} 
           onPerfil={() => navegarA("perfil")}
           onTutorial={() => setShowTutorial(true)}
+          onBackToSelector={onBackToSelector}
           titulo={null} 
         />
       </div>
@@ -437,6 +438,7 @@ export default function InicioPage({ user, rol }) {
           setRolSimulado={setRolSimulado} 
           moduloActivo={null} 
           onNavegar={navegarA} 
+          onBackToSelector={onBackToSelector}
         />
 
         {/* ── MAIN CONTENT ── scroll solo aquí ── */}
@@ -451,6 +453,7 @@ export default function InicioPage({ user, rol }) {
               onNavegar={navegarA} 
               onPerfil={() => navegarA("perfil")}
               onTutorial={() => setShowTutorial(true)}
+              onBackToSelector={onBackToSelector}
               titulo={null} 
             />
           </div>
