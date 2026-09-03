@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import DecorativeBackground from "../components/DecorativeBackground";
 import { useTheme } from "../context/ThemeContext";
@@ -6,8 +6,9 @@ import { db, storage } from "../firebase/config";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
+import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
 
-const CATEGORIAS = [
+const DEFAULT_CATEGORIAS = [
   "Abarrotes", 
   "Botillería", 
   "Lácteos", 
@@ -29,14 +30,17 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const { t } = useTheme();
 
   const [productos, setProductos] = useState([]);
+  const [categoriasList, setCategoriasList] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // Filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
-  // Modal
+  // Modals
   const [modalOpen, setModalOpen] = useState(false);
+  const [manageCatOpen, setManageCatOpen] = useState(false);
+  
   const [editando, setEditando] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,25 +48,61 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [nombre, setNombre] = useState("");
   const [sku, setSku] = useState("");
   const [ubicacion, setUbicacion] = useState("");
-  const [categoria, setCategoria] = useState(CATEGORIAS[0]);
+  const [categoria, setCategoria] = useState("");
   const [imagenUrl, setImagenUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
+  
+  const categoriesRef = useRef(null);
+
+  const scrollCategories = (dir) => {
+    if (categoriesRef.current) {
+      const scrollAmount = 200;
+      categoriesRef.current.scrollBy({ left: dir === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
-    cargarProductos();
+    cargarDatos();
   }, []);
+
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      // Cargar productos
+      const pSnap = await getDocs(collection(db, "auditoria_productos"));
+      setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      // Cargar categorias
+      const cSnap = await getDocs(collection(db, "auditoria_categorias"));
+      if (cSnap.empty) {
+        // Inicializar
+        for (const cat of DEFAULT_CATEGORIAS) {
+          await addDoc(collection(db, "auditoria_categorias"), { nombre: cat });
+        }
+        const cSnapNew = await getDocs(collection(db, "auditoria_categorias"));
+        setCategoriasList(cSnapNew.docs.map(d => ({ id: d.id, ...d.data() })));
+      } else {
+        setCategoriasList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
+    } catch (error) {
+      console.error("Error al cargar datos:", error);
+      toast.error("Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const recargarCategorias = async () => {
+    const cSnap = await getDocs(collection(db, "auditoria_categorias"));
+    setCategoriasList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+  };
 
   const cargarProductos = async () => {
     try {
-      setLoading(true);
-      const snap = await getDocs(collection(db, "auditoria_productos"));
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setProductos(data);
+      const pSnap = await getDocs(collection(db, "auditoria_productos"));
+      setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
       console.error("Error al cargar productos:", error);
-      toast.error("Error al cargar productos");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -70,7 +110,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setNombre("");
     setSku("");
     setUbicacion("");
-    setCategoria(CATEGORIAS[0]);
+    setCategoria(categoriasList.length > 0 ? categoriasList[0].nombre : "");
     setImagenUrl("");
     setImageFile(null);
     setEditando(null);
@@ -87,7 +127,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setNombre(prod.nombre || "");
     setSku(prod.sku || "");
     setUbicacion(prod.ubicacion || "");
-    setCategoria(prod.categoria || CATEGORIAS[0]);
+    setCategoria(prod.categoria || (categoriasList.length > 0 ? categoriasList[0].nombre : ""));
     setImagenUrl(prod.imagen || "");
     setModalOpen(true);
   };
@@ -106,6 +146,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
     e.preventDefault();
     if (!nombre.trim() || !sku.trim()) {
       toast.error("El nombre y el SKU son obligatorios");
+      return;
+    }
+
+    // Verificar SKU duplicado
+    const skuDuplicado = productos.find(p => p.sku === sku.trim() && p.id !== editando?.id);
+    if (skuDuplicado) {
+      toast.error("Ya existe un producto con este SKU");
       return;
     }
 
@@ -133,6 +180,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
         toast.success("Producto actualizado");
       } else {
         datos.createdAt = serverTimestamp();
+        datos.enStock = true; // Por defecto con stock
         await addDoc(collection(db, "auditoria_productos"), datos);
         toast.success("Producto creado");
       }
@@ -161,6 +209,39 @@ export default function AuditoriaPage({ onBackToSelector }) {
     }
   };
 
+  const toggleStock = async (prod) => {
+    const nuevoEstado = prod.enStock === false ? true : false;
+    const updateData = { enStock: nuevoEstado };
+    
+    if (!nuevoEstado) {
+      updateData.fechaSinStock = serverTimestamp();
+    }
+
+    try {
+      // Actualización optimista local
+      setProductos(prev => prev.map(p => {
+        if (p.id === prod.id) {
+          return { ...p, enStock: nuevoEstado, fechaSinStock: !nuevoEstado ? new Date() : p.fechaSinStock };
+        }
+        return p;
+      }));
+
+      await updateDoc(doc(db, "auditoria_productos", prod.id), updateData);
+      toast.success(nuevoEstado ? "Marcado con stock" : "Marcado sin stock");
+    } catch (error) {
+      toast.error("Error al actualizar stock");
+      cargarProductos(); // revertir si falla
+    }
+  };
+
+  // Paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoriaFiltro]);
+
   const productosFiltrados = productos.filter(p => {
     const nNombre = normalizeText(p.nombre);
     const nSku = normalizeText(p.sku);
@@ -171,6 +252,25 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
     return matchSearch && matchCat;
   });
+
+  const totalPages = Math.ceil(productosFiltrados.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedProductos = productosFiltrados.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Calcular ventana de 5 páginas
+  let startPage = Math.max(1, currentPage - 2);
+  let endPage = Math.min(totalPages, startPage + 4);
+  
+  if (endPage - startPage < 4) {
+    startPage = Math.max(1, endPage - 4);
+  }
+
+  const pageNumbers = [];
+  for (let i = startPage; i <= endPage; i++) {
+    pageNumbers.push(i);
+  }
+
+  const uniqueCategorias = Array.from(new Map(categoriasList.map(c => [c.nombre, c])).values());
 
   return (
     <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-hidden font-sans`}>
@@ -216,45 +316,74 @@ export default function AuditoriaPage({ onBackToSelector }) {
         <div className="max-w-6xl w-full mx-auto space-y-6">
           
           {/* Categorías (Filtros Rápidos) */}
-          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            <button
-              onClick={() => setCategoriaFiltro("Todas")}
-              className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
-                categoriaFiltro === "Todas" 
-                  ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30"
-                  : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400`
-              }`}
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => scrollCategories('left')}
+              className={`hidden sm:flex shrink-0 w-9 h-9 items-center justify-center rounded-xl ${t.bgCard} ${t.textSecondary} border ${t.border} hover:text-purple-400 transition-colors shadow-sm`}
             >
-              Todas
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_left</span>
             </button>
-            {CATEGORIAS.map(cat => (
+
+            <div 
+              ref={categoriesRef}
+              className="flex-1 flex gap-2 overflow-x-auto pb-2 pt-2 items-center no-scrollbar scroll-smooth" 
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               <button
-                key={cat}
-                onClick={() => setCategoriaFiltro(cat)}
-                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
-                  categoriaFiltro === cat 
+                onClick={() => setCategoriaFiltro("Todas")}
+                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
+                  categoriaFiltro === "Todas" 
                     ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30"
                     : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400`
                 }`}
               >
-                {cat}
+                Todas
               </button>
-            ))}
+              {uniqueCategorias.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setCategoriaFiltro(cat.nombre)}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
+                    categoriaFiltro === cat.nombre 
+                      ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30"
+                      : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400`
+                  }`}
+                >
+                  {cat.nombre}
+                </button>
+              ))}
+            </div>
+
+            <button 
+              onClick={() => scrollCategories('right')}
+              className={`hidden sm:flex shrink-0 w-9 h-9 items-center justify-center rounded-xl ${t.bgCard} ${t.textSecondary} border ${t.border} hover:text-purple-400 transition-colors shadow-sm`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>chevron_right</span>
+            </button>
           </div>
 
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full sm:max-w-md">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>search</span>
-              </span>
-              <input 
-                type="text" 
-                placeholder="Buscar por nombre o SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
-              />
+            <div className="flex items-center gap-2 w-full sm:max-w-md">
+              <div className="relative flex-1">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>search</span>
+                </span>
+                <input 
+                  type="text" 
+                  placeholder="Buscar por nombre o SKU..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                />
+              </div>
+              <button
+                onClick={() => setManageCatOpen(true)}
+                className={`w-10 h-10 flex items-center justify-center rounded-xl border border-dashed border-purple-500/50 text-purple-400 hover:bg-purple-500/10 transition-colors shrink-0`}
+                title="Editar Categorías"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>edit</span>
+              </button>
             </div>
 
             <button 
@@ -277,8 +406,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
               <p className={`${t.textSecondary} text-center`}>No hay productos registrados o no coinciden con la búsqueda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {productosFiltrados.map(prod => (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedProductos.map(prod => (
                 <div key={prod.id} className={`${t.bgCard} rounded-2xl border ${t.border} overflow-hidden flex flex-col hover:shadow-xl transition-shadow group`}>
                   <div className="relative aspect-square bg-black/10 flex items-center justify-center overflow-hidden">
                     {prod.imagen ? (
@@ -299,9 +429,30 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     
                     <p className={`text-xs ${t.textSecondary} mb-3 font-mono bg-black/10 self-start px-2 py-0.5 rounded border ${t.border}`}>SKU: {prod.sku}</p>
                     
-                    <div className="mt-auto flex items-center gap-2 text-sm text-purple-400">
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
-                      <span className="truncate">{prod.ubicacion || "Sin ubicación"}</span>
+                    <div className="mt-auto flex flex-col gap-2">
+                      <div className="flex items-center gap-2 text-sm text-purple-400">
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
+                        <span className="truncate">{prod.ubicacion || "Sin ubicación"}</span>
+                      </div>
+                      
+                      <div className={`flex items-center justify-between pt-2 border-t ${t.border}`}>
+                        <div>
+                          <span className={`text-xs font-bold ${prod.enStock !== false ? "text-emerald-400" : "text-red-400"}`}>
+                            {prod.enStock !== false ? "Stock: ON" : "Stock: OFF"}
+                          </span>
+                          {prod.fechaSinStock && prod.enStock === false && (
+                            <p className="text-[10px] text-slate-500 leading-none mt-0.5">
+                              Desde: {prod.fechaSinStock.toDate ? prod.fechaSinStock.toDate().toLocaleDateString() : new Date(prod.fechaSinStock).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => toggleStock(prod)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${prod.enStock !== false ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                        >
+                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${prod.enStock !== false ? 'translate-x-5' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -322,7 +473,43 @@ export default function AuditoriaPage({ onBackToSelector }) {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center gap-2 mt-8">
+                  <button 
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border ${t.border} ${t.bgCard} ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:text-purple-400'}`}
+                  >
+                    <span className="material-symbols-outlined">chevron_left</span>
+                  </button>
+                  
+                  {pageNumbers.map(num => (
+                    <button
+                      key={num}
+                      onClick={() => setCurrentPage(num)}
+                      className={`w-10 h-10 flex items-center justify-center rounded-xl font-bold transition-all ${
+                        currentPage === num 
+                          ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30" 
+                          : `${t.bgCard} border ${t.border} ${t.textSecondary} hover:text-purple-400`
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+
+                  <button 
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className={`w-10 h-10 flex items-center justify-center rounded-xl border ${t.border} ${t.bgCard} ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:text-purple-400'}`}
+                  >
+                    <span className="material-symbols-outlined">chevron_right</span>
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
         </div>
@@ -402,8 +589,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
                         onChange={(e) => setCategoria(e.target.value)}
                         className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors appearance-none`}
                       >
-                        {CATEGORIAS.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
+                        <option value="">Selecciona...</option>
+                        {uniqueCategorias.map(cat => (
+                          <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
                         ))}
                       </select>
                       <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
@@ -456,6 +644,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
             </div>
           </div>
         </div>
+      )}
+      {manageCatOpen && (
+        <ManageCategoriasAuditoria
+          categorias={categoriasList}
+          onClose={() => setManageCatOpen(false)}
+          onUpdate={recargarCategorias}
+        />
       )}
     </div>
   );
