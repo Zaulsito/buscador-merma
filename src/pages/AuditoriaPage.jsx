@@ -142,6 +142,23 @@ export default function AuditoriaPage({ onBackToSelector }) {
     }
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith("image/")) {
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => setImagenUrl(ev.target.result);
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
   const guardarProducto = async (e) => {
     e.preventDefault();
     if (!nombre.trim() || !sku.trim()) {
@@ -409,7 +426,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {paginatedProductos.map(prod => (
-                <div key={prod.id} className={`${t.bgCard} rounded-2xl border ${t.border} overflow-hidden flex flex-col hover:shadow-xl transition-shadow group`}>
+                <div 
+                  key={prod.id} 
+                  onClick={() => abrirEditar(prod)}
+                  className={`${t.bgCard} rounded-2xl border ${t.border} overflow-hidden flex flex-col hover:shadow-xl transition-shadow group cursor-pointer`}
+                >
                   <div className="relative aspect-square bg-black/10 flex items-center justify-center overflow-hidden">
                     {prod.imagen ? (
                       <img src={prod.imagen} alt={prod.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -447,29 +468,16 @@ export default function AuditoriaPage({ onBackToSelector }) {
                           )}
                         </div>
                         <button 
-                          onClick={() => toggleStock(prod)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStock(prod);
+                          }}
                           className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${prod.enStock !== false ? 'bg-emerald-500' : 'bg-slate-600'}`}
                         >
                           <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${prod.enStock !== false ? 'translate-x-5' : 'translate-x-1'}`} />
                         </button>
                       </div>
                     </div>
-                  </div>
-
-                  <div className={`border-t ${t.border} p-2 flex gap-2`}>
-                    <button 
-                      onClick={() => abrirEditar(prod)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-sm font-semibold text-blue-400 hover:bg-blue-400/10 transition-colors`}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
-                      Editar
-                    </button>
-                    <button 
-                      onClick={() => eliminarProducto(prod.id)}
-                      className={`w-10 flex items-center justify-center rounded-xl text-red-400 hover:bg-red-400/10 transition-colors`}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                    </button>
                   </div>
                 </div>
               ))}
@@ -536,15 +544,19 @@ export default function AuditoriaPage({ onBackToSelector }) {
                 
                 {/* Imagen */}
                 <div className="flex flex-col items-center gap-3">
-                  <div className="relative w-32 h-32 rounded-2xl bg-black/20 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden group">
+                  <div 
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    className="relative w-32 h-32 rounded-2xl bg-black/20 border-2 border-dashed border-slate-600 flex items-center justify-center overflow-hidden group"
+                  >
                     {imagenUrl ? (
                       <img src={imagenUrl} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 32 }}>add_a_photo</span>
                     )}
                     
-                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                      <span className="text-white text-xs font-bold uppercase tracking-widest">Subir Foto</span>
+                    <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer text-center p-2">
+                      <span className="text-white text-xs font-bold uppercase tracking-widest leading-tight">Subir Foto o Arrastrar</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -615,17 +627,34 @@ export default function AuditoriaPage({ onBackToSelector }) {
               </form>
             </div>
 
-            <div className={`px-6 py-4 border-t ${t.border} flex justify-end gap-3`}>
-              <button 
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className={`px-5 py-2.5 rounded-xl font-semibold ${t.textSecondary} hover:text-white transition-colors`}
-              >
-                Cancelar
-              </button>
-              <button 
-                form="prodForm"
-                type="submit"
+            <div className={`px-6 py-4 border-t ${t.border} flex justify-between items-center gap-3`}>
+              {editando ? (
+                <button 
+                  type="button"
+                  onClick={() => {
+                    eliminarProducto(editando.id);
+                    setModalOpen(false);
+                  }}
+                  className={`px-4 py-2.5 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors font-bold flex items-center gap-2`}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>delete</span>
+                  <span className="hidden sm:inline">Eliminar</span>
+                </button>
+              ) : (
+                <div />
+              )}
+              
+              <div className="flex gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className={`px-5 py-2.5 rounded-xl font-semibold ${t.textSecondary} hover:text-white transition-colors`}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  form="prodForm"
+                  type="submit"
                 disabled={isSubmitting}
                 className="px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all disabled:opacity-50 flex items-center gap-2"
               >
@@ -641,6 +670,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
                   </>
                 )}
               </button>
+              </div>
             </div>
           </div>
         </div>
