@@ -46,6 +46,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   // Form state
   const [nombre, setNombre] = useState("");
+  const [ean, setEan] = useState("");
   const [sku, setSku] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [categoria, setCategoria] = useState("");
@@ -65,12 +66,26 @@ export default function AuditoriaPage({ onBackToSelector }) {
     cargarDatos();
   }, []);
 
+  const mapProducts = (docs) => {
+    return docs.map(d => {
+      const data = d.data();
+      let finalEan = data.ean || "";
+      let finalSku = data.sku || "";
+      // Migración on-the-fly: si no hay ean pero sí sku (formato antiguo)
+      if (data.ean === undefined && data.sku) {
+        finalEan = data.sku;
+        finalSku = "";
+      }
+      return { id: d.id, ...data, ean: finalEan, sku: finalSku };
+    });
+  };
+
   const cargarDatos = async () => {
     try {
       setLoading(true);
       // Cargar productos
       const pSnap = await getDocs(collection(db, "auditoria_productos"));
-      setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setProductos(mapProducts(pSnap.docs));
 
       // Cargar categorias
       const cSnap = await getDocs(collection(db, "auditoria_categorias"));
@@ -100,7 +115,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const cargarProductos = async () => {
     try {
       const pSnap = await getDocs(collection(db, "auditoria_productos"));
-      setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setProductos(mapProducts(pSnap.docs));
     } catch (error) {
       console.error("Error al cargar productos:", error);
     }
@@ -108,6 +123,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const resetForm = () => {
     setNombre("");
+    setEan("");
     setSku("");
     setUbicacion("");
     setCategoria(categoriasList.length > 0 ? categoriasList[0].nombre : "");
@@ -125,6 +141,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     resetForm();
     setEditando(prod);
     setNombre(prod.nombre || "");
+    setEan(prod.ean || "");
     setSku(prod.sku || "");
     setUbicacion(prod.ubicacion || "");
     setCategoria(prod.categoria || (categoriasList.length > 0 ? categoriasList[0].nombre : ""));
@@ -161,12 +178,17 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const guardarProducto = async (e) => {
     e.preventDefault();
-    if (!nombre.trim() || !sku.trim()) {
-      toast.error("El nombre y el SKU son obligatorios");
+    if (!nombre.trim() || !ean.trim() || !sku.trim()) {
+      toast.error("El nombre, el EAN y el SKU son obligatorios");
       return;
     }
 
-    // Verificar SKU duplicado
+    // Verificar EAN y SKU duplicados
+    const eanDuplicado = productos.find(p => p.ean === ean.trim() && p.id !== editando?.id);
+    if (eanDuplicado) {
+      toast.error("Ya existe un producto con este EAN");
+      return;
+    }
     const skuDuplicado = productos.find(p => p.sku === sku.trim() && p.id !== editando?.id);
     if (skuDuplicado) {
       toast.error("Ya existe un producto con este SKU");
@@ -185,6 +207,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
       const datos = {
         nombre: nombre.trim(),
+        ean: ean.trim(),
         sku: sku.trim(),
         ubicacion: ubicacion.trim(),
         categoria,
@@ -262,9 +285,10 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const productosFiltrados = productos.filter(p => {
     const nNombre = normalizeText(p.nombre);
     const nSku = normalizeText(p.sku);
+    const nEan = normalizeText(p.ean);
     const nBusqueda = normalizeText(searchQuery);
 
-    const matchSearch = nNombre.includes(nBusqueda) || nSku.includes(nBusqueda);
+    const matchSearch = nNombre.includes(nBusqueda) || nSku.includes(nBusqueda) || nEan.includes(nBusqueda);
     const matchCat = categoriaFiltro === "Todas" || p.categoria === categoriaFiltro;
 
     return matchSearch && matchCat;
@@ -388,7 +412,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
                 </span>
                 <input 
                   type="text" 
-                  placeholder="Buscar por nombre o SKU..."
+                  placeholder="Buscar por nombre, EAN o SKU..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={`w-full pl-10 pr-4 py-2 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
@@ -448,7 +472,10 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       <h3 className={`font-bold ${t.text} line-clamp-2 leading-tight`}>{prod.nombre}</h3>
                     </div>
                     
-                    <p className={`text-xs ${t.textSecondary} mb-3 font-mono bg-black/10 self-start px-2 py-0.5 rounded border ${t.border}`}>SKU: {prod.sku}</p>
+                    <div className="flex flex-col gap-1 mb-3 self-start">
+                      <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>EAN: {prod.ean}</p>
+                      <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>SKU: {prod.sku}</p>
+                    </div>
                     
                     <div className="mt-auto flex flex-col gap-2">
                       <div className="flex items-center gap-2 text-sm text-purple-400">
@@ -582,6 +609,17 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>EAN *</label>
+                    <input 
+                      type="text"
+                      required
+                      value={ean}
+                      onChange={(e) => setEan(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                      placeholder="Ej: 7791234..."
+                    />
+                  </div>
+                  <div>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>SKU *</label>
                     <input 
                       type="text"
@@ -592,7 +630,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       placeholder="Ej: 102938"
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>Categoría</label>
                     <div className="relative">
@@ -611,17 +651,16 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       </span>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>Ubicación</label>
-                  <input 
-                    type="text"
-                    value={ubicacion}
-                    onChange={(e) => setUbicacion(e.target.value)}
-                    className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
-                    placeholder="Ej: Pasillo 4, Gondola 2"
-                  />
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>Ubicación</label>
+                    <input 
+                      type="text"
+                      value={ubicacion}
+                      onChange={(e) => setUbicacion(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                      placeholder="Ej: Pasillo 4, Gondola 2"
+                    />
+                  </div>
                 </div>
 
               </form>
