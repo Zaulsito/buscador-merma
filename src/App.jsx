@@ -14,7 +14,18 @@ export default function App() {
   const { user, rol, loading } = useAuth();
   
   // State to manage which app is currently open: null | 'rincon' | 'auditoria'
-  const [appSelected, setAppSelected] = useState(null);
+  const [appSelected, setAppSelected] = useState(() => {
+    return localStorage.getItem("appSelected") || null;
+  });
+
+  const handleAppSelect = (app) => {
+    setAppSelected(app);
+    if (app) {
+      localStorage.setItem("appSelected", app);
+    } else {
+      localStorage.removeItem("appSelected");
+    }
+  };
 
   useEffect(() => {
     const inicializar = async () => {
@@ -40,15 +51,15 @@ export default function App() {
     if (!user) return <LoginPage />;
     
     if (!appSelected) {
-      return <AppSelector onSelectApp={setAppSelected} />;
+      return <AppSelector onSelectApp={handleAppSelect} />;
     }
 
     if (appSelected === "rincon") {
-      return <InicioPage user={user} rol={rol} onBackToSelector={() => setAppSelected(null)} />;
+      return <InicioPage user={user} rol={rol} onBackToSelector={() => handleAppSelect(null)} />;
     }
 
     if (appSelected === "auditoria") {
-      return <AuditoriaPage onBackToSelector={() => setAppSelected(null)} />;
+      return <AuditoriaPage onBackToSelector={() => handleAppSelect(null)} />;
     }
   };
 
