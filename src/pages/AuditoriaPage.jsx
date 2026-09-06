@@ -176,6 +176,75 @@ export default function AuditoriaPage({ onBackToSelector }) {
     e.preventDefault();
   };
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const analizarConIA = async () => {
+    if (!imageFile && !imagenUrl) {
+      toast.error("Sube una foto del producto primero");
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    const toastId = toast.loading("Analizando imagen con IA...");
+    
+    try {
+      let base64Data;
+      let mimeType;
+      
+      if (imageFile) {
+        base64Data = imagenUrl.split(",")[1];
+        mimeType = imageFile.type;
+      } else {
+        // Si ya hay imagenUrl por edición, es una URL http (Firebase). Podríamos descargarla y convertirla, pero mejor requerir subir foto nueva o avisar
+        if (imagenUrl.startsWith("http")) {
+          throw new Error("Para usar la IA, sube una foto nueva desde tu dispositivo.");
+        }
+        base64Data = imagenUrl.split(",")[1];
+        mimeType = "image/jpeg";
+      }
+      
+      const res = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64Data,
+          mimeType,
+          tipo: "auditoria_producto"
+        })
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Error al analizar");
+      }
+      
+      let resultStr = data.text;
+      resultStr = resultStr.replace(/```json/g, "").replace(/```/g, "").trim();
+      const parsed = JSON.parse(resultStr);
+      
+      if (parsed.nombre) setNombre(parsed.nombre);
+      if (parsed.ean) setEan(parsed.ean);
+      if (parsed.sku) setSku(parsed.sku);
+      if (parsed.categoria && parsed.categoria !== "Todas") {
+        const catExists = categoriasList.find(c => c.nombre.toLowerCase() === parsed.categoria.toLowerCase());
+        if (catExists) {
+          setCategoria(catExists.nombre);
+        } else {
+          toast.success(`Sugerencia IA: "${parsed.categoria}" (no existe)`, { duration: 4000 });
+        }
+      }
+      
+      toast.success("¡Datos extraídos con éxito!", { id: toastId });
+      
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Error al analizar la imagen", { id: toastId });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const guardarProducto = async (e) => {
     e.preventDefault();
     if (!nombre.trim() || !ean.trim() || !sku.trim()) {
@@ -592,6 +661,18 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       />
                     </label>
                   </div>
+                  
+                  <button
+                    type="button"
+                    onClick={analizarConIA}
+                    disabled={isAnalyzing || !imageFile && !imagenUrl}
+                    className="mt-2 text-xs font-bold px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                      {isAnalyzing ? "hourglass_empty" : "auto_awesome"}
+                    </span>
+                    {isAnalyzing ? "Analizando..." : "Autocompletar con IA"}
+                  </button>
                 </div>
 
                 {/* Campos */}
