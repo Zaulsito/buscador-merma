@@ -288,7 +288,7 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
       }
     }
 
-    res.status(200).json({ descripcionProceso: texto });
+    res.status(200).json({ text: texto, descripcionProceso: texto });
 
   } catch (err) {
     console.error(err);
