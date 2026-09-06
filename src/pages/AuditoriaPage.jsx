@@ -176,6 +176,31 @@ export default function AuditoriaPage({ onBackToSelector }) {
     e.preventDefault();
   };
 
+  useEffect(() => {
+    const handlePaste = (e) => {
+      if (!modalOpen) return;
+      
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          const file = items[i].getAsFile();
+          if (file) {
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onload = (ev) => setImagenUrl(ev.target.result);
+            reader.readAsDataURL(file);
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [modalOpen]);
+
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const analizarConIA = async () => {
@@ -652,7 +677,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     )}
                     
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer text-center p-2">
-                      <span className="text-white text-xs font-bold uppercase tracking-widest leading-tight">Subir Foto o Arrastrar</span>
+                      <span className="text-white text-xs font-bold uppercase tracking-widest leading-tight">Subir, Arrastrar o Pegar (Ctrl+V)</span>
                       <input 
                         type="file" 
                         accept="image/*" 
