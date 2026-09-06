@@ -221,14 +221,14 @@ Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
     } else if (tipo === "auditoria_producto") {
       prompt = `Eres un asistente que extrae información de etiquetas o empaques de productos de supermercado o retail.
 Analiza la imagen proporcionada y extrae los siguientes datos:
-1. Nombre del producto (lo más limpio y claro posible, en MAYÚSCULAS).
+1. Nombre del producto (lo más limpio y claro posible, RESPETANDO ESTRICTAMENTE las mayúsculas y minúsculas tal como aparecen en la etiqueta, NO lo conviertas todo a mayúsculas si no está así).
 2. Código EAN (el código de barras o número largo, si está visible).
 3. SKU (código interno corto del supermercado, si aparece).
 4. Categoría aproximada (ej: Lácteos, Carnicería, Aseo y Limpieza, Pescadería, Botillería, Textil, Fiambrería, Verdulería, Panadería, etc.) Si no estás seguro, pon "Todas".
 
 Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente estructura:
 {
-  "nombre": "NOMBRE DEL PRODUCTO",
+  "nombre": "Nombre Exacto del Producto",
   "ean": "codigo_ean",
   "sku": "codigo_sku",
   "categoria": "Nombre Categoria"

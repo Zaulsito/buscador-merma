@@ -179,6 +179,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
   useEffect(() => {
     const handlePaste = (e) => {
       if (!modalOpen) return;
+      if (document.activeElement.tagName === "INPUT" || document.activeElement.tagName === "TEXTAREA") return;
       
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -187,9 +188,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
         if (items[i].type.startsWith("image/")) {
           const file = items[i].getAsFile();
           if (file) {
-            setImageFile(file);
             const reader = new FileReader();
-            reader.onload = (ev) => setImagenUrl(ev.target.result);
+            reader.onload = (ev) => {
+              const base64Data = ev.target.result.split(",")[1];
+              ejecutarAnalisisIA(base64Data, file.type);
+            };
             reader.readAsDataURL(file);
           }
           break;
@@ -199,35 +202,16 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [modalOpen]);
+  }, [modalOpen, categoriasList]);
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const aiFileInputRef = useRef(null);
 
-  const analizarConIA = async () => {
-    if (!imageFile && !imagenUrl) {
-      toast.error("Sube una foto del producto primero");
-      return;
-    }
-    
+  const ejecutarAnalisisIA = async (base64Data, mimeType) => {
     setIsAnalyzing(true);
-    const toastId = toast.loading("Analizando imagen con IA...");
+    const toastId = toast.loading("Analizando etiqueta con IA...");
     
     try {
-      let base64Data;
-      let mimeType;
-      
-      if (imageFile) {
-        base64Data = imagenUrl.split(",")[1];
-        mimeType = imageFile.type;
-      } else {
-        // Si ya hay imagenUrl por edición, es una URL http (Firebase). Podríamos descargarla y convertirla, pero mejor requerir subir foto nueva o avisar
-        if (imagenUrl.startsWith("http")) {
-          throw new Error("Para usar la IA, sube una foto nueva desde tu dispositivo.");
-        }
-        base64Data = imagenUrl.split(",")[1];
-        mimeType = "image/jpeg";
-      }
-      
       const res = await fetch("/api/analizar-ficha", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -244,7 +228,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
         throw new Error(data.error || "Error al analizar");
       }
       
-      let resultStr = data.text;
+      let resultStr = data.text || data.descripcionProceso;
       resultStr = resultStr.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsed = JSON.parse(resultStr);
       
@@ -267,6 +251,19 @@ export default function AuditoriaPage({ onBackToSelector }) {
       toast.error(error.message || "Error al analizar la imagen", { id: toastId });
     } finally {
       setIsAnalyzing(false);
+      if (aiFileInputRef.current) aiFileInputRef.current.value = "";
+    }
+  };
+
+  const handleAiFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const base64Data = ev.target.result.split(",")[1];
+        ejecutarAnalisisIA(base64Data, file.type);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -677,7 +674,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     )}
                     
                     <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer text-center p-2">
-                      <span className="text-white text-xs font-bold uppercase tracking-widest leading-tight">Subir, Arrastrar o Pegar (Ctrl+V)</span>
+                      <span className="text-white text-xs font-bold uppercase tracking-widest leading-tight">Subir Portada</span>
                       <input 
                         type="file" 
                         accept="image/*" 
@@ -687,16 +684,23 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     </label>
                   </div>
                   
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleAiFileChange}
+                    className="hidden"
+                    ref={aiFileInputRef}
+                  />
                   <button
                     type="button"
-                    onClick={analizarConIA}
-                    disabled={isAnalyzing || !imageFile && !imagenUrl}
+                    onClick={() => aiFileInputRef.current?.click()}
+                    disabled={isAnalyzing}
                     className="mt-2 text-xs font-bold px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:shadow-purple-500/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                       {isAnalyzing ? "hourglass_empty" : "auto_awesome"}
                     </span>
-                    {isAnalyzing ? "Analizando..." : "Autocompletar con IA"}
+                    {isAnalyzing ? "Analizando..." : "Extraer Datos con IA (Ctrl+V)"}
                   </button>
                 </div>
 
