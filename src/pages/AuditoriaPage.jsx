@@ -232,6 +232,17 @@ export default function AuditoriaPage({ onBackToSelector }) {
       resultStr = resultStr.replace(/```json/g, "").replace(/```/g, "").trim();
       const parsed = JSON.parse(resultStr);
       
+      // Validación inmediata: Verificar si EAN o SKU ya existen
+      const pId = editando?.id;
+      const eanExiste = parsed.ean ? productos.find(p => p.ean === parsed.ean && p.id !== pId) : null;
+      const skuExiste = parsed.sku ? productos.find(p => p.sku === parsed.sku && p.id !== pId) : null;
+      const productoExistente = eanExiste || skuExiste;
+      
+      if (productoExistente) {
+        toast.error(`⚠️ Etiqueta descartada. El producto ya existe: ${productoExistente.nombre}`, { duration: 5000, id: toastId });
+        return;
+      }
+      
       if (parsed.nombre) setNombre(parsed.nombre);
       if (parsed.ean) setEan(parsed.ean);
       if (parsed.sku) setSku(parsed.sku);
@@ -725,9 +736,20 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       required
                       value={ean}
                       onChange={(e) => setEan(e.target.value)}
-                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${
+                        ean.trim() 
+                          ? (productos.find(p => p.ean === ean.trim() && p.id !== editando?.id) 
+                              ? 'border-red-500 focus:border-red-500 bg-red-500/5' 
+                              : 'border-green-500 focus:border-green-500 bg-green-500/5')
+                          : `${t.border} focus:border-purple-500`
+                      } ${t.text} focus:outline-none transition-colors`}
                       placeholder="Ej: 7791234..."
                     />
+                    {ean.trim() && productos.find(p => p.ean === ean.trim() && p.id !== editando?.id) && (
+                      <p className="text-red-500 text-xs mt-1.5 font-bold animate-pulse">
+                        ⚠️ Ya existe: {productos.find(p => p.ean === ean.trim() && p.id !== editando?.id).nombre}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>SKU *</label>
@@ -736,9 +758,20 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       required
                       value={sku}
                       onChange={(e) => setSku(e.target.value)}
-                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${
+                        sku.trim() 
+                          ? (productos.find(p => p.sku === sku.trim() && p.id !== editando?.id) 
+                              ? 'border-red-500 focus:border-red-500 bg-red-500/5' 
+                              : 'border-green-500 focus:border-green-500 bg-green-500/5')
+                          : `${t.border} focus:border-purple-500`
+                      } ${t.text} focus:outline-none transition-colors`}
                       placeholder="Ej: 102938"
                     />
+                    {sku.trim() && productos.find(p => p.sku === sku.trim() && p.id !== editando?.id) && (
+                      <p className="text-red-500 text-xs mt-1.5 font-bold animate-pulse">
+                        ⚠️ Ya existe: {productos.find(p => p.sku === sku.trim() && p.id !== editando?.id).nombre}
+                      </p>
+                    )}
                   </div>
                 </div>
 
