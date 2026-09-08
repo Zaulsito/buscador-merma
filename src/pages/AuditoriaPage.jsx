@@ -239,6 +239,20 @@ export default function AuditoriaPage({ onBackToSelector }) {
       const productoExistente = eanExiste || skuExiste;
       
       if (productoExistente) {
+        const leFaltaEan = !productoExistente.ean && parsed.ean;
+        const leFaltaSku = !productoExistente.sku && parsed.sku;
+        
+        if (leFaltaEan || leFaltaSku) {
+          const mensaje = `El producto "${productoExistente.nombre}" ya existe en la base de datos, pero le falta ${leFaltaEan ? 'el EAN' : ''}${leFaltaEan && leFaltaSku ? ' y ' : ''}${leFaltaSku ? 'el SKU' : ''}.\n\n¿Deseas editar el producto existente y rellenar estos datos faltantes automáticamente?`;
+          if (window.confirm(mensaje)) {
+            abrirEditar(productoExistente);
+            if (leFaltaEan) setEan(parsed.ean);
+            if (leFaltaSku) setSku(parsed.sku);
+            toast.success("¡Datos rellenados! Revisa y haz clic en Guardar.", { id: toastId });
+            return;
+          }
+        }
+        
         toast.error(`⚠️ Etiqueta descartada. El producto ya existe: ${productoExistente.nombre}`, { duration: 5000, id: toastId });
         return;
       }
