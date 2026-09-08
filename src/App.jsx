@@ -28,6 +28,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    if (appSelected === "auditoria") {
+      document.title = "Auditoria Jumbo.cl";
+    } else {
+      document.title = "Rincón Info";
+    }
+  }, [appSelected]);
+
+  useEffect(() => {
     const inicializar = async () => {
       const snap = await getDocs(collection(db, "secciones"));
       if (snap.empty) {
