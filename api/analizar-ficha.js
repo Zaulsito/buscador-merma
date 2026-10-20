@@ -219,12 +219,30 @@ Nota: si hay un solo producto → pon su precio en "precio" y "precios" como arr
 Responde ÚNICAMENTE con el JSON. Sin explicaciones. Sin markdown.`;
 
     } else if (tipo === "auditoria_producto") {
-      prompt = `Eres un asistente que extrae información de etiquetas o empaques de productos de supermercado o retail.
+      prompt = `Eres un asistente experto que extrae información de etiquetas o empaques de productos de supermercado o retail chileno.
 Analiza la imagen proporcionada y extrae los siguientes datos:
 1. Nombre del producto (lo más limpio y claro posible, RESPETANDO ESTRICTAMENTE las mayúsculas y minúsculas tal como aparecen en la etiqueta, NO lo conviertas todo a mayúsculas si no está así).
 2. Código EAN (el código de barras o número largo, si está visible).
 3. SKU (código interno corto del supermercado, si aparece).
-4. Categoría aproximada (ej: Lácteos, Carnicería, Aseo y Limpieza, Pescadería, Botillería, Textil, Fiambrería, Verdulería, Panadería, etc.) Si no estás seguro, pon "Todas".
+4. Categoría: Asigna EXACTAMENTE una de las siguientes categorías oficiales del sistema:
+- Perfumería: Todo producto de higiene personal, cuidado personal y belleza (ej: Shampoo, Jabón de tocador/corporal/líquido, Bálsamos y acondicionadores, Tinturas de cabello, Toallas higiénicas, protectores diarios, tampones, desodorantes, cremas corporales o faciales, pasta dental, enjuague bucal, etc. NUNCA los pongas en Aseo y Limpieza).
+- Aseo y Limpieza: Exclusivamente para limpieza del hogar, vajilla y ropa (detergentes, lavalozas, limpiapisos, cloro, limpiavidrios, desinfectantes, esponjas, bolsas de basura, etc.).
+- Abarrotes
+- Botillería
+- Carnicería
+- Fiambrería
+- Importado
+- Lácteos
+- Masivo
+- Menaje
+- Mundo Bio
+- Panadería
+- Pastelería
+- Pescadería
+- Platos Preparados
+- Textil
+- Verdulería
+Si no estás seguro o no encaja, pon "Todas".
 
 Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente estructura:
 {

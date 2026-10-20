@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import DecorativeBackground from "../components/DecorativeBackground";
 import { useTheme } from "../context/ThemeContext";
@@ -21,6 +21,122 @@ const DEFAULT_CATEGORIAS = [
   "Aseo y Limpieza",
   "Perfumería"
 ];
+
+const sortCategorias = (list) => [...list].sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es", { sensitivity: "base" }));
+
+const getCategoriaEstilo = (catNombre) => {
+  const key = normalizeText(catNombre);
+  switch (key) {
+    case "pescaderia":
+      return {
+        bg: "bg-sky-400 text-sky-950 border-sky-300",
+        badge: "bg-sky-950/20 text-sky-950",
+        shadow: "shadow-sky-400/40"
+      };
+    case "panaderia":
+      return {
+        bg: "bg-orange-500 text-white border-orange-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-orange-500/40"
+      };
+    case "aseo y limpieza":
+      return {
+        bg: "bg-purple-600 text-white border-purple-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-purple-500/40"
+      };
+    case "carniceria":
+      return {
+        bg: "bg-red-600 text-white border-red-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-red-500/40"
+      };
+    case "lacteos":
+      return {
+        bg: "bg-white text-slate-900 border-slate-300",
+        badge: "bg-slate-200 text-slate-900",
+        shadow: "shadow-white/30"
+      };
+    case "verduleria":
+      return {
+        bg: "bg-emerald-900 text-emerald-100 border-emerald-700",
+        badge: "bg-black/35 text-emerald-100",
+        shadow: "shadow-emerald-950/50"
+      };
+    case "botilleria":
+      return {
+        bg: "bg-blue-600 text-white border-blue-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-blue-500/40"
+      };
+    case "textil":
+      return {
+        bg: "bg-[#6F4E37] text-[#FAF0E6] border-[#553b2a]",
+        badge: "bg-black/30 text-[#FAF0E6]",
+        shadow: "shadow-[#6F4E37]/40"
+      };
+    case "importado":
+      return {
+        bg: "bg-gradient-to-r from-red-600 to-orange-500 text-white border-orange-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-red-500/40"
+      };
+    case "fiambreria":
+      return {
+        bg: "bg-yellow-400 text-yellow-950 border-yellow-300",
+        badge: "bg-yellow-950/20 text-yellow-950",
+        shadow: "shadow-yellow-400/40"
+      };
+    case "menaje":
+      return {
+        bg: "bg-slate-500 text-white border-slate-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-slate-500/40"
+      };
+    case "perfumeria":
+      return {
+        bg: "bg-rose-600 text-white border-rose-400",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-rose-500/40"
+      };
+    case "mundo bio":
+      return {
+        bg: "bg-teal-400 text-teal-950 border-teal-300",
+        badge: "bg-teal-950/20 text-teal-950",
+        shadow: "shadow-teal-400/40"
+      };
+    case "pasteleria":
+      return {
+        bg: "bg-pink-300 text-pink-950 border-pink-200",
+        badge: "bg-pink-950/20 text-pink-950",
+        shadow: "shadow-pink-300/40"
+      };
+    case "abarrotes":
+      return {
+        bg: "bg-black text-white border-slate-700",
+        badge: "bg-white/20 text-white",
+        shadow: "shadow-black/60"
+      };
+    case "platos preparados":
+      return {
+        bg: "bg-lime-400 text-lime-950 border-lime-300",
+        badge: "bg-lime-950/20 text-lime-950",
+        shadow: "shadow-lime-400/40"
+      };
+    case "masivo":
+      return {
+        bg: "bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-amber-950 border-yellow-200",
+        badge: "bg-amber-950/20 text-amber-950",
+        shadow: "shadow-amber-400/40"
+      };
+    default:
+      return {
+        bg: "bg-slate-700 text-white border-slate-600",
+        badge: "bg-black/25 text-white",
+        shadow: "shadow-slate-700/40"
+      };
+  }
+};
 
 const normalizeText = (text) => 
   text ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
@@ -57,7 +173,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const scrollCategories = (dir) => {
     if (categoriesRef.current) {
-      const scrollAmount = 200;
+      const scrollAmount = categoriesRef.current.clientWidth * 0.7 || 250;
       categoriesRef.current.scrollBy({ left: dir === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
   };
@@ -95,9 +211,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
           await addDoc(collection(db, "auditoria_categorias"), { nombre: cat });
         }
         const cSnapNew = await getDocs(collection(db, "auditoria_categorias"));
-        setCategoriasList(cSnapNew.docs.map(d => ({ id: d.id, ...d.data() })));
+        setCategoriasList(sortCategorias(cSnapNew.docs.map(d => ({ id: d.id, ...d.data() }))));
       } else {
-        setCategoriasList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setCategoriasList(sortCategorias(cSnap.docs.map(d => ({ id: d.id, ...d.data() }))));
       }
     } catch (error) {
       console.error("Error al cargar datos:", error);
@@ -109,7 +225,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const recargarCategorias = async () => {
     const cSnap = await getDocs(collection(db, "auditoria_categorias"));
-    setCategoriasList(cSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    setCategoriasList(sortCategorias(cSnap.docs.map(d => ({ id: d.id, ...d.data() }))));
   };
 
   const cargarProductos = async () => {
@@ -228,26 +344,43 @@ export default function AuditoriaPage({ onBackToSelector }) {
         throw new Error(data.error || "Error al analizar");
       }
       
-      let resultStr = data.text || data.descripcionProceso;
-      resultStr = resultStr.replace(/```json/g, "").replace(/```/g, "").trim();
+      let resultStr = data.text || data.descripcionProceso || "";
+      const jsonMatch = resultStr.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        resultStr = jsonMatch[0];
+      } else {
+        resultStr = resultStr.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+      }
+      
       const parsed = JSON.parse(resultStr);
+      console.log("IA respuesta procesada:", parsed);
+
+      const nombreExtraido = (parsed.nombre || parsed.Nombre || parsed.NOMBRE || parsed.producto || "").trim();
+      const eanExtraido = String(parsed.ean || parsed.EAN || parsed.codigo_ean || parsed.codigo_barra || parsed.codBarra || "").trim();
+      const skuExtraido = String(parsed.sku || parsed.SKU || parsed.codigo_sku || parsed.codigo || "").trim();
+      const categoriaExtraida = (parsed.categoria || parsed.Categoria || parsed.CATEGORIA || "").trim();
+
+      if (!nombreExtraido && !eanExtraido && !skuExtraido) {
+        toast.error("La IA no detectó nombre, EAN ni SKU en esta foto. Asegúrate de enfocar la etiqueta.", { id: toastId, duration: 6000 });
+        return;
+      }
       
       // Validación inmediata: Verificar si EAN o SKU ya existen
       const pId = editando?.id;
-      const eanExiste = parsed.ean ? productos.find(p => p.ean === parsed.ean && p.id !== pId) : null;
-      const skuExiste = parsed.sku ? productos.find(p => p.sku === parsed.sku && p.id !== pId) : null;
+      const eanExiste = eanExtraido ? productos.find(p => p.ean === eanExtraido && p.id !== pId) : null;
+      const skuExiste = skuExtraido ? productos.find(p => p.sku === skuExtraido && p.id !== pId) : null;
       const productoExistente = eanExiste || skuExiste;
       
       if (productoExistente) {
-        const leFaltaEan = !productoExistente.ean && parsed.ean;
-        const leFaltaSku = !productoExistente.sku && parsed.sku;
+        const leFaltaEan = !productoExistente.ean && eanExtraido;
+        const leFaltaSku = !productoExistente.sku && skuExtraido;
         
         if (leFaltaEan || leFaltaSku) {
           const mensaje = `El producto "${productoExistente.nombre}" ya existe en la base de datos, pero le falta ${leFaltaEan ? 'el EAN' : ''}${leFaltaEan && leFaltaSku ? ' y ' : ''}${leFaltaSku ? 'el SKU' : ''}.\n\n¿Deseas editar el producto existente y rellenar estos datos faltantes automáticamente?`;
           if (window.confirm(mensaje)) {
             abrirEditar(productoExistente);
-            if (leFaltaEan) setEan(parsed.ean);
-            if (leFaltaSku) setSku(parsed.sku);
+            if (leFaltaEan) setEan(eanExtraido);
+            if (leFaltaSku) setSku(skuExtraido);
             toast.success("¡Datos rellenados! Revisa y haz clic en Guardar.", { id: toastId });
             return;
           }
@@ -257,15 +390,29 @@ export default function AuditoriaPage({ onBackToSelector }) {
         return;
       }
       
-      if (parsed.nombre) setNombre(parsed.nombre);
-      if (parsed.ean) setEan(parsed.ean);
-      if (parsed.sku) setSku(parsed.sku);
-      if (parsed.categoria && parsed.categoria !== "Todas") {
-        const catExists = categoriasList.find(c => c.nombre.toLowerCase() === parsed.categoria.toLowerCase());
+      if (nombreExtraido) setNombre(nombreExtraido);
+      if (eanExtraido) setEan(eanExtraido);
+      if (skuExtraido) setSku(skuExtraido);
+      // Detección automática para Perfumería (higiene, cuidado personal y belleza)
+      const terminosPerfumeria = [
+        "shampoo", "champu", "jabon", "balsamo", "acondicionador", 
+        "tintura", "toalla higienica", "toallas higienicas", "toallitas higienicas", 
+        "desodorante", "antitranspirante", "crema corporal", "crema facial", 
+        "pasta dental", "dentifrico", "cepillo dental", "enjuague bucal",
+        "bloqueador", "protector solar", "tampon", "protectores diarios"
+      ];
+      const nombreNorm = normalizeText(nombreExtraido);
+      let catFinal = categoriaExtraida;
+      if (terminosPerfumeria.some(t => nombreNorm.includes(normalizeText(t)))) {
+        catFinal = "Perfumería";
+      }
+
+      if (catFinal && catFinal !== "Todas") {
+        const catExists = categoriasList.find(c => c.nombre.toLowerCase() === catFinal.toLowerCase());
         if (catExists) {
           setCategoria(catExists.nombre);
         } else {
-          toast.success(`Sugerencia IA: "${parsed.categoria}" (no existe)`, { duration: 4000 });
+          toast.success(`Sugerencia IA: "${catFinal}" (no existe)`, { duration: 4000 });
         }
       }
       
@@ -398,7 +545,18 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setCurrentPage(1);
   }, [searchQuery, categoriaFiltro]);
 
-  const productosFiltrados = productos.filter(p => {
+    const totalPorCategoria = useMemo(() => {
+    const counts = {};
+    for (const p of productos) {
+      if (p.categoria) {
+        const norm = normalizeText(p.categoria);
+        counts[norm] = (counts[norm] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [productos]);
+
+const productosFiltrados = productos.filter(p => {
     const nNombre = normalizeText(p.nombre);
     const nSku = normalizeText(p.sku);
     const nEan = normalizeText(p.ean);
@@ -427,7 +585,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     pageNumbers.push(i);
   }
 
-  const uniqueCategorias = Array.from(new Map(categoriasList.map(c => [c.nombre, c])).values());
+  const uniqueCategorias = sortCategorias(Array.from(new Map(categoriasList.map(c => [c.nombre, c])).values()));
 
   return (
     <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-hidden font-sans`}>
@@ -483,32 +641,50 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
             <div 
               ref={categoriesRef}
-              className="flex-1 flex gap-2 overflow-x-auto pb-2 pt-2 items-center no-scrollbar scroll-smooth" 
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              className="flex-1 flex gap-2.5 overflow-x-auto pb-2 pt-2 px-8 items-center no-scrollbar scroll-smooth snap-x snap-mandatory" 
+              style={{ 
+                scrollbarWidth: 'none', 
+                msOverflowStyle: 'none',
+                maskImage: 'linear-gradient(to right, transparent 0%, black 36px, black calc(100% - 36px), transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 36px, black calc(100% - 36px), transparent 100%)'
+              }}
             >
               <button
                 onClick={() => setCategoriaFiltro("Todas")}
-                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
+                className={`shrink-0 snap-start px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border flex items-center gap-2 ${
                   categoriaFiltro === "Todas" 
-                    ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30"
-                    : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400`
+                    ? "bg-purple-600 text-white border-purple-400 ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105 shadow-lg shadow-purple-500/30 opacity-100 z-10"
+                    : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400 opacity-80 hover:opacity-100 hover:scale-[1.02]`
                 }`}
               >
-                Todas
+                <span>Todas</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-black ${
+                  categoriaFiltro === "Todas" ? "bg-black/25 text-white" : "bg-white/10 text-slate-300"
+                }`}>
+                  {productos.length}
+                </span>
               </button>
-              {uniqueCategorias.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoriaFiltro(cat.nombre)}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${
-                    categoriaFiltro === cat.nombre 
-                      ? "bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-500/30"
-                      : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400`
-                  }`}
-                >
-                  {cat.nombre}
-                </button>
-              ))}
+              {uniqueCategorias.map(cat => {
+                const estilo = getCategoriaEstilo(cat.nombre);
+                const count = totalPorCategoria[normalizeText(cat.nombre)] || 0;
+                const isSelected = categoriaFiltro === cat.nombre;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategoriaFiltro(cat.nombre)}
+                    className={`shrink-0 snap-start px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border flex items-center gap-2 ${estilo.bg} ${
+                      isSelected 
+                        ? `ring-2 ring-white ring-offset-2 ring-offset-slate-900 scale-105 shadow-lg ${estilo.shadow} opacity-100 z-10`
+                        : "opacity-80 hover:opacity-100 hover:scale-[1.02]"
+                    }`}
+                  >
+                    <span>{cat.nombre}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-black ${estilo.badge}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             <button 
@@ -578,9 +754,14 @@ export default function AuditoriaPage({ onBackToSelector }) {
                       <span className="material-symbols-outlined text-slate-400" style={{ fontSize: 48 }}>image</span>
                     )}
                     {/* Badge Categoría */}
-                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded border border-white/10 uppercase tracking-wider">
-                      {prod.categoria}
-                    </div>
+                    {(() => {
+                      const catEstilo = getCategoriaEstilo(prod.categoria);
+                      return (
+                        <div className={`absolute top-2 right-2 backdrop-blur-md text-[10px] font-extrabold px-2 py-1 rounded border uppercase tracking-wider shadow-sm ${catEstilo.bg}`}>
+                          {prod.categoria}
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   <div className="p-4 flex-1 flex flex-col">
