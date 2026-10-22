@@ -11,9 +11,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5000000 // 5MB
       },
       manifest: {
-        name: 'RInfo - Rincón Informaciones',
-        short_name: 'R.Info',
-        description: 'Informaciones de Rincón',
+        name: 'Cetelio',
+        short_name: 'Cetelio',
+        description: 'Cetelio - Sistema de Gestión',
         theme_color: '#111827',
         background_color: '#111827',
         display: 'standalone',

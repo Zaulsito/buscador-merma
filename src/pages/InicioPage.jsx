@@ -594,7 +594,7 @@ export default function InicioPage({ user, rol, onBackToSelector }) {
             </section>
 
             <p className={`${t.textSecondary} text-xs text-center py-4`}>
-              © 2026 R.info · Sistema de Información Operativa. Todos los derechos reservados.
+              © 2026 Cetelio · Sistema de Información Operativa. Todos los derechos reservados.
             </p>
 
           </div>

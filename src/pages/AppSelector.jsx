@@ -14,13 +14,9 @@ export default function AppSelector({ onSelectApp }) {
       {/* Header */}
       <header className={`relative z-10 px-6 py-4 flex items-center justify-between border-b ${t.border} ${t.bgNav}`}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <span className="material-symbols-outlined text-white" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>
-              widgets
-            </span>
-          </div>
+          <img src="/icon-192.png" alt="Cetelio" className="w-10 h-10 rounded-xl shadow-md flex-shrink-0" />
           <div>
-            <h1 className={`text-xl font-black ${t.text}`}>Portal de Aplicaciones</h1>
+            <h1 className={`text-xl font-black ${t.text}`}>Cetelio</h1>
             <p className={`text-xs ${t.textSecondary}`}>Selecciona un entorno de trabajo</p>
           </div>
         </div>

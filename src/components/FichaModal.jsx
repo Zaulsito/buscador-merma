@@ -525,7 +525,7 @@ export default function FichaModal({ ficha, seccionInicial, onClose, user }) {
         {/* ── Sidebar desktop ── */}
         <aside className="hidden md:flex h-full w-64 flex-col bg-slate-900/90 backdrop-blur-2xl border-r border-white/5 flex-shrink-0">
           <div className="px-6 py-5 border-b border-white/5">
-            <span className="text-amber-500 font-black text-xs uppercase tracking-widest">R.info Management</span>
+            <span className="text-amber-500 font-black text-xs uppercase tracking-widest">Cetelio Management</span>
           </div>
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {TABS.map((tab, i) => (

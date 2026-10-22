@@ -31,7 +31,7 @@ export default function App() {
     if (appSelected === "auditoria") {
       document.title = "Auditoria Jumbo.cl";
     } else {
-      document.title = "Rincón Info";
+      document.title = "Cetelio";
     }
   }, [appSelected]);
 
