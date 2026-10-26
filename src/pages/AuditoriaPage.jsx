@@ -481,15 +481,15 @@ export default function AuditoriaPage({ onBackToSelector }) {
       if (editando) {
         await updateDoc(doc(db, "auditoria_productos", editando.id), datos);
         toast.success("Producto actualizado");
+        setModalOpen(false);
+        resetForm();
       } else {
         datos.createdAt = serverTimestamp();
-        datos.enStock = true; // Por defecto con stock
         await addDoc(collection(db, "auditoria_productos"), datos);
-        toast.success("Producto creado");
+        toast.success("¡Producto agregado! Puedes continuar agregando.");
+        resetForm();
       }
 
-      setModalOpen(false);
-      resetForm();
       cargarProductos();
     } catch (error) {
       console.error("Error guardando:", error);
@@ -780,27 +780,7 @@ const productosFiltrados = productos.filter(p => {
                         <span className="truncate">{prod.ubicacion || "Sin ubicación"}</span>
                       </div>
                       
-                      <div className={`flex items-center justify-between pt-2 border-t ${t.border}`}>
-                        <div>
-                          <span className={`text-xs font-bold ${prod.enStock !== false ? "text-emerald-400" : "text-red-400"}`}>
-                            {prod.enStock !== false ? "Stock: ON" : "Stock: OFF"}
-                          </span>
-                          {prod.fechaSinStock && prod.enStock === false && (
-                            <p className="text-[10px] text-slate-500 leading-none mt-0.5">
-                              Desde: {prod.fechaSinStock.toDate ? prod.fechaSinStock.toDate().toLocaleDateString() : new Date(prod.fechaSinStock).toLocaleDateString()}
-                            </p>
-                          )}
-                        </div>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleStock(prod);
-                          }}
-                          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${prod.enStock !== false ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                        >
-                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${prod.enStock !== false ? 'translate-x-5' : 'translate-x-1'}`} />
-                        </button>
-                      </div>
+                      
                     </div>
                   </div>
                 </div>
