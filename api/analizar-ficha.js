@@ -227,13 +227,13 @@ Analiza la imagen proporcionada y extrae los siguientes datos:
 4. Categoría: Asigna EXACTAMENTE una de las siguientes categorías oficiales del sistema:
 - Perfumería: Todo producto de higiene personal, cuidado personal y belleza (ej: Shampoo, Jabón de tocador/corporal/líquido, Bálsamos y acondicionadores, Tinturas de cabello, Toallas higiénicas, protectores diarios, tampones, desodorantes, cremas corporales o faciales, pasta dental, enjuague bucal, etc. NUNCA los pongas en Aseo y Limpieza).
 - Aseo y Limpieza: Exclusivamente para limpieza del hogar, vajilla y ropa (detergentes, lavalozas, limpiapisos, cloro, limpiavidrios, desinfectantes, esponjas, bolsas de basura, etc.).
-- Abarrotes
-- Botillería
+- Abarrotes: Despensa general (arroz, fideos, aceites, legumbres, salsas, conservas, azúcar, café, té, etc.) y galletas dulces (Tritón, Oreo, etc. Las galletas dulces NUNCA van en Botillería).
+- Botillería: Vinos, cervezas, licores y bebidas alcohólicas. ADEMÁS incluye: la mayoría de las especias y condimentos (orégano entero o molido, ajo en polvo, comino, pimienta, aliños secos, etc.) y snacks salados / papas fritas (papas fritas Lays o Kryzpo, Doritos, Ramitas Evercrisp, Cheetos, suflés, etc.). OJO: las galletas dulces NO van aquí.
 - Carnicería
 - Fiambrería
 - Importado
 - Lácteos
-- Masivo
+- Masivo: Alimentos y artículos para mascotas (alimento para gatos, comida de perro, snacks de gatos, arena sanitaria, Whiskas, Churu, Felix, etc.), juguetería y juegos de niños, peluches, libros, revistas, artículos de bazar, librería y papelería.
 - Menaje
 - Mundo Bio
 - Panadería

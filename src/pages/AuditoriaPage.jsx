@@ -401,10 +401,47 @@ export default function AuditoriaPage({ onBackToSelector }) {
         "pasta dental", "dentifrico", "cepillo dental", "enjuague bucal",
         "bloqueador", "protector solar", "tampon", "protectores diarios"
       ];
+
+      // Detección automática para Masivo (alimentos para gatos/mascotas, juguetes/juegos de niños, peluches, libros)
+      const terminosMasivo = [
+        "gato", "gatos", "felino", "gatito", "gatitos", "whiskas", "churu", "felix", "cat chow", "catchow",
+        "perro", "perros", "dog chow", "dogchow", "pedigree", "mascota", "mascotas", "arena para gato", "arena sanitaria",
+        "alimento gato", "comida gato", "snack gato", "snack perro",
+        "juego de ninos", "juegos de ninos", "juego ninos", "juego infantil", "juegos infantiles",
+        "juguete", "juguetes", "peluche", "peluches",
+        "libro", "libros", "cuento", "cuentos", "novela", "novelas", "revista", "revistas",
+        "juego de mesa", "juegos de mesa", "puzzle", "rompecabezas"
+      ];
+
+      // Detección automática para Botillería (especias/condimentos y snacks salados tipo papas fritas, doritos, ramitas)
+      const terminosBotilleria = [
+        "cerveza", "vino", "pisco", "whisky", "whiskey", "ron", "vodka", "gin", "licor", "espumante", "tequila",
+        "oregano", "ajo en polvo", "comino", "pimienta", "alino", "curry", "pimenton molido", 
+        "aji de color", "nuez moscada", "laurel", "clavo de olor", "canela en polvo", "canela entera",
+        "papas fritas", "papa frita", "doritos", "ramitas", "cheetos", "nachos", "sufles", "sufle",
+        "lays", "kryzpo", "cheezels", "tortillas queso", "mani salado"
+      ];
+
       const nombreNorm = normalizeText(nombreExtraido);
       let catFinal = categoriaExtraida;
+
       if (terminosPerfumeria.some(t => nombreNorm.includes(normalizeText(t)))) {
         catFinal = "Perfumería";
+      } else if (terminosMasivo.some(t => {
+        const tNorm = normalizeText(t);
+        if (["gato", "gatos", "perro", "perros", "libro", "libros"].includes(tNorm)) {
+          const regex = new RegExp(`(^|\\s)${tNorm}(\\s|$)`, 'i');
+          return regex.test(nombreNorm);
+        }
+        return nombreNorm.includes(tNorm);
+      })) {
+        catFinal = "Masivo";
+      } else if (
+        !nombreNorm.includes("galleta") && 
+        !nombreNorm.includes("galletas") && 
+        terminosBotilleria.some(t => nombreNorm.includes(normalizeText(t)))
+      ) {
+        catFinal = "Botillería";
       }
 
       if (catFinal && catFinal !== "Todas") {
