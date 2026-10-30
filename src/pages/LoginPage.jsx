@@ -71,7 +71,7 @@ export default function LoginPage() {
   //       telefono: telefono.trim() || "",
   //     });
   //     await sendEmailVerification(cred.user, {
-  //       url: "https://rincon-manager.vercel.app",
+  //       url: "https://cetelio.vercel.app",
   //       handleCodeInApp: false,
   //     });
   //     await signOut(auth);
