@@ -39,8 +39,6 @@ export function AuthProvider({ children }) {
         }
 
         setUser(currentUser);
-
-        setUser(currentUser);
       } else {
         setUser(null);
         setRol(null);
@@ -50,8 +48,10 @@ export function AuthProvider({ children }) {
     return () => unsub();
   }, []);
 
+  const logout = () => signOut(auth);
+
   return (
-    <AuthContext.Provider value={{ user, rol, loading }}>
+    <AuthContext.Provider value={{ user, rol, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );
