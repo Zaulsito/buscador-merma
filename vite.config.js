@@ -37,7 +37,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://rincon-manager.vercel.app',
+        target: 'https://cetelio.vercel.app',
         changeOrigin: true
       }
     }
