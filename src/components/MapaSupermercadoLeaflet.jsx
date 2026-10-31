@@ -2,288 +2,119 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useTheme } from "../context/ThemeContext";
+import { db, storage } from "../firebase/config";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import toast from "react-hot-toast";
 
-// Definición de Pasillos y Góndolas del Local (Maqueta de Ejemplo)
-const SECTORES_MAPA = [
-  // --- BOTILLERÍA ---
-  {
-    id: "botilleria-pared",
-    nombre: "Pared Botillería",
-    seccion: "Botillería",
-    tipo: "Pared",
-    bounds: [[300, 60], [700, 110]],
-    color: "#8b5cf6", // purple
-    gondolas: [
-      { id: "BP-1", nombre: "Góndola 1 (Whisky & Tequila)", center: [650, 85] },
-      { id: "BP-2", nombre: "Góndola 2 (Vodka & Ron)", center: [500, 85] },
-      { id: "BP-3", nombre: "Góndola 3 (Licores & Aperitivos)", center: [350, 85] },
-    ]
-  },
-  {
-    id: "pasillo-13d",
-    nombre: "Pasillo 13-D",
-    seccion: "Botillería",
-    tipo: "Pasillo",
-    bounds: [[320, 160], [680, 210]],
-    color: "#8b5cf6",
-    gondolas: [
-      { id: "13D-G1", nombre: "Góndola 1 (Rose & Late Harvest)", center: [620, 185] },
-      { id: "13D-G2", nombre: "Góndola 2 (Vinos Tintos Reserva)", center: [500, 185] },
-      { id: "13D-G3", nombre: "Góndola 3 (Agua Tónica & Mixers)", center: [380, 185] },
-    ]
-  },
-  {
-    id: "pasillo-14d",
-    nombre: "Pasillo 14-D",
-    seccion: "Botillería",
-    tipo: "Pasillo",
-    bounds: [[320, 260], [680, 310]],
-    color: "#8b5cf6",
-    gondolas: [
-      { id: "14D-G1", nombre: "Góndola 1 (Espumantes & Sidras)", center: [620, 285] },
-      { id: "14D-G2", nombre: "Góndola 2 (Vinos Blancos & Cepas)", center: [500, 285] },
-      { id: "14D-G3", nombre: "Góndola 3 (Licores Dulces & Bailey)", center: [380, 285] },
-    ]
-  },
-  {
-    id: "pasillo-15d",
-    nombre: "Pasillo 15-D",
-    seccion: "Botillería",
-    tipo: "Pasillo",
-    bounds: [[320, 360], [680, 410]],
-    color: "#8b5cf6",
-    gondolas: [
-      { id: "15D-G1", nombre: "Góndola 1 (Piscos Especiales)", center: [620, 385] },
-      { id: "15D-G2", nombre: "Góndola 2 (Piscos Tradicionales)", center: [500, 385] },
-      { id: "15D-G3", nombre: "Góndola 3 (Cocktails & Sour)", center: [380, 385] },
-    ]
-  },
-  {
-    id: "pasillo-16d",
-    nombre: "Pasillo 16-D",
-    seccion: "Botillería",
-    tipo: "Pasillo",
-    bounds: [[320, 460], [680, 510]],
-    color: "#8b5cf6",
-    gondolas: [
-      { id: "16D-G1", nombre: "Góndola 1 (Cervezas Artesanales)", center: [620, 485] },
-      { id: "16D-G2", nombre: "Góndola 2 (Cervezas Importadas)", center: [500, 485] },
-      { id: "16D-G3", nombre: "Góndola 3 (Cervezas Sin Alcohol)", center: [380, 485] },
-    ]
-  },
+// Colores por sección para los marcadores
+const SECCION_COLORES = {
+  "botilleria": "#a855f7",
+  "abarrotes": "#3b82f6",
+  "carniceria": "#ef4444",
+  "fiambreria": "#eab308",
+  "lacteos": "#10b981",
+  "aseo y limpieza": "#06b6d4",
+  "panaderia": "#f97316",
+  "pasteleria": "#ec4899",
+  "verdulería": "#22c55e",
+  "verduleria": "#22c55e",
+  "mundo bio": "#84cc16",
+  "mascotas": "#14b8a6",
+  "default": "#8b5cf6"
+};
 
-  // --- ABARROTES ---
-  {
-    id: "pasillo-5d",
-    nombre: "Pasillo 5-D",
-    seccion: "Abarrotes",
-    tipo: "Pasillo",
-    bounds: [[320, 600], [680, 650]],
-    color: "#3b82f6", // blue
-    gondolas: [
-      { id: "5D-G1", nombre: "Góndola 1 (Arroz & Legumbres)", center: [620, 625] },
-      { id: "5D-G2", nombre: "Góndola 2 (Pastas & Salsas)", center: [500, 625] },
-      { id: "5D-G3", nombre: "Góndola 3 (Aceites & Vinagres)", center: [380, 625] },
-    ]
-  },
-  {
-    id: "pasillo-6d",
-    nombre: "Pasillo 6-D",
-    seccion: "Abarrotes",
-    tipo: "Pasillo",
-    bounds: [[320, 700], [680, 750]],
-    color: "#3b82f6",
-    gondolas: [
-      { id: "6D-G1", nombre: "Góndola 1 (Harinas & Polvos)", center: [620, 725] },
-      { id: "6D-G2", nombre: "Góndola 2 (Conservas & Pescados)", center: [500, 725] },
-      { id: "6D-G3", nombre: "Góndola 3 (Sopas & Caldos)", center: [380, 725] },
-    ]
-  },
-  {
-    id: "pasillo-7d",
-    nombre: "Pasillo 7-D",
-    seccion: "Abarrotes",
-    tipo: "Pasillo",
-    bounds: [[320, 800], [680, 850]],
-    color: "#3b82f6",
-    gondolas: [
-      { id: "7D-G1", nombre: "Góndola 1 (Galletas Dulces)", center: [620, 825] },
-      { id: "7D-G2", nombre: "Góndola 2 (Chocolates & Golosinas)", center: [500, 825] },
-      { id: "7D-G3", nombre: "Góndola 3 (Snacks & Papas Fritas)", center: [380, 825] },
-    ]
-  },
-  {
-    id: "pasillo-8d",
-    nombre: "Pasillo 8-D",
-    seccion: "Abarrotes",
-    tipo: "Pasillo",
-    bounds: [[320, 900], [680, 950]],
-    color: "#3b82f6",
-    gondolas: [
-      { id: "8D-G1", nombre: "Góndola 1 (Café & Té)", center: [620, 925] },
-      { id: "8D-G2", nombre: "Góndola 2 (Cereales & Avenas)", center: [500, 925] },
-      { id: "8D-G3", nombre: "Góndola 3 (Mermeladas & Miel)", center: [380, 925] },
-    ]
-  },
+const getSeccionColor = (seccion) => {
+  if (!seccion) return SECCION_COLORES.default;
+  const s = seccion.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return SECCION_COLORES[s] || SECCION_COLORES.default;
+};
 
-  // --- ASEO Y LIMPIEZA ---
-  {
-    id: "pasillo-1d",
-    nombre: "Pasillo 1-D",
-    seccion: "Aseo y Limpieza",
-    tipo: "Pasillo",
-    bounds: [[320, 1050], [680, 1100]],
-    color: "#06b6d4", // cyan
-    gondolas: [
-      { id: "1D-G1", nombre: "Góndola 1 (Detergentes Ropa)", center: [620, 1075] },
-      { id: "1D-G2", nombre: "Góndola 2 (Suavizantes)", center: [500, 1075] },
-      { id: "1D-G3", nombre: "Góndola 3 (Cloro & Desinfectantes)", center: [380, 1075] },
-    ]
-  },
-  {
-    id: "pasillo-2d",
-    nombre: "Pasillo 2-D",
-    seccion: "Aseo y Limpieza",
-    tipo: "Pasillo",
-    bounds: [[320, 1150], [680, 1200]],
-    color: "#06b6d4",
-    gondolas: [
-      { id: "2D-G1", nombre: "Góndola 1 (Lavalozas & Esponjas)", center: [620, 1175] },
-      { id: "2D-G2", nombre: "Góndola 2 (Papel Higiénico)", center: [500, 1175] },
-      { id: "2D-G3", nombre: "Góndola 3 (Toallas de Papel)", center: [380, 1175] },
-    ]
-  },
-
-  // --- SECCIONES DE FONDO / PERÍMETRO ---
-  {
-    id: "carniceria",
-    nombre: "Carnicería y Pollos",
-    seccion: "Carnicería",
-    tipo: "Pared",
-    bounds: [[780, 100], [880, 500]],
-    color: "#ef4444", // red
-    gondolas: [
-      { id: "CARN-1", nombre: "Vitrina Vacuno", center: [830, 200] },
-      { id: "CARN-2", nombre: "Vitrina Pollo & Cerdo", center: [830, 350] },
-      { id: "CARN-3", nombre: "Cortes Envasados", center: [830, 450] },
-    ]
-  },
-  {
-    id: "fiambreria",
-    nombre: "Fiambrería y Quesos",
-    seccion: "Fiambrería",
-    tipo: "Pared",
-    bounds: [[780, 550], [880, 950]],
-    color: "#eab308", // yellow
-    gondolas: [
-      { id: "FIAM-1", nombre: "Cecinas & Jamones", center: [830, 650] },
-      { id: "FIAM-2", nombre: "Quesos Granel", center: [830, 780] },
-      { id: "FIAM-3", nombre: "Rotisería Preparados", center: [830, 880] },
-    ]
-  },
-  {
-    id: "lacteos",
-    nombre: "Lácteos y Refrigerados",
-    seccion: "Lácteos",
-    tipo: "Pared",
-    bounds: [[780, 1000], [880, 1450]],
-    color: "#10b981", // emerald
-    gondolas: [
-      { id: "LAC-1", nombre: "Leches & Bebidas Lácteas", center: [830, 1100] },
-      { id: "LAC-2", nombre: "Yogures & Postres", center: [830, 1250] },
-      { id: "LAC-3", nombre: "Mantequillas & Margarinas", center: [830, 1380] },
-    ]
-  },
-];
-
-export default function MapaSupermercadoLeaflet({ productos = [], sectores = [] }) {
+export default function MapaSupermercadoLeaflet({ 
+  productos = [], 
+  sectores = [], 
+  categorias = [],
+  onUpdateSectores 
+}) {
   const { t } = useTheme();
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
-  const layerGroupRef = useRef(null);
-  const markerRef = useRef(null);
+  const imageOverlayRef = useRef(null);
+  const markersLayerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
+  // Estados del Modo Editor y Calibración
+  const [modoEditor, setModoEditor] = useState(false);
+  const [sectorCalibrando, setSectorCalibrando] = useState(null);
   const [sectorSeleccionado, setSectorSeleccionado] = useState(null);
-  const [gondolaSeleccionada, setGondolaSeleccionada] = useState(null);
-  const [busqueda, setBusqueda] = useState("");
   const [seccionFiltro, setSeccionFiltro] = useState("Todas");
+  const [busquedaSector, setBusquedaSector] = useState("");
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
 
-  // Dimensiones del plano (coordenadas CRS.Simple)
-  const MAP_HEIGHT = 950;
-  const MAP_WIDTH = 1550;
-  const mapBounds = [[0, 0], [MAP_HEIGHT, MAP_WIDTH]];
+  // Configuración del plano (URL de imagen de fondo y dimensiones)
+  const [mapaConfig, setMapaConfig] = useState(() => {
+    try {
+      const guardado = localStorage.getItem("mapa_supermercado_config");
+      if (guardado) return JSON.parse(guardado);
+    } catch {
+      // fallback
+    }
+    return {
+      imagenUrl: null,
+      alto: 900,
+      ancho: 1500
+    };
+  });
+
+  // Cargar configuración del plano desde Firebase
+  useEffect(() => {
+    const cargarConfig = async () => {
+      try {
+        const snap = await getDoc(doc(db, "auditoria_sectores", "_config_mapa_"));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.imagenUrl) {
+            const conf = {
+              imagenUrl: data.imagenUrl,
+              alto: data.alto || 900,
+              ancho: data.ancho || 1500
+            };
+            setMapaConfig(conf);
+            localStorage.setItem("mapa_supermercado_config", JSON.stringify(conf));
+          }
+        }
+      } catch (err) {
+        console.warn("No se pudo cargar config remota del mapa:", err);
+      }
+    };
+    cargarConfig();
+  }, []);
+
+  // Límites del mapa según la imagen o el tamaño por defecto
+  const mapBounds = useMemo(() => {
+    return [[0, 0], [mapaConfig.alto, mapaConfig.ancho]];
+  }, [mapaConfig]);
 
   // Inicializar Leaflet con CRS.Simple
   useEffect(() => {
     if (!mapContainerRef.current) return;
-    if (mapInstanceRef.current) return; // Ya inicializado
+    if (mapInstanceRef.current) return;
 
     const map = L.map(mapContainerRef.current, {
       crs: L.CRS.Simple,
-      minZoom: -1.2,
-      maxZoom: 1.5,
+      minZoom: -1.5,
+      maxZoom: 2,
       zoomSnap: 0.1,
       attributionControl: false,
       zoomControl: true,
     });
 
     map.fitBounds(mapBounds);
-    map.setMaxBounds([[-100, -100], [MAP_HEIGHT + 100, MAP_WIDTH + 100]]);
+    map.setMaxBounds([[-200, -200], [mapaConfig.alto + 200, mapaConfig.ancho + 200]]);
 
-    // Fondo del plano del supermercado
-    const bgPolygon = L.rectangle(mapBounds, {
-      color: "#334155",
-      weight: 2,
-      fillColor: "#0f172a",
-      fillOpacity: 0.95,
-      interactive: false,
-    }).addTo(map);
-
-    // Dibujar Zona de Entrada y Cajas
-    const cajasBounds = [[80, 160], [160, 1400]];
-    L.rectangle(cajasBounds, {
-      color: "#475569",
-      weight: 1,
-      dashArray: "4, 4",
-      fillColor: "#1e293b",
-      fillOpacity: 0.7,
-      interactive: false,
-    }).addTo(map);
-
-    // Texto de Entrada y Cajas
-    const cajasLabel = L.divIcon({
-      className: "custom-leaflet-label",
-      html: `
-        <div style="color: #94a3b8; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; text-align: center; width: 300px;">
-          🛒 LINEA DE CAJAS & ENTRADA PRINCIPAL
-        </div>
-      `,
-      iconSize: [300, 20],
-      iconAnchor: [150, 10]
-    });
-    L.marker([120, 780], { icon: cajasLabel, interactive: false }).addTo(map);
-
-    // Pasillo Central Ancho
-    const pasilloCentralBounds = [[220, 100], [280, 1450]];
-    L.rectangle(pasilloCentralBounds, {
-      color: "#6366f1",
-      weight: 1,
-      dashArray: "2, 6",
-      fillColor: "#6366f1",
-      fillOpacity: 0.08,
-      interactive: false,
-    }).addTo(map);
-
-    const centralLabel = L.divIcon({
-      className: "custom-leaflet-label",
-      html: `<div style="color: #818cf8; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-align: center; width: 250px;">⚡ PASILLO CENTRAL TRANSVERSAL</div>`,
-      iconSize: [250, 15],
-      iconAnchor: [125, 7]
-    });
-    L.marker([250, 780], { icon: centralLabel, interactive: false }).addTo(map);
-
-    const layersGroup = L.layerGroup().addTo(map);
-    layerGroupRef.current = layersGroup;
+    // Capa de marcadores
+    const markersLayer = L.layerGroup().addTo(map);
+    markersLayerRef.current = markersLayer;
     mapInstanceRef.current = map;
 
     return () => {
@@ -292,230 +123,402 @@ export default function MapaSupermercadoLeaflet({ productos = [], sectores = [] 
     };
   }, []);
 
-  // Renderizar sectores y góndolas en el mapa según el filtro
+  // Actualizar imagen de fondo en el mapa
   useEffect(() => {
-    if (!mapInstanceRef.current || !layerGroupRef.current) return;
-    const group = layerGroupRef.current;
-    group.clearLayers();
-
-    SECTORES_MAPA.forEach(sec => {
-      const matchSeccion = seccionFiltro === "Todas" || sec.seccion === seccionFiltro;
-      const isSelected = sectorSeleccionado?.id === sec.id;
-
-      // Dibujar rectángulo del pasillo / sector
-      const rect = L.rectangle(sec.bounds, {
-        color: isSelected ? "#ec4899" : (matchSeccion ? sec.color : "#475569"),
-        weight: isSelected ? 3 : 2,
-        fillColor: isSelected ? "#ec4899" : (matchSeccion ? sec.color : "#334155"),
-        fillOpacity: isSelected ? 0.45 : (matchSeccion ? 0.25 : 0.08),
-        className: "transition-all cursor-pointer",
-      });
-
-      // Tooltip al pasar el mouse
-      rect.bindTooltip(
-        `<strong>${sec.nombre}</strong><br/><span style="font-size: 11px; opacity: 0.8">${sec.seccion}</span>`,
-        { sticky: true, className: "leaflet-dark-tooltip" }
-      );
-
-      rect.on("click", () => {
-        setSectorSeleccionado(sec);
-        setGondolaSeleccionada(null);
-      });
-
-      group.addLayer(rect);
-
-      // Etiqueta del pasillo
-      const centerLat = (sec.bounds[0][0] + sec.bounds[1][0]) / 2;
-      const centerLng = (sec.bounds[0][1] + sec.bounds[1][1]) / 2;
-
-      const labelIcon = L.divIcon({
-        className: "custom-leaflet-label",
-        html: `
-          <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid ${sec.color}; color: #f8fafc; font-size: 10px; font-weight: 800; border-radius: 6px; padding: 2px 6px; white-space: nowrap; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5);">
-            ${sec.nombre}
-          </div>
-        `,
-        iconSize: [80, 20],
-        iconAnchor: [40, 10]
-      });
-
-      const labelMarker = L.marker([centerLat, centerLng], { icon: labelIcon });
-      labelMarker.on("click", () => {
-        setSectorSeleccionado(sec);
-        setGondolaSeleccionada(null);
-      });
-      group.addLayer(labelMarker);
-
-      // Dibujar puntos de góndolas individuales dentro del pasillo
-      sec.gondolas.forEach(g => {
-        const isGondolaSelected = gondolaSeleccionada?.id === g.id;
-        const gDot = L.circleMarker(g.center, {
-          radius: isGondolaSelected ? 8 : 4.5,
-          color: isGondolaSelected ? "#ffffff" : sec.color,
-          weight: isGondolaSelected ? 3 : 1.5,
-          fillColor: isGondolaSelected ? "#a855f7" : "#0f172a",
-          fillOpacity: 1,
-        });
-
-        gDot.bindTooltip(`Góndola: ${g.nombre}`, { direction: "top", offset: [0, -6] });
-        gDot.on("click", (e) => {
-          L.DomEvent.stopPropagation(e);
-          enfocarGondola(sec, g);
-        });
-
-        group.addLayer(gDot);
-      });
-    });
-  }, [seccionFiltro, sectorSeleccionado, gondolaSeleccionada]);
-
-  // Enfocar suavemente en una góndola (La magia de flyTo)
-  const enfocarGondola = (sec, g, productoEjemplo = null) => {
-    setSectorSeleccionado(sec);
-    setGondolaSeleccionada(g);
-
-    if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
+    if (!map) return;
 
-    // Animación suave hacia la coordenada
-    map.flyTo(g.center, 0.6, { duration: 1.2 });
+    map.setMaxBounds([[-200, -200], [mapaConfig.alto + 200, mapaConfig.ancho + 200]]);
 
-    // Quitar marcador anterior si existe
-    if (markerRef.current) {
-      map.removeLayer(markerRef.current);
+    if (imageOverlayRef.current) {
+      map.removeLayer(imageOverlayRef.current);
+      imageOverlayRef.current = null;
     }
 
-    // Crear Pin animado
-    const pinHtml = `
-      <div style="position: relative; display: flex; flex-direction: column; align-items: center; animation: bounce 1s infinite alternate;">
-        <div style="background: linear-gradient(135deg, #a855f7, #6366f1); color: white; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 20px #a855f7; border: 2px solid white;">
-          <span style="font-size: 18px;">📍</span>
+    if (mapaConfig.imagenUrl) {
+      const overlay = L.imageOverlay(mapaConfig.imagenUrl, mapBounds, {
+        opacity: 0.95,
+        interactive: false
+      }).addTo(map);
+      imageOverlayRef.current = overlay;
+      map.fitBounds(mapBounds);
+    } else {
+      // Plano esquemático por defecto (cuadrícula oscura con marcas)
+      const bgPolygon = L.rectangle(mapBounds, {
+        color: "#3b82f6",
+        weight: 1.5,
+        dashArray: "6, 6",
+        fillColor: "#0b0f19",
+        fillOpacity: 0.95,
+        interactive: false,
+      }).addTo(map);
+      imageOverlayRef.current = bgPolygon;
+    }
+  }, [mapaConfig, mapBounds]);
+
+  // Evento de clic en el mapa (Para calibrar / ubicar un sector)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const handleMapClick = async (e) => {
+      if (!modoEditor || !sectorCalibrando) return;
+
+      const y = Math.round(e.latlng.lat);
+      const x = Math.round(e.latlng.lng);
+
+      try {
+        await updateDoc(doc(db, "auditoria_sectores", sectorCalibrando.id), {
+          mapCoords: { x, y },
+          updatedAt: serverTimestamp()
+        });
+
+        toast.success(`📍 ${sectorCalibrando.nombre} fijado en [X: ${x}, Y: ${y}]`);
+        setSectorCalibrando(null);
+        if (onUpdateSectores) await onUpdateSectores();
+      } catch (err) {
+        console.error("Error al calibrar coordenadas:", err);
+        toast.error("Error al guardar la ubicación en el mapa");
+      }
+    };
+
+    map.on("click", handleMapClick);
+    return () => {
+      map.off("click", handleMapClick);
+    };
+  }, [modoEditor, sectorCalibrando, onUpdateSectores]);
+
+  // Renderizar marcadores de pasillos/sectores
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const markersLayer = markersLayerRef.current;
+    if (!map || !markersLayer) return;
+
+    markersLayer.clearLayers();
+
+    sectores.forEach(sec => {
+      if (!sec.mapCoords || typeof sec.mapCoords.x !== "number" || typeof sec.mapCoords.y !== "number") {
+        return; // Sin coordenadas fijadas aún
+      }
+
+      const matchSeccion = seccionFiltro === "Todas" || sec.seccion === seccionFiltro;
+      if (!matchSeccion) return;
+
+      const lat = sec.mapCoords.y;
+      const lng = sec.mapCoords.x;
+      const color = getSeccionColor(sec.seccion);
+      const isSelected = sectorSeleccionado?.id === sec.id;
+
+      // Pin personalizado con Tailwind y HTML
+      const pinHtml = `
+        <div style="cursor: ${modoEditor ? "grab" : "pointer"}; display: flex; flex-direction: column; align-items: center; transition: all 0.2s;" class="group">
+          <div style="background: ${isSelected ? '#ec4899' : color}; color: white; border: 2px solid white; border-radius: 9999px; padding: 2px 8px; font-size: 10px; font-weight: 900; white-space: nowrap; box-shadow: 0 4px 12px rgba(0,0,0,0.6); display: flex; items-center; gap: 4px;">
+            <span>📍</span>
+            <span>${sec.nombre}</span>
+          </div>
+          <div style="width: 6px; height: 6px; background: ${isSelected ? '#ec4899' : color}; transform: rotate(45deg); margin-top: -3px; border-right: 1px solid white; border-bottom: 1px solid white;"></div>
         </div>
-        <div style="width: 8px; height: 8px; background: #a855f7; transform: rotate(45deg); margin-top: -4px;"></div>
-      </div>
-    `;
+      `;
 
-    const pinIcon = L.divIcon({
-      className: "custom-leaflet-pin",
-      html: pinHtml,
-      iconSize: [36, 44],
-      iconAnchor: [18, 44]
-    });
+      const customIcon = L.divIcon({
+        className: "custom-leaflet-marker",
+        html: pinHtml,
+        iconSize: [120, 28],
+        iconAnchor: [60, 26]
+      });
 
-    const newMarker = L.marker(g.center, { icon: pinIcon }).addTo(map);
+      // Si está en modo editor, permitir arrastrar para ajuste fino
+      const marker = L.marker([lat, lng], {
+        icon: customIcon,
+        draggable: modoEditor
+      });
 
-    const popupContent = `
-      <div style="padding: 6px; font-family: sans-serif; min-width: 180px;">
-        <div style="font-size: 10px; color: #a855f7; font-weight: bold; text-transform: uppercase;">Ubicación Exacta</div>
-        <div style="font-size: 13px; font-weight: 800; color: #1e293b; margin-top: 2px;">${sec.nombre}</div>
-        <div style="font-size: 11px; color: #64748b; font-weight: 600;">${g.nombre}</div>
-        ${productoEjemplo ? `
-          <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 18px;">📦</span>
-            <div>
-              <div style="font-size: 11px; font-weight: bold; color: #0f172a;">${productoEjemplo.nombre}</div>
-              <div style="font-size: 9px; color: #64748b;">SKU: ${productoEjemplo.sku}</div>
+      // Tooltip / Popup con productos del pasillo
+      const itemsList = Array.isArray(sec.items) ? sec.items : (Array.isArray(sec.productos) ? sec.productos : []);
+      const popupHtml = `
+        <div style="padding: 6px; font-family: sans-serif; min-width: 190px;">
+          <div style="font-size: 9px; color: ${color}; font-weight: 800; text-transform: uppercase;">
+            ${sec.seccion} &bull; ${sec.tipo || "Pasillo"}
+          </div>
+          <div style="font-size: 13px; font-weight: 900; color: #0f172a; margin-top: 2px;">
+            ${sec.nombre}
+          </div>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+            Coordenadas: [X: ${lng}, Y: ${lat}]
+          </div>
+          <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0;">
+            <div style="font-size: 10px; font-weight: 700; color: #334155; margin-bottom: 4px;">
+              Productos / Familias (${itemsList.length}):
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 3px; max-height: 80px; overflow-y: auto;">
+              ${itemsList.slice(0, 8).map(it => `
+                <span style="font-size: 9px; background: #f1f5f9; color: #334155; padding: 1px 5px; border-radius: 4px; border: 1px solid #cbd5e1;">
+                  ${it}
+                </span>
+              `).join("")}
+              ${itemsList.length > 8 ? `<span style="font-size: 9px; color: #64748b;">+${itemsList.length - 8} más</span>` : ""}
             </div>
           </div>
-        ` : ""}
-      </div>
-    `;
+        </div>
+      `;
 
-    newMarker.bindPopup(popupContent).openPopup();
-    markerRef.current = newMarker;
+      marker.bindPopup(popupHtml);
+
+      // Al arrastrar en modo editor, actualizar posición al soltar
+      if (modoEditor) {
+        marker.on("dragend", async (ev) => {
+          const newPos = ev.target.getLatLng();
+          const newY = Math.round(newPos.lat);
+          const newX = Math.round(newPos.lng);
+          try {
+            await updateDoc(doc(db, "auditoria_sectores", sec.id), {
+              mapCoords: { x: newX, y: newY },
+              updatedAt: serverTimestamp()
+            });
+            toast.success(`📍 ${sec.nombre} ajustado a [X: ${newX}, Y: ${newY}]`);
+            if (onUpdateSectores) await onUpdateSectores();
+          } catch (err) {
+            console.error(err);
+            toast.error("Error al mover el marcador");
+          }
+        });
+      }
+
+      marker.on("click", () => {
+        setSectorSeleccionado(sec);
+      });
+
+      markersLayer.addLayer(marker);
+    });
+  }, [sectores, seccionFiltro, sectorSeleccionado, modoEditor, onUpdateSectores]);
+
+  // Manejar subida de foto o plano del local
+  const handleSubirPlano = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSubiendoImagen(true);
+    const toastId = toast.loading("Cargando imagen del plano...");
+
+    try {
+      // 1. Obtener dimensiones naturales de la imagen
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      const ancho = img.naturalWidth || 1500;
+      const alto = img.naturalHeight || 900;
+
+      // 2. Subir a Firebase Storage
+      const storageRef = ref(storage, `auditoria/planos/plano_local_${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      // 3. Guardar en Firestore y localStorage
+      const nuevaConfig = { imagenUrl: downloadUrl, ancho, alto };
+      await setDoc(doc(db, "auditoria_sectores", "_config_mapa_"), {
+        ...nuevaConfig,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      setMapaConfig(nuevaConfig);
+      localStorage.setItem("mapa_supermercado_config", JSON.stringify(nuevaConfig));
+
+      toast.success("¡Plano del local cargado exitosamente!", { id: toastId });
+    } catch (err) {
+      console.error("Error al subir plano:", err);
+      toast.error("No se pudo cargar la imagen del plano", { id: toastId });
+    } finally {
+      setSubiendoImagen(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
-  // Simular la acción automática al guardar un producto
-  const simularGuardadoProducto = (item) => {
-    // Buscar el sector y góndola destino
-    const sec = SECTORES_MAPA.find(s => s.id === item.sectorId);
-    if (!sec) return;
-    const g = sec.gondolas[item.gondolaIdx] || sec.gondolas[0];
-    enfocarGondola(sec, g, item);
+  // Restablecer plano por defecto
+  const handleRestablecerPlano = async () => {
+    if (!window.confirm("¿Deseas quitar la imagen personalizada y volver al plano base?")) return;
+    try {
+      const conf = { imagenUrl: null, ancho: 1500, alto: 900 };
+      await setDoc(doc(db, "auditoria_sectores", "_config_mapa_"), {
+        imagenUrl: null,
+        ancho: 1500,
+        alto: 900,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
+      setMapaConfig(conf);
+      localStorage.removeItem("mapa_supermercado_config");
+      toast.success("Plano restablecido al modo esquemático");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const seccionesDisponibles = ["Todas", "Botillería", "Abarrotes", "Carnicería", "Fiambrería", "Lácteos", "Aseo y Limpieza"];
+  // Quitar ubicación de un sector
+  const handleQuitarUbicacion = async (sectorId, nombre) => {
+    try {
+      await updateDoc(doc(db, "auditoria_sectores", sectorId), {
+        mapCoords: null,
+        updatedAt: serverTimestamp()
+      });
+      toast.success(`Ubicación de ${nombre} eliminada`);
+      if (onUpdateSectores) await onUpdateSectores();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al quitar ubicación");
+    }
+  };
+
+  // Enfocar suavemente un sector (flyTo)
+  const enfocarSector = (sec) => {
+    setSectorSeleccionado(sec);
+    if (!mapInstanceRef.current) return;
+    if (sec.mapCoords) {
+      mapInstanceRef.current.flyTo([sec.mapCoords.y, sec.mapCoords.x], 0.8, { duration: 1.2 });
+    } else {
+      toast("Este pasillo aún no tiene coordenadas en el plano. Activa el Modo Editor para ubicarlo.", {
+        icon: "📍"
+      });
+    }
+  };
+
+  // Filtrar sectores para la lista del editor
+  const sectoresFiltrados = useMemo(() => {
+    return sectores.filter(s => {
+      const matchSeccion = seccionFiltro === "Todas" || s.seccion === seccionFiltro;
+      const matchBusqueda = !busquedaSector || s.nombre.toLowerCase().includes(busquedaSector.toLowerCase());
+      return matchSeccion && matchBusqueda;
+    });
+  }, [sectores, seccionFiltro, busquedaSector]);
+
+  const totalUbicados = sectores.filter(s => s.mapCoords?.x !== undefined).length;
 
   return (
     <div className="space-y-4 animate-fadeIn">
       
-      {/* Barra de Controles y Demostración */}
-      <div className={`p-4 sm:p-5 rounded-3xl border ${t.border} ${t.bgCard} shadow-xl flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4`}>
+      {/* Input oculto para subir imagen de plano */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleSubirPlano}
+        className="hidden"
+      />
+
+      {/* Header y Barra de Herramientas del Mapa */}
+      <div className={`p-4 sm:p-5 rounded-3xl border ${t.border} ${t.bgCard} shadow-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4`}>
         
         <div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span className={`w-2.5 h-2.5 rounded-full ${modoEditor ? "bg-amber-400 animate-ping" : "bg-emerald-400 animate-pulse"}`}></span>
             <h2 className={`text-base sm:text-lg font-black ${t.text} flex items-center gap-2`}>
-              <span>Mapa Interactivo de Góndolas (Modo Prueba Leaflet)</span>
-              <span className="text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-bold">
-                L.CRS.Simple
+              <span>Mapa del Supermercado</span>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                modoEditor 
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40" 
+                  : "bg-purple-500/20 text-purple-300 border-purple-500/40"
+              }`}>
+                {modoEditor ? "MODO EDITOR / CALIBRADOR" : "MODO VISTA"}
               </span>
             </h2>
           </div>
           <p className={`text-xs ${t.textSecondary} mt-0.5`}>
-            Haz zoom, arrastra el mapa o prueba los botones para ver cómo la app enfoca e ilumina automáticamente la góndola al guardar.
+            {modoEditor 
+              ? "Selecciona un pasillo en la lista lateral y haz clic en el plano para ubicarlo o arrastra los pines para calibrar."
+              : `${totalUbicados} de ${sectores.length} pasillos ubicados en el plano. Haz clic en un pasillo para ver sus productos.`
+            }
           </p>
         </div>
 
-        {/* Simulador rápido de guardado */}
+        {/* Botones de acción */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className={`text-xs font-bold ${t.textSecondary} hidden sm:inline`}>Simular guardado:</span>
           
+          {/* Subir foto del plano */}
           <button
-            onClick={() => simularGuardadoProducto({
-              nombre: "Pisco Mistral 35° 1L",
-              sku: "2064723",
-              sectorId: "pasillo-15d",
-              gondolaIdx: 1
-            })}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-600/20 text-purple-300 hover:bg-purple-600 hover:text-white border border-purple-500/40 transition-all flex items-center gap-1.5"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={subiendoImagen}
+            className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+              mapaConfig.imagenUrl 
+                ? "bg-blue-600/15 border-blue-500/40 text-blue-300 hover:bg-blue-600/25"
+                : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-md shadow-emerald-600/20"
+            }`}
+            title="Cargar foto o plano del local"
           >
-            <span>🍾 Pisco en Pasillo 15-D</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+              {subiendoImagen ? "hourglass_empty" : "add_photo_alternate"}
+            </span>
+            <span>{mapaConfig.imagenUrl ? "Cambiar imagen del plano" : "Subir foto del plano"}</span>
           </button>
 
+          {mapaConfig.imagenUrl && (
+            <button
+              onClick={handleRestablecerPlano}
+              className={`p-2 rounded-xl text-xs font-bold border ${t.border} ${t.textSecondary} hover:text-red-400 hover:bg-red-500/10 transition-colors`}
+              title="Quitar imagen y usar plano esquemático base"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>delete_forever</span>
+            </button>
+          )}
+
+          {/* Toggle Modo Editor */}
           <button
-            onClick={() => simularGuardadoProducto({
-              nombre: "Galletas Tritón Vainilla 126g",
-              sku: "1098234",
-              sectorId: "pasillo-7d",
-              gondolaIdx: 0
-            })}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-600/20 text-blue-300 hover:bg-blue-600 hover:text-white border border-blue-500/40 transition-all flex items-center gap-1.5"
+            onClick={() => {
+              setModoEditor(!modoEditor);
+              setSectorCalibrando(null);
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-black border transition-all flex items-center gap-2 shadow-lg ${
+              modoEditor
+                ? "bg-amber-500 text-slate-950 border-amber-400 shadow-amber-500/30 scale-105"
+                : "bg-purple-600 text-white border-purple-400 hover:bg-purple-500 shadow-purple-500/30"
+            }`}
           >
-            <span>🍪 Galletas en Pasillo 7-D</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              {modoEditor ? "edit_off" : "tune"}
+            </span>
+            <span>{modoEditor ? "Salir del Editor" : "Calibrar / Editar Pasillos"}</span>
           </button>
 
-          <button
-            onClick={() => simularGuardadoProducto({
-              nombre: "Tiras de Pollo Asado 800g",
-              sku: "1645136",
-              sectorId: "carniceria",
-              gondolaIdx: 1
-            })}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-red-600/20 text-red-300 hover:bg-red-600 hover:text-white border border-red-500/40 transition-all flex items-center gap-1.5"
-          >
-            <span>🍗 Pollo en Carnicería</span>
-          </button>
         </div>
 
       </div>
 
-      {/* Filtros de Secciones del Plano */}
+      {/* Banner de Calibración Activa */}
+      {modoEditor && sectorCalibrando && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-purple-500/20 border border-amber-500/50 flex items-center justify-between gap-3 text-xs animate-pulse">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm">
+              🎯
+            </span>
+            <div>
+              <span className="font-extrabold text-amber-300 block">
+                Haz clic sobre el plano donde está "{sectorCalibrando.nombre}" ({sectorCalibrando.seccion})
+              </span>
+              <span className="text-[11px] text-slate-300">
+                Al hacer clic se colocará el pin y se guardará la coordenada automáticamente.
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setSectorCalibrando(null)}
+            className="px-3 py-1.5 rounded-xl bg-slate-900/80 text-slate-300 hover:text-white text-xs font-bold border border-white/10"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {/* Filtros de Secciones */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-        <span className={`text-xs font-bold ${t.textSecondary} shrink-0`}>Ver zona:</span>
-        {seccionesDisponibles.map(sec => (
+        <span className={`text-xs font-bold ${t.textSecondary} shrink-0`}>Sección:</span>
+        {["Todas", ...categorias.map(c => c.nombre)].map(sec => (
           <button
             key={sec}
-            onClick={() => {
-              setSeccionFiltro(sec);
-              if (sec === "Todas") {
-                mapInstanceRef.current?.fitBounds(mapBounds);
-              } else {
-                const primerSector = SECTORES_MAPA.find(s => s.seccion === sec);
-                if (primerSector && mapInstanceRef.current) {
-                  mapInstanceRef.current.flyToBounds(primerSector.bounds, { padding: [80, 80] });
-                }
-              }
-            }}
+            onClick={() => setSeccionFiltro(sec)}
             className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
               seccionFiltro === sec
                 ? "bg-purple-600 text-white border-purple-400 shadow-md scale-105"
@@ -527,110 +530,174 @@ export default function MapaSupermercadoLeaflet({ productos = [], sectores = [] 
         ))}
       </div>
 
-      {/* Contenedor del Mapa Leaflet */}
+      {/* Layout Principal: Mapa y Panel Lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         
-        {/* Visor de Mapa */}
-        <div className="lg:col-span-3">
+        {/* Visor de Mapa Leaflet */}
+        <div className={modoEditor ? "lg:col-span-3" : "lg:col-span-3"}>
           <div 
             className={`rounded-3xl border ${t.border} overflow-hidden shadow-2xl relative bg-slate-950`}
-            style={{ height: "580px" }}
+            style={{ height: "620px" }}
           >
             <div 
               ref={mapContainerRef} 
-              className="w-full h-full z-10"
-              style={{ background: "#090d16" }}
+              className={`w-full h-full z-10 ${sectorCalibrando ? "cursor-crosshair" : ""}`}
+              style={{ background: "#070b14" }}
             />
 
-            {/* Controles de vista rápida en esquina */}
+            {/* Botón flotante para restablecer zoom */}
             <div className="absolute top-4 right-4 z-20 flex gap-2">
               <button
                 onClick={() => {
                   mapInstanceRef.current?.fitBounds(mapBounds);
                   setSectorSeleccionado(null);
-                  setGondolaSeleccionada(null);
-                  if (markerRef.current) {
-                    mapInstanceRef.current?.removeLayer(markerRef.current);
-                  }
                 }}
                 className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-white text-xs font-bold border border-white/10 shadow-lg backdrop-blur-md flex items-center gap-1.5"
-                title="Ver todo el supermercado"
+                title="Ver plano completo"
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>crop_free</span>
-                <span>Restablecer Vista</span>
+                <span>Centrar Plano</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Panel Lateral de Información de la Góndola */}
+        {/* Panel Lateral: Lista de Pasillos para Calibrar o Inspeccionar */}
         <div className="lg:col-span-1 space-y-4">
-          <div className={`p-5 rounded-3xl border ${t.border} ${t.bgCard} shadow-lg h-full flex flex-col justify-between`}>
-            <div>
-              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/5">
-                <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 22 }}>shelves</span>
-                <h3 className={`font-black text-sm ${t.text}`}>Detalle de la Ubicación</h3>
+          <div className={`p-4 rounded-3xl border ${t.border} ${t.bgCard} shadow-lg flex flex-col justify-between`} style={{ height: "620px" }}>
+            
+            <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex items-center justify-between pb-2.5 border-b border-white/5 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20 }}>
+                    {modoEditor ? "tune" : "list"}
+                  </span>
+                  <h3 className={`font-black text-sm ${t.text}`}>
+                    {modoEditor ? "Calibrar Pasillos" : "Pasillos del Local"}
+                  </h3>
+                </div>
+                <span className="text-[11px] font-bold text-purple-400">
+                  {totalUbicados}/{sectores.length}
+                </span>
               </div>
 
-              {sectorSeleccionado ? (
-                <div className="space-y-3 animate-fadeIn">
-                  <div>
-                    <span className="text-[10px] font-extrabold text-purple-400 uppercase tracking-wider">
-                      {sectorSeleccionado.seccion} &bull; {sectorSeleccionado.tipo}
-                    </span>
-                    <h4 className={`text-lg font-black ${t.text}`}>{sectorSeleccionado.nombre}</h4>
-                  </div>
+              {/* Buscador de pasillo en la lista */}
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  placeholder="Filtrar pasillo..."
+                  value={busquedaSector}
+                  onChange={(e) => setBusquedaSector(e.target.value)}
+                  className={`w-full px-3 py-1.5 pl-8 rounded-xl ${t.bgInput} border ${t.border} ${t.text} text-xs focus:outline-none focus:border-purple-500`}
+                />
+                <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" style={{ fontSize: 16 }}>
+                  search
+                </span>
+              </div>
 
-                  {gondolaSeleccionada ? (
-                    <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 space-y-1.5">
-                      <div className="text-[10px] font-bold text-purple-300 uppercase">Góndola Seleccionada</div>
-                      <div className={`text-sm font-black ${t.text}`}>{gondolaSeleccionada.nombre}</div>
-                      <p className={`text-[11px] ${t.textSecondary}`}>
-                        Coordenadas del plano: X: {gondolaSeleccionada.center[1]}, Y: {gondolaSeleccionada.center[0]}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className={`text-xs ${t.textSecondary}`}>
-                      Toca un punto de góndola en el mapa para ver la posición exacta.
-                    </p>
-                  )}
-
-                  <div className="pt-2">
-                    <span className={`text-[11px] font-bold ${t.textSecondary} block mb-1.5`}>
-                      Góndolas en este pasillo:
-                    </span>
-                    <div className="space-y-1">
-                      {sectorSeleccionado.gondolas.map(g => (
-                        <button
-                          key={g.id}
-                          onClick={() => enfocarGondola(sectorSeleccionado, g)}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center justify-between ${
-                            gondolaSeleccionada?.id === g.id
-                              ? "bg-purple-600 text-white border-purple-400 font-bold shadow-md"
-                              : `${t.bgInput} ${t.text} ${t.border} hover:border-purple-500/40`
-                          }`}
-                        >
-                          <span className="truncate">{g.nombre}</span>
-                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chevron_right</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="py-12 text-center space-y-2">
-                  <span className="material-symbols-outlined text-slate-500" style={{ fontSize: 40 }}>touch_app</span>
-                  <p className={`text-xs ${t.textSecondary}`}>
-                    Toca cualquier pasillo o góndola en el mapa interactivo para ver su información y productos asociados.
+              {/* Lista scrolleable de sectores */}
+              <div className="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                {sectoresFiltrados.length === 0 ? (
+                  <p className={`text-xs ${t.textSecondary} text-center py-8 italic`}>
+                    No hay pasillos en esta sección.
                   </p>
-                </div>
-              )}
+                ) : (
+                  sectoresFiltrados.map(sec => {
+                    const isUbicado = Boolean(sec.mapCoords?.x !== undefined);
+                    const isCalibrandoEste = sectorCalibrando?.id === sec.id;
+                    const isSelected = sectorSeleccionado?.id === sec.id;
+                    const color = getSeccionColor(sec.seccion);
+
+                    return (
+                      <div
+                        key={sec.id}
+                        className={`p-2.5 rounded-2xl border transition-all ${
+                          isCalibrandoEste
+                            ? "bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/30"
+                            : isSelected
+                            ? "bg-purple-600/20 border-purple-500"
+                            : `${t.bgInput} ${t.border} hover:border-purple-500/40`
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-1.5">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span 
+                                className="w-2 h-2 rounded-full flex-shrink-0" 
+                                style={{ background: color }}
+                              />
+                              <h4 className={`text-xs font-bold ${t.text} truncate`}>{sec.nombre}</h4>
+                            </div>
+                            <span className={`text-[10px] ${t.textSecondary} block mt-0.5`}>
+                              {sec.seccion} &bull; {sec.tipo || "Pasillo"}
+                            </span>
+                          </div>
+
+                          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase shrink-0 ${
+                            isUbicado 
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30" 
+                              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                          }`}>
+                            {isUbicado ? "Ubicado" : "Pendiente"}
+                          </span>
+                        </div>
+
+                        {/* Botones de acción del pasillo */}
+                        <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-2">
+                          {isUbicado ? (
+                            <button
+                              onClick={() => enfocarSector(sec)}
+                              className="text-[11px] font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>visibility</span>
+                              <span>Enfocar</span>
+                            </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic">Sin fijar</span>
+                          )}
+
+                          {modoEditor && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => setSectorCalibrando(sec)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                  isCalibrandoEste
+                                    ? "bg-amber-500 text-slate-950 border-amber-400"
+                                    : "bg-purple-600/30 text-purple-300 border-purple-500/40 hover:bg-purple-600 hover:text-white"
+                                }`}
+                              >
+                                {isCalibrandoEste ? "Haz clic en plano..." : (isUbicado ? "Mover" : "Ubicar")}
+                              </button>
+
+                              {isUbicado && (
+                                <button
+                                  onClick={() => handleQuitarUbicacion(sec.id, sec.nombre)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                  title="Quitar ubicación del plano"
+                                >
+                                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>close</span>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Pie de ayuda */}
+              <div className="pt-3 border-t border-white/5 text-[10px] text-slate-400">
+                {modoEditor ? (
+                  <p>💡 <em>Tip: Al ubicar un pasillo, también puedes arrastrar su pin sobre el plano para moverlo con precisión.</em></p>
+                ) : (
+                  <p>💡 <em>Activa "Calibrar / Editar Pasillos" para subir la foto de tu plano o fijar nuevos puntos.</em></p>
+                )}
+              </div>
+
             </div>
 
-            <div className="pt-4 border-t border-white/5 text-[11px] text-slate-400 space-y-1">
-              <p>💡 <strong>¿Cómo se vincula?</strong></p>
-              <p>Al guardar un producto con <em>"Pasillo 15-D Góndola 2"</em>, el sistema llama directamente a <code>map.flyTo()</code> enfocando el estante en milisegundos.</p>
-            </div>
           </div>
         </div>
 

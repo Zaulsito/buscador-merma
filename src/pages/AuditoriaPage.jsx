@@ -1428,6 +1428,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
           <MapaSupermercadoLeaflet
             productos={productos}
             sectores={sectores}
+            categorias={uniqueCategorias}
+            onUpdateSectores={recargarSectores}
           />
         </div>
       )}
