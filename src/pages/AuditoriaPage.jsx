@@ -222,8 +222,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
-  // Navigation Tabs
+  // Navigation Tabs & Quick Filters
   const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores"
+  const [filtroUbicacion, setFiltroUbicacion] = useState("todos"); // "todos" | "ubicados" | "sin_ubicacion"
 
   // Modals
   const [modalOpen, setModalOpen] = useState(false);
@@ -417,7 +418,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
   // Métricas para Resumen a Detalle
   const metricas = useMemo(() => {
     const total = productos.length;
-    const conUbicacion = productos.filter(p => p.ubicacion && p.ubicacion.trim()).length;
+    const esUbicado = (p) => Boolean(p.ubicacion && p.ubicacion.trim() && p.ubicacion.trim().toLowerCase() !== "sin ubicación" && p.ubicacion.trim().toLowerCase() !== "sin ubicacion");
+
+    const conUbicacion = productos.filter(esUbicado).length;
     const sinUbicacion = total - conUbicacion;
     const pctUbicados = total > 0 ? Math.round((conUbicacion / total) * 100) : 0;
     const totalSectores = sectores.length;
@@ -427,7 +430,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
       ? productos 
       : productos.filter(p => normalizeText(p.categoria) === normalizeText(categoriaFiltro));
     const totalCat = productosDeCat.length;
-    const conUbiCat = productosDeCat.filter(p => p.ubicacion && p.ubicacion.trim()).length;
+    const conUbiCat = productosDeCat.filter(esUbicado).length;
     const sinUbiCat = totalCat - conUbiCat;
     const pctCat = totalCat > 0 ? Math.round((conUbiCat / totalCat) * 100) : 0;
 
@@ -840,9 +843,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoriaFiltro]);
+  }, [searchQuery, categoriaFiltro, filtroUbicacion]);
 
-    const totalPorCategoria = useMemo(() => {
+  const totalPorCategoria = useMemo(() => {
     const counts = {};
     for (const p of productos) {
       if (p.categoria) {
@@ -853,7 +856,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     return counts;
   }, [productos]);
 
-const productosFiltrados = productos.filter(p => {
+  const productosFiltrados = productos.filter(p => {
     const nNombre = normalizeText(p.nombre);
     const nSku = normalizeText(p.sku);
     const nEan = normalizeText(p.ean);
@@ -862,7 +865,16 @@ const productosFiltrados = productos.filter(p => {
     const matchSearch = nNombre.includes(nBusqueda) || nSku.includes(nBusqueda) || nEan.includes(nBusqueda);
     const matchCat = categoriaFiltro === "Todas" || p.categoria === categoriaFiltro;
 
-    return matchSearch && matchCat;
+    const tieneUbicacion = Boolean(p.ubicacion && p.ubicacion.trim() && p.ubicacion.trim().toLowerCase() !== "sin ubicación" && p.ubicacion.trim().toLowerCase() !== "sin ubicacion");
+    
+    let matchUbicacion = true;
+    if (filtroUbicacion === "ubicados") {
+      matchUbicacion = tieneUbicacion;
+    } else if (filtroUbicacion === "sin_ubicacion") {
+      matchUbicacion = !tieneUbicacion;
+    }
+
+    return matchSearch && matchCat && matchUbicacion;
   });
 
   const totalPages = Math.ceil(productosFiltrados.length / ITEMS_PER_PAGE);
@@ -982,54 +994,127 @@ const productosFiltrados = productos.filter(p => {
           {activeTab === "productos" ? (
             <div className="space-y-6 animate-fadeIn">
               
-              {/* Resumen a Detalle de Productos y Secciones */}
+              {/* Resumen a Detalle de Productos y Secciones (Clickeables para Filtrar) */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 
                 {/* Total Productos */}
-                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                <div 
+                  onClick={() => setFiltroUbicacion("todos")}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
+                    filtroUbicacion === "todos"
+                      ? "border-blue-500 bg-blue-500/10 ring-2 ring-blue-500/30 shadow-lg scale-[1.02]"
+                      : `${t.border} ${t.bgCard} opacity-85 hover:opacity-100 hover:border-blue-500/50`
+                  }`}
+                  title="Mostrar todos los productos"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Total Productos</span>
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>inventory_2</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${
+                      filtroUbicacion === "todos" ? "text-blue-400 font-extrabold" : t.textSecondary
+                    }`}>
+                      Total Productos
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {filtroUbicacion === "todos" && (
+                        <span className="text-[10px] font-extrabold text-blue-300 bg-blue-500/25 px-1.5 py-0.5 rounded-md">
+                          Activo
+                        </span>
+                      )}
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>inventory_2</span>
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <div className={`text-2xl sm:text-3xl font-black ${t.text}`}>{metricas.total}</div>
-                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>En {uniqueCategorias.length} secciones</p>
+                    <div className={`text-2xl sm:text-3xl font-black ${filtroUbicacion === "todos" ? "text-blue-400" : t.text}`}>
+                      {categoriaFiltro === "Todas" ? metricas.total : metricas.totalCat}
+                    </div>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>
+                      {categoriaFiltro === "Todas" ? `En ${uniqueCategorias.length} secciones` : `En ${categoriaFiltro}`} &bull; Clic para ver todos
+                    </p>
                   </div>
                 </div>
 
                 {/* Con Ubicación */}
-                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                <div 
+                  onClick={() => setFiltroUbicacion(prev => prev === "ubicados" ? "todos" : "ubicados")}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
+                    filtroUbicacion === "ubicados"
+                      ? "border-emerald-500 bg-emerald-500/15 ring-2 ring-emerald-500/40 shadow-lg scale-[1.02]"
+                      : `${t.border} ${t.bgCard} opacity-85 hover:opacity-100 hover:border-emerald-500/50`
+                  }`}
+                  title="Filtrar solo productos con ubicación asignada"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Ubicados</span>
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>location_on</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${
+                      filtroUbicacion === "ubicados" ? "text-emerald-300 font-extrabold" : t.textSecondary
+                    }`}>
+                      Ubicados
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {filtroUbicacion === "ubicados" && (
+                        <span className="text-[10px] font-extrabold text-emerald-300 bg-emerald-500/25 px-1.5 py-0.5 rounded-md">
+                          Filtrando
+                        </span>
+                      )}
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>location_on</span>
+                      </div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">{metricas.conUbicacion}</span>
-                      <span className="text-xs font-bold text-emerald-400/80">({metricas.pctUbicados}%)</span>
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">
+                        {categoriaFiltro === "Todas" ? metricas.conUbicacion : metricas.conUbiCat}
+                      </span>
+                      <span className="text-xs font-bold text-emerald-400/80">
+                        ({categoriaFiltro === "Todas" ? metricas.pctUbicados : metricas.pctCat}%)
+                      </span>
                     </div>
-                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>Con pasillo asignado</p>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>
+                      Con pasillo &bull; Clic para filtrar
+                    </p>
                   </div>
                 </div>
 
                 {/* Sin Ubicación (Pendientes) */}
-                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                <div 
+                  onClick={() => setFiltroUbicacion(prev => prev === "sin_ubicacion" ? "todos" : "sin_ubicacion")}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between group ${
+                    filtroUbicacion === "sin_ubicacion"
+                      ? "border-amber-500 bg-amber-500/15 ring-2 ring-amber-500/40 shadow-lg scale-[1.02]"
+                      : `${t.border} ${t.bgCard} opacity-85 hover:opacity-100 hover:border-amber-500/50`
+                  }`}
+                  title="Filtrar productos sin pasillo asignado"
+                >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Sin Ubicación</span>
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>wrong_location</span>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${
+                      filtroUbicacion === "sin_ubicacion" ? "text-amber-300 font-extrabold" : t.textSecondary
+                    }`}>
+                      Sin Ubicación
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {filtroUbicacion === "sin_ubicacion" && (
+                        <span className="text-[10px] font-extrabold text-amber-300 bg-amber-500/25 px-1.5 py-0.5 rounded-md animate-pulse">
+                          Filtrando
+                        </span>
+                      )}
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>wrong_location</span>
+                      </div>
                     </div>
                   </div>
                   <div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-2xl sm:text-3xl font-black text-amber-400">{metricas.sinUbicacion}</span>
-                      <span className="text-xs font-bold text-amber-400/80">({100 - metricas.pctUbicados}%)</span>
+                      <span className="text-2xl sm:text-3xl font-black text-amber-400">
+                        {categoriaFiltro === "Todas" ? metricas.sinUbicacion : metricas.sinUbiCat}
+                      </span>
+                      <span className="text-xs font-bold text-amber-400/80">
+                        ({100 - (categoriaFiltro === "Todas" ? metricas.pctUbicados : metricas.pctCat)}%)
+                      </span>
                     </div>
-                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>Pendientes por ubicar</p>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>
+                      Pendientes &bull; Clic para filtrar
+                    </p>
                   </div>
                 </div>
 
@@ -1189,6 +1274,29 @@ const productosFiltrados = productos.filter(p => {
               </button>
             </div>
           </div>
+
+          {/* Active Filter Indicator */}
+          {filtroUbicacion !== "todos" && (
+            <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs animate-fadeIn">
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${filtroUbicacion === "sin_ubicacion" ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
+                <span className={`${t.text} font-bold`}>
+                  Filtrando: {filtroUbicacion === "sin_ubicacion" ? "Solo productos Sin Ubicación" : "Solo productos Ubicados"}
+                </span>
+                <span className={`${t.textSecondary}`}>
+                  ({productosFiltrados.length} {productosFiltrados.length === 1 ? "resultado" : "resultados"})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFiltroUbicacion("todos")}
+                className="text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors hover:underline"
+              >
+                <span>Mostrar todos</span>
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+              </button>
+            </div>
+          )}
 
           {/* Grid de Productos */}
           {loading ? (
