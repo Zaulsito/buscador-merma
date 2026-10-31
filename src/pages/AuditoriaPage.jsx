@@ -1216,6 +1216,7 @@ const productosFiltrados = productos.filter(p => {
         <ManageSectoresAuditoria
           sectores={sectores}
           categorias={uniqueCategorias}
+          productos={productos}
           seccionInicial={categoriaFiltro === "Todas" ? (uniqueCategorias[0]?.nombre || "Botillería") : categoriaFiltro}
           onClose={() => setManageSectoresOpen(false)}
           onUpdate={recargarSectores}

@@ -14,10 +14,17 @@ const TIPOS_SECTOR = [
   "Isla"
 ];
 
+const normalizeText = (text) => {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+};
+
 const parseTextToSectores = (rawText, categoriasList = []) => {
   if (!rawText || typeof rawText !== "string") return { seccion: "", sectores: [] };
 
-  // Limpiar formato: remover tags HTML (<u>) y markdown (*, _, #, ~, `)
   const cleanLine = (l) => l
     .replace(/<[^>]*>/g, '') // tags HTML
     .replace(/[*_#~`]/g, '')  // markdown bold/italics
@@ -35,10 +42,10 @@ const parseTextToSectores = (rawText, categoriasList = []) => {
 
     if (!clean) continue;
 
-    // 1. Verificar si la línea corresponde al título de una sección/categoría conocida (ej. "Masivo", "Botillería")
     const catMatch = categoriasList.find(c => {
-      const nom = (c.nombre || c || "").toLowerCase();
-      return nom === clean.toLowerCase() || clean.toLowerCase().includes(nom);
+      const nom = normalizeText(c.nombre || c);
+      const cleanNorm = normalizeText(clean);
+      return nom === cleanNorm || cleanNorm.includes(nom);
     });
 
     if (!currentSector && catMatch && !currentSeccion) {
@@ -46,8 +53,6 @@ const parseTextToSectores = (rawText, categoriasList = []) => {
       continue;
     }
 
-    // 2. Detectar encabezados de sector / pasillo:
-    // ej: "Pasillo 11-C", "Pasillo 11 C", "Pared", "Pared (todo auto)", "Góndola 2", "Cabecera 4"
     const isPasillo = /^pasillo\s*[\w\d-]+/i.test(clean) || /^p\s*\d+/i.test(clean);
     const isPared = /^pared\b/i.test(clean);
     const isGondola = /^g[oó]ndola\b/i.test(clean);
@@ -61,7 +66,6 @@ const parseTextToSectores = (rawText, categoriasList = []) => {
 
       let finalName = clean.replace(/[:]+$/, '').trim();
 
-      // Si es una pared y el pasillo anterior era "Pasillo 11-C", asociarla como "Pared 11-C"
       if (isPared && !/\d/.test(finalName) && sectores.length > 0) {
         const lastPasillo = [...sectores].reverse().find(s => s.tipo === "Pasillo");
         if (lastPasillo) {
@@ -81,7 +85,6 @@ const parseTextToSectores = (rawText, categoriasList = []) => {
       continue;
     }
 
-    // 3. Detectar productos o ítems
     const isBullet = /^[•*\-+]\s+/.test(orig) || /^\d+[.)]\s+/.test(orig);
     const cleanItem = clean.replace(/^[•*\-+]\s+/, '').replace(/^\d+[.)]\s+/, '').trim();
 
@@ -106,6 +109,7 @@ const parseTextToSectores = (rawText, categoriasList = []) => {
 export default function ManageSectoresAuditoria({ 
   sectores = [], 
   categorias = [], 
+  productos = [],
   seccionInicial = "Botillería",
   onClose, 
   onUpdate 
@@ -130,6 +134,15 @@ export default function ManageSectoresAuditoria({
     return categorias[0]?.nombre || "Botillería";
   });
 
+  // Scroll horizontal de categorías
+  const categoriesRef = useRef(null);
+  const scrollCategories = (dir) => {
+    if (categoriesRef.current) {
+      const amount = categoriesRef.current.clientWidth * 0.6 || 250;
+      categoriesRef.current.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+    }
+  };
+
   // Búsqueda rápida
   const [busqueda, setBusqueda] = useState("");
 
@@ -152,6 +165,12 @@ export default function ManageSectoresAuditoria({
 
   // Input rápido para agregar ítem dentro de una tarjeta
   const [nuevoItemPorSector, setNuevoItemPorSector] = useState({});
+  const [focusedSectorId, setFocusedSectorId] = useState(null);
+
+  // Modal para seleccionar productos auditados existentes
+  const [selectorProductosSector, setSelectorProductosSector] = useState(null);
+  const [filtroModalProductos, setFiltroModalProductos] = useState("");
+  const [seleccionadosModal, setSeleccionadosModal] = useState([]);
 
   // Filtrar sectores de la sección activa
   const sectoresDeSeccion = useMemo(() => {
@@ -160,6 +179,35 @@ export default function ManageSectoresAuditoria({
 
   // Búsqueda global o local
   const term = busqueda.trim().toLowerCase();
+
+  // Helper para buscar sugerencias autocompletadas (máximo 5 productos sin importar tildes/acentos)
+  const getSugerencias = (texto) => {
+    const q = normalizeText(texto);
+    if (!q) return [];
+
+    const matchSeccion = [];
+    const matchOtros = [];
+    const yaVistos = new Set();
+
+    for (const p of productos) {
+      const pNom = (p.nombre || "").trim();
+      const pNorm = normalizeText(pNom);
+      if (!pNorm || yaVistos.has(pNorm)) continue;
+
+      if (pNorm.includes(q)) {
+        yaVistos.add(pNorm);
+        const isMismaSeccion = normalizeText(p.categoria) === normalizeText(seccionActiva);
+        if (isMismaSeccion) {
+          matchSeccion.push({ nombre: pNom, categoria: p.categoria });
+        } else {
+          matchOtros.push({ nombre: pNom, categoria: p.categoria });
+        }
+        if (matchSeccion.length >= 5) break;
+      }
+    }
+
+    return [...matchSeccion, ...matchOtros].slice(0, 5);
+  };
 
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -170,7 +218,7 @@ export default function ManageSectoresAuditoria({
     });
   };
 
-  // Función unificada de procesamiento de imágenes (funciona con archivo o Ctrl+V)
+  // Procesamiento unificado de IA
   const procesarArchivo = async (file, modo = "bulk") => {
     if (!file) return;
 
@@ -203,7 +251,7 @@ export default function ManageSectoresAuditoria({
         } catch (err) {}
       }
 
-      // Si no vienen sectores en formato JSON, extraerlos del texto plano o HTML que devuelva la IA
+      // Fallback: Si no vienen sectores en formato JSON, extraerlos del texto
       if (!result.sectores || result.sectores.length === 0) {
         const rawText = data.text || data.descripcionProceso || (typeof data === "string" ? data : "");
         if (rawText) {
@@ -242,7 +290,7 @@ export default function ManageSectoresAuditoria({
 
         let detectedSeccion = (result.seccion || "").trim();
         if (detectedSeccion) {
-          const match = categoriasUnicas.find(c => c.nombre.toLowerCase() === detectedSeccion.toLowerCase());
+          const match = categoriasUnicas.find(c => normalizeText(c.nombre) === normalizeText(detectedSeccion));
           if (match) detectedSeccion = match.nombre;
           else detectedSeccion = seccionActiva;
         } else {
@@ -276,8 +324,6 @@ export default function ManageSectoresAuditoria({
   // Listener para Ctrl + V (Pegar imagen)
   useEffect(() => {
     const handlePaste = (e) => {
-      // Si el usuario está pegando texto normal en un input o textarea, permitir comportamiento nativo
-      // a menos que lo que esté en el portapapeles sea estrictamente una IMAGEN.
       const items = e.clipboardData?.items;
       if (!items) return;
 
@@ -286,8 +332,6 @@ export default function ManageSectoresAuditoria({
           const file = items[i].getAsFile();
           if (file) {
             e.preventDefault();
-            // Si el formulario de crear sector está abierto, procesar como 'single'
-            // Si no, procesar como 'bulk' (hoja completa)
             if (mostrarNuevoSector) {
               procesarArchivo(file, "single");
             } else {
@@ -400,13 +444,13 @@ export default function ManageSectoresAuditoria({
     }
   };
 
-  // Agregar ítem rápido a un sector
-  const handleAgregarItem = async (sector) => {
-    const texto = (nuevoItemPorSector[sector.id] || "").trim();
+  // Agregar ítem a un sector (con autocompletado o manual)
+  const handleAgregarItem = async (sector, textoDirecto) => {
+    const texto = (textoDirecto || nuevoItemPorSector[sector.id] || "").trim();
     if (!texto) return;
 
     const itemsActuales = Array.isArray(sector.items) ? [...sector.items] : [];
-    if (itemsActuales.some(it => it.toLowerCase() === texto.toLowerCase())) {
+    if (itemsActuales.some(it => normalizeText(it) === normalizeText(texto))) {
       toast.error("Ese producto ya está en este sector");
       return;
     }
@@ -417,6 +461,7 @@ export default function ManageSectoresAuditoria({
         items: nuevosItems
       });
       setNuevoItemPorSector(prev => ({ ...prev, [sector.id]: "" }));
+      setFocusedSectorId(null);
       onUpdate();
     } catch (error) {
       console.error(error);
@@ -436,6 +481,34 @@ export default function ManageSectoresAuditoria({
     } catch (error) {
       console.error(error);
       toast.error("Error al eliminar producto");
+    }
+  };
+
+  // Agregar múltiples productos seleccionados desde el modal selector
+  const handleGuardarProductosSeleccionados = async () => {
+    if (!selectorProductosSector || seleccionadosModal.length === 0) return;
+
+    const itemsActuales = Array.isArray(selectorProductosSector.items) ? [...selectorProductosSector.items] : [];
+    const nuevos = seleccionadosModal.filter(nom => !itemsActuales.some(it => normalizeText(it) === normalizeText(nom)));
+
+    if (nuevos.length === 0) {
+      toast.error("Todos los productos seleccionados ya estaban en este sector");
+      setSelectorProductosSector(null);
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, "auditoria_sectores", selectorProductosSector.id), {
+        items: [...itemsActuales, ...nuevos]
+      });
+      toast.success(`Se agregaron ${nuevos.length} productos a ${selectorProductosSector.nombre}`);
+      setSelectorProductosSector(null);
+      setSeleccionadosModal([]);
+      setFiltroModalProductos("");
+      onUpdate();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al guardar productos seleccionados");
     }
   };
 
@@ -531,32 +604,60 @@ export default function ManageSectoresAuditoria({
             </button>
           </div>
 
-          {/* Pestañas de Secciones */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {categoriasUnicas.map(cat => {
-              const count = sectores.filter(s => (s.seccion || "").toLowerCase() === cat.nombre.toLowerCase()).length;
-              const isSelected = seccionActiva.toLowerCase() === cat.nombre.toLowerCase();
-              return (
-                <button
-                  key={cat.id || cat.nombre}
-                  onClick={() => setSeccionActiva(cat.nombre)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 ${
-                    isSelected
-                      ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-500/20 scale-105"
-                      : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400 hover:border-purple-500/40`
-                  }`}
-                >
-                  <span>{cat.nombre}</span>
-                  {count > 0 && (
-                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                      isSelected ? "bg-black/30 text-white" : "bg-white/10 text-slate-300"
-                    }`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+          {/* Pestañas de Secciones con flechas de desplazamiento */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => scrollCategories("left")}
+              className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-xl ${t.bgCard} ${t.textSecondary} border ${t.border} hover:text-purple-400 hover:border-purple-500/40 transition-colors shadow-sm`}
+              title="Desplazar a la izquierda"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+            </button>
+
+            <div 
+              ref={categoriesRef}
+              onWheel={(e) => {
+                if (categoriesRef.current && e.deltaY !== 0) {
+                  categoriesRef.current.scrollLeft += e.deltaY;
+                }
+              }}
+              className="flex-1 flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth no-scrollbar"
+            >
+              {categoriasUnicas.map(cat => {
+                const count = sectores.filter(s => normalizeText(s.seccion) === normalizeText(cat.nombre)).length;
+                const isSelected = normalizeText(seccionActiva) === normalizeText(cat.nombre);
+                return (
+                  <button
+                    key={cat.id || cat.nombre}
+                    onClick={() => setSeccionActiva(cat.nombre)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 ${
+                      isSelected
+                        ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-500/20 scale-105"
+                        : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400 hover:border-purple-500/40`
+                    }`}
+                  >
+                    <span>{cat.nombre}</span>
+                    {count > 0 && (
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                        isSelected ? "bg-black/30 text-white" : "bg-white/10 text-slate-300"
+                      }`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollCategories("right")}
+              className={`shrink-0 w-8 h-8 flex items-center justify-center rounded-xl ${t.bgCard} ${t.textSecondary} border ${t.border} hover:text-purple-400 hover:border-purple-500/40 transition-colors shadow-sm`}
+              title="Desplazar a la derecha"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+            </button>
           </div>
         </div>
 
@@ -721,6 +822,9 @@ export default function ManageSectoresAuditoria({
                 if (!isMatch) return null;
 
                 const isPared = (sector.tipo || "").toLowerCase() === "pared";
+                const sugerencias = focusedSectorId === sector.id 
+                  ? getSugerencias(nuevoItemPorSector[sector.id] || "")
+                  : [];
 
                 return (
                   <div 
@@ -783,7 +887,7 @@ export default function ManageSectoresAuditoria({
                                 </span>
                               </div>
                               <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>
-                                {items.length} {items.length === 1 ? "categoría" : "categorías"}
+                                {items.length} {items.length === 1 ? "producto / categoría" : "productos / categorías"}
                               </p>
                             </div>
 
@@ -819,7 +923,7 @@ export default function ManageSectoresAuditoria({
                           </span>
                         ) : (
                           items.map((item, idx) => {
-                            const isItemMatch = term && item.toLowerCase().includes(term);
+                            const isItemMatch = term && normalizeText(item).includes(term);
                             return (
                               <span
                                 key={idx}
@@ -845,28 +949,79 @@ export default function ManageSectoresAuditoria({
                       </div>
                     </div>
 
-                    {/* Agregar Ítem rápido al sector */}
-                    <div className="pt-2 border-t border-white/5 flex gap-1.5 items-center">
-                      <input
-                        type="text"
-                        placeholder="Añadir producto..."
-                        value={nuevoItemPorSector[sector.id] || ""}
-                        onChange={(e) => setNuevoItemPorSector(prev => ({ ...prev, [sector.id]: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            handleAgregarItem(sector);
-                          }
-                        }}
-                        className={`flex-1 px-2.5 py-1.5 rounded-lg ${t.bgInput} border ${t.border} ${t.text} text-xs focus:outline-none focus:border-purple-500`}
-                      />
+                    {/* Agregar Ítem rápido al sector con autocompletado de hasta 5 sugerencias y botón catálogo */}
+                    <div className="pt-2 border-t border-white/5 flex gap-1.5 items-center relative">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          placeholder="Añadir producto..."
+                          value={nuevoItemPorSector[sector.id] || ""}
+                          onFocus={() => setFocusedSectorId(sector.id)}
+                          onBlur={() => setTimeout(() => setFocusedSectorId(null), 250)}
+                          onChange={(e) => setNuevoItemPorSector(prev => ({ ...prev, [sector.id]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleAgregarItem(sector);
+                            }
+                          }}
+                          className={`w-full px-2.5 py-1.5 rounded-lg ${t.bgInput} border ${t.border} ${t.text} text-xs focus:outline-none focus:border-purple-500`}
+                        />
+
+                        {/* Floating Autocomplete Dropdown */}
+                        {sugerencias.length > 0 && (
+                          <div className="absolute left-0 right-0 bottom-full mb-1 z-40 bg-slate-900 border border-purple-500/50 rounded-xl shadow-2xl overflow-hidden backdrop-blur-md animate-fadeIn">
+                            <div className="px-2.5 py-1 bg-slate-800/90 border-b border-white/5 flex items-center justify-between text-[10px] text-purple-300 font-bold">
+                              <span>Sugerencias de Auditoría ({sugerencias.length})</span>
+                              <span className="text-[9px] text-slate-400 font-normal">Clic para agregar</span>
+                            </div>
+                            <div className="divide-y divide-white/5 max-h-48 overflow-y-auto">
+                              {sugerencias.map((sug, sIdx) => (
+                                <button
+                                  key={sIdx}
+                                  type="button"
+                                  onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    handleAgregarItem(sector, sug.nombre);
+                                  }}
+                                  className="w-full px-2.5 py-2 text-left hover:bg-purple-600/25 transition-colors flex items-center justify-between gap-1.5 text-xs group"
+                                >
+                                  <span className="font-semibold text-slate-200 group-hover:text-purple-300 truncate">
+                                    {sug.nombre}
+                                  </span>
+                                  {sug.categoria && (
+                                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-slate-400 shrink-0">
+                                      {sug.categoria}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => handleAgregarItem(sector)}
                         className="px-2.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all flex items-center justify-center flex-shrink-0"
-                        title="Agregar producto a este pasillo"
+                        title="Agregar producto escrito"
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                      </button>
+
+                      {/* Botón para seleccionar desde la lista de productos de la sección */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectorProductosSector(sector);
+                          setSeleccionadosModal([]);
+                          setFiltroModalProductos("");
+                        }}
+                        className={`p-1.5 rounded-lg border ${t.border} ${t.bgInput} ${t.textSecondary} hover:text-purple-400 hover:border-purple-500/50 transition-colors flex items-center justify-center flex-shrink-0`}
+                        title={`Seleccionar productos existentes de ${seccionActiva}`}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>checklist</span>
                       </button>
                     </div>
 
@@ -881,7 +1036,7 @@ export default function ManageSectoresAuditoria({
         {/* Footer */}
         <div className={`px-6 py-3 border-t ${t.border} flex items-center justify-between bg-slate-900/30 text-xs ${t.textSecondary}`}>
           <span>
-            💡 Tip: Puedes presionar <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px] text-white">Ctrl + V</kbd> en cualquier momento para pegar una imagen copiada.
+            💡 Tip: Escribe para ver hasta 5 productos sugeridos sin importar tildes, o usa el botón <span className="font-bold text-purple-400">checklist</span> para seleccionar de la lista.
           </span>
           <button
             onClick={onClose}
@@ -998,6 +1153,145 @@ export default function ManageSectoresAuditoria({
             </div>
           </div>
         )}
+
+        {/* Modal para Seleccionar Productos Existentes de la Sección */}
+        {selectorProductosSector && (() => {
+          const prodsDeSeccion = productos.filter(p => normalizeText(p.categoria) === normalizeText(seccionActiva));
+          const prodsFiltrados = prodsDeSeccion.filter(p => {
+            if (!filtroModalProductos.trim()) return true;
+            return normalizeText(p.nombre).includes(normalizeText(filtroModalProductos));
+          });
+          const itemsYaEnSector = new Set((selectorProductosSector.items || []).map(normalizeText));
+
+          return (
+            <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[80] p-4 backdrop-blur-md animate-fadeIn">
+              <div className={`${t.bgCard} rounded-3xl w-full max-w-xl shadow-2xl border ${t.border} p-6 flex flex-col max-h-[85vh]`}>
+                
+                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 24 }}>
+                      checklist
+                    </span>
+                    <div>
+                      <h3 className={`text-base font-black ${t.text}`}>
+                        Productos de {seccionActiva}
+                      </h3>
+                      <p className={`text-xs ${t.textSecondary}`}>
+                        Selecciona productos para agregar a <span className="text-purple-300 font-bold">{selectorProductosSector.nombre}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectorProductosSector(null)}
+                    className={`w-8 h-8 rounded-full ${t.bgInput} ${t.textSecondary} flex items-center justify-center hover:text-white`}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                  </button>
+                </div>
+
+                {/* Buscador dentro del modal */}
+                <div className="relative mb-3">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>search</span>
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Filtrar productos de la lista..."
+                    value={filtroModalProductos}
+                    onChange={(e) => setFiltroModalProductos(e.target.value)}
+                    className={`w-full pl-9 pr-3 py-2 rounded-xl ${t.bgInput} border ${t.border} ${t.text} text-xs focus:outline-none focus:border-purple-500`}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Lista de productos con checkbox */}
+                <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 mb-4 divide-y divide-white/5">
+                  {prodsFiltrados.length === 0 ? (
+                    <div className="py-8 text-center text-slate-500 text-xs">
+                      {prodsDeSeccion.length === 0 
+                        ? `No hay productos registrados en ${seccionActiva} en la auditoría.` 
+                        : "No hay productos que coincidan con la búsqueda."}
+                    </div>
+                  ) : (
+                    prodsFiltrados.map((p, idx) => {
+                      const yaExiste = itemsYaEnSector.has(normalizeText(p.nombre));
+                      const isChecked = seleccionadosModal.includes(p.nombre);
+
+                      return (
+                        <label
+                          key={p.id || idx}
+                          className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-colors ${
+                            yaExiste 
+                              ? "opacity-40 cursor-not-allowed bg-slate-900/30"
+                              : isChecked 
+                              ? "bg-purple-600/20 text-purple-300" 
+                              : "hover:bg-slate-800/40 text-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                            <input
+                              type="checkbox"
+                              disabled={yaExiste}
+                              checked={yaExiste || isChecked}
+                              onChange={(e) => {
+                                if (yaExiste) return;
+                                if (e.target.checked) {
+                                  setSeleccionadosModal(prev => [...prev, p.nombre]);
+                                } else {
+                                  setSeleccionadosModal(prev => prev.filter(n => n !== p.nombre));
+                                }
+                              }}
+                              className="rounded text-purple-600 focus:ring-0"
+                            />
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold truncate">{p.nombre}</p>
+                              {p.sku && <p className="text-[10px] text-slate-500">SKU: {p.sku}</p>}
+                            </div>
+                          </div>
+
+                          {yaExiste ? (
+                            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full shrink-0">
+                              Ya en pasillo
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 shrink-0">
+                              {p.ubicacion || "Sin ubicación"}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer modal selector */}
+                <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                  <span className="text-xs text-slate-400">
+                    {seleccionadosModal.length} productos seleccionados
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectorProductosSector(null)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold ${t.bgCard} ${t.textSecondary} hover:text-white`}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      disabled={seleccionadosModal.length === 0}
+                      onClick={handleGuardarProductosSeleccionados}
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-md disabled:opacity-40"
+                    >
+                      Añadir al Pasillo
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     </div>
