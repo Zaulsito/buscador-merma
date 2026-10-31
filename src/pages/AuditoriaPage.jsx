@@ -7,6 +7,75 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, serverTimestamp
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
+import ManageSectoresAuditoria from "../components/ManageSectoresAuditoria";
+
+const DEFAULT_SECTORES_BOTILLERIA = [
+  {
+    seccion: "Botillería",
+    nombre: "Pasillo 13-D",
+    tipo: "Pasillo",
+    items: ["Rose", "Late harvest", "Mezcla tinto"],
+    orden: 1
+  },
+  {
+    seccion: "Botillería",
+    nombre: "Pared 13-D",
+    tipo: "Pared",
+    items: ["Agua tonica", "Tequila", "Whisky"],
+    orden: 2
+  },
+  {
+    seccion: "Botillería",
+    nombre: "Pasillo 14-D",
+    tipo: "Pasillo",
+    items: ["Espumantes", "Sidras", "Vinos"],
+    orden: 3
+  },
+  {
+    seccion: "Botillería",
+    nombre: "Pared 14-D",
+    tipo: "Pared",
+    items: [
+      "Biley",
+      "Cachaza",
+      "Licor ramazzoti",
+      "Licor de crema",
+      "Aperol",
+      "Agua ardiente",
+      "Vermonti",
+      "Amareto",
+      "Ron",
+      "Vodka"
+    ],
+    orden: 4
+  },
+  {
+    seccion: "Botillería",
+    nombre: "Pasillo 15-D",
+    tipo: "Pasillo",
+    items: [
+      "Piscos",
+      "Cocktail",
+      "Sour",
+      "Piña colada/variedades",
+      "Mistral ice",
+      "Spirit",
+      "Sour en polvo"
+    ],
+    orden: 5
+  },
+  {
+    seccion: "Botillería",
+    nombre: "Pasillo 16-D",
+    tipo: "Pasillo",
+    items: [
+      "Cervezas artesanales",
+      "Cervezas Sin alcohol",
+      "Cervezas Variedades"
+    ],
+    orden: 6
+  }
+];
 
 const DEFAULT_CATEGORIAS = [
   "Abarrotes", 
@@ -156,6 +225,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
   // Modals
   const [modalOpen, setModalOpen] = useState(false);
   const [manageCatOpen, setManageCatOpen] = useState(false);
+  const [manageSectoresOpen, setManageSectoresOpen] = useState(false);
+  const [sectores, setSectores] = useState([]);
   
   const [editando, setEditando] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -215,6 +286,18 @@ export default function AuditoriaPage({ onBackToSelector }) {
       } else {
         setCategoriasList(sortCategorias(cSnap.docs.map(d => ({ id: d.id, ...d.data() }))));
       }
+
+      // Cargar sectores
+      const sSnap = await getDocs(collection(db, "auditoria_sectores"));
+      if (sSnap.empty) {
+        for (const sec of DEFAULT_SECTORES_BOTILLERIA) {
+          await addDoc(collection(db, "auditoria_sectores"), sec);
+        }
+        const sSnapNew = await getDocs(collection(db, "auditoria_sectores"));
+        setSectores(sSnapNew.docs.map(d => ({ id: d.id, ...d.data() })));
+      } else {
+        setSectores(sSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      }
     } catch (error) {
       console.error("Error al cargar datos:", error);
       toast.error("Error al cargar datos");
@@ -227,6 +310,20 @@ export default function AuditoriaPage({ onBackToSelector }) {
     const cSnap = await getDocs(collection(db, "auditoria_categorias"));
     setCategoriasList(sortCategorias(cSnap.docs.map(d => ({ id: d.id, ...d.data() }))));
   };
+
+  const recargarSectores = async () => {
+    try {
+      const sSnap = await getDocs(collection(db, "auditoria_sectores"));
+      setSectores(sSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Error al recargar sectores:", err);
+    }
+  };
+
+  const sectoresSugeridos = useMemo(() => {
+    if (!categoria) return [];
+    return sectores.filter(s => (s.seccion || "").toLowerCase() === categoria.toLowerCase());
+  }, [sectores, categoria]);
 
   const cargarProductos = async () => {
     try {
@@ -756,13 +853,25 @@ const productosFiltrados = productos.filter(p => {
               </button>
             </div>
 
-            <button 
-              onClick={abrirNuevo}
-              className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-              Agregar Producto
-            </button>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setManageSectoresOpen(true)}
+                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border ${t.border} ${t.bgCard} ${t.text} hover:border-purple-500 hover:text-purple-400 font-bold transition-all flex items-center justify-center gap-2 shadow-sm`}
+                title="Mapa y distribución de sectores y pasillos"
+              >
+                <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20 }}>map</span>
+                <span>Sectores</span>
+              </button>
+
+              <button 
+                onClick={abrirNuevo}
+                className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
+                Agregar Producto
+              </button>
+            </div>
           </div>
 
           {/* Grid de Productos */}
@@ -1007,14 +1116,41 @@ const productosFiltrados = productos.filter(p => {
                     </div>
                   </div>
                   <div>
-                    <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1`}>Ubicación</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>
+                        Ubicación
+                      </label>
+                      {sectoresSugeridos.length > 0 && (
+                        <span className="text-[10px] text-purple-400 font-semibold">
+                          Sugeridos para {categoria}
+                        </span>
+                      )}
+                    </div>
                     <input 
                       type="text"
                       value={ubicacion}
                       onChange={(e) => setUbicacion(e.target.value)}
                       className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
-                      placeholder="Ej: Pasillo 4, Gondola 2"
+                      placeholder="Ej: Pasillo 13-D, Pared..."
                     />
+                    {sectoresSugeridos.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {sectoresSugeridos.map(sec => (
+                          <button
+                            key={sec.id}
+                            type="button"
+                            onClick={() => setUbicacion(sec.nombre)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                              ubicacion === sec.nombre
+                                ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                                : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-purple-300 hover:border-purple-500/40`
+                            }`}
+                          >
+                            {sec.nombre}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1074,6 +1210,15 @@ const productosFiltrados = productos.filter(p => {
           categorias={categoriasList}
           onClose={() => setManageCatOpen(false)}
           onUpdate={recargarCategorias}
+        />
+      )}
+      {manageSectoresOpen && (
+        <ManageSectoresAuditoria
+          sectores={sectores}
+          categorias={categoriasList}
+          seccionInicial={categoriaFiltro === "Todas" ? (categoriasList[0]?.nombre || "Botillería") : categoriaFiltro}
+          onClose={() => setManageSectoresOpen(false)}
+          onUpdate={recargarSectores}
         />
       )}
     </div>
