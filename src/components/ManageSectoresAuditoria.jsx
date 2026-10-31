@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { db } from "../firebase/config";
 import { collection, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -81,12 +81,15 @@ export default function ManageSectoresAuditoria({
     });
   };
 
-  // IA: Escaneo individual para rellenar el formulario de nuevo sector
-  const handleScanSingle = async (e) => {
-    const file = e.target.files?.[0];
+  // Función unificada de procesamiento de imágenes (funciona con archivo o Ctrl+V)
+  const procesarArchivo = async (file, modo = "bulk") => {
     if (!file) return;
 
-    const toastId = toast.loading("Analizando imagen con IA...");
+    const toastId = toast.loading(
+      modo === "single" 
+        ? "Analizando imagen para el pasillo con IA..." 
+        : "Escaneando hoja completa de pasillos con IA..."
+    );
     setIsAnalyzing(true);
 
     try {
@@ -111,98 +114,94 @@ export default function ManageSectoresAuditoria({
         } catch (err) {}
       }
 
-      const firstSector = Array.isArray(result.sectores) && result.sectores.length > 0 ? result.sectores[0] : null;
+      if (modo === "single") {
+        const firstSector = Array.isArray(result.sectores) && result.sectores.length > 0 ? result.sectores[0] : null;
 
-      if (!firstSector && (!result.nombre || !result.items)) {
-        toast.error("No se detectaron pasillos en la foto", { id: toastId });
-        return;
+        if (!firstSector && (!result.nombre || !result.items)) {
+          toast.error("No se detectaron pasillos en la foto", { id: toastId });
+          return;
+        }
+
+        const sectorName = firstSector ? firstSector.nombre : (result.nombre || "");
+        const sectorTipo = firstSector ? (firstSector.tipo || "Pasillo") : (result.tipo || "Pasillo");
+        const sectorItems = firstSector ? (firstSector.items || []) : (result.items || []);
+
+        setMostrarNuevoSector(true);
+        if (sectorName) setNuevoNombre(sectorName);
+        if (sectorTipo) setNuevoTipo(sectorTipo);
+        if (sectorItems.length > 0) setNuevoItemsTexto(sectorItems.join(", "));
+
+        toast.success("¡Datos pegados con éxito! Revisa y guarda el pasillo.", { id: toastId });
+      } else {
+        const detectedSectores = Array.isArray(result.sectores) ? result.sectores : [];
+
+        if (detectedSectores.length === 0) {
+          toast.error("No se detectaron pasillos o sectores en la imagen", { id: toastId });
+          return;
+        }
+
+        let detectedSeccion = (result.seccion || "").trim();
+        if (detectedSeccion) {
+          const match = categoriasUnicas.find(c => c.nombre.toLowerCase() === detectedSeccion.toLowerCase());
+          if (match) detectedSeccion = match.nombre;
+          else detectedSeccion = seccionActiva;
+        } else {
+          detectedSeccion = seccionActiva;
+        }
+
+        setBulkPreview({
+          seccion: detectedSeccion,
+          sectores: detectedSectores.map((s, idx) => ({
+            id: `bulk_${idx}`,
+            nombre: s.nombre || `Pasillo ${idx + 1}`,
+            tipo: s.tipo || "Pasillo",
+            items: Array.isArray(s.items) ? s.items : [],
+            selected: true
+          }))
+        });
+
+        toast.success(`¡Se detectaron ${detectedSectores.length} sectores pegados! Revisa la vista previa.`, { id: toastId });
       }
 
-      const sectorName = firstSector ? firstSector.nombre : (result.nombre || "");
-      const sectorTipo = firstSector ? (firstSector.tipo || "Pasillo") : (result.tipo || "Pasillo");
-      const sectorItems = firstSector ? (firstSector.items || []) : (result.items || []);
-
-      if (sectorName) setNuevoNombre(sectorName);
-      if (sectorTipo) setNuevoTipo(sectorTipo);
-      if (sectorItems.length > 0) setNuevoItemsTexto(sectorItems.join(", "));
-
-      toast.success("¡Datos extraídos con éxito! Revisa y guarda el sector.", { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Error al procesar la imagen", { id: toastId });
     } finally {
       setIsAnalyzing(false);
       if (fileInputSingleRef.current) fileInputSingleRef.current.value = "";
-    }
-  };
-
-  // IA: Escaneo de hoja completa con múltiples pasillos
-  const handleScanBulk = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const toastId = toast.loading("Escaneando hoja completa de pasillos con IA...");
-    setIsAnalyzing(true);
-
-    try {
-      const base64 = await fileToBase64(file);
-      const res = await fetch("/api/analizar-ficha", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image: base64,
-          mimeType: file.type || "image/jpeg",
-          tipo: "sectores_pasillos"
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "Error al analizar imagen");
-
-      let result = data;
-      if (typeof result === "string") {
-        try {
-          result = JSON.parse(result.replace(/```json|```/g, "").trim());
-        } catch (err) {}
-      }
-
-      const detectedSectores = Array.isArray(result.sectores) ? result.sectores : [];
-
-      if (detectedSectores.length === 0) {
-        toast.error("No se detectaron pasillos o sectores en la hoja", { id: toastId });
-        return;
-      }
-
-      // Determinar sección destino
-      let detectedSeccion = (result.seccion || "").trim();
-      if (detectedSeccion) {
-        const match = categorias.find(c => c.nombre.toLowerCase() === detectedSeccion.toLowerCase());
-        if (match) detectedSeccion = match.nombre;
-        else detectedSeccion = seccionActiva;
-      } else {
-        detectedSeccion = seccionActiva;
-      }
-
-      setBulkPreview({
-        seccion: detectedSeccion,
-        sectores: detectedSectores.map((s, idx) => ({
-          id: `bulk_${idx}`,
-          nombre: s.nombre || `Pasillo ${idx + 1}`,
-          tipo: s.tipo || "Pasillo",
-          items: Array.isArray(s.items) ? s.items : [],
-          selected: true
-        }))
-      });
-
-      toast.success(`¡Se detectaron ${detectedSectores.length} sectores! Revisa la vista previa.`, { id: toastId });
-    } catch (err) {
-      console.error(err);
-      toast.error(err.message || "Error al procesar la hoja", { id: toastId });
-    } finally {
-      setIsAnalyzing(false);
       if (fileInputBulkRef.current) fileInputBulkRef.current.value = "";
     }
   };
+
+  // Listener para Ctrl + V (Pegar imagen)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      // Si el usuario está pegando texto normal en un input o textarea, permitir comportamiento nativo
+      // a menos que lo que esté en el portapapeles sea estrictamente una IMAGEN.
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith("image/")) {
+          const file = items[i].getAsFile();
+          if (file) {
+            e.preventDefault();
+            // Si el formulario de crear sector está abierto, procesar como 'single'
+            // Si no, procesar como 'bulk' (hoja completa)
+            if (mostrarNuevoSector) {
+              procesarArchivo(file, "single");
+            } else {
+              procesarArchivo(file, "bulk");
+            }
+          }
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [mostrarNuevoSector, seccionActiva, categoriasUnicas, sectoresDeSeccion]);
 
   // Confirmar y guardar sectores en lote
   const handleConfirmBulk = async () => {
@@ -348,7 +347,7 @@ export default function ManageSectoresAuditoria({
         ref={fileInputSingleRef}
         type="file"
         accept="image/*"
-        onChange={handleScanSingle}
+        onChange={(e) => procesarArchivo(e.target.files?.[0], "single")}
         className="hidden"
       />
 
@@ -357,7 +356,7 @@ export default function ManageSectoresAuditoria({
         ref={fileInputBulkRef}
         type="file"
         accept="image/*"
-        onChange={handleScanBulk}
+        onChange={(e) => procesarArchivo(e.target.files?.[0], "bulk")}
         className="hidden"
       />
 
@@ -414,18 +413,21 @@ export default function ManageSectoresAuditoria({
               )}
             </div>
 
-            {/* Botón Escanear Hoja Completa con IA */}
+            {/* Botón Escanear Hoja Completa con IA (con soporte Ctrl+V) */}
             <button
               type="button"
               disabled={isAnalyzing}
               onClick={() => fileInputBulkRef.current?.click()}
               className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 flex-shrink-0 disabled:opacity-50"
-              title="Sube una foto de una hoja con varios pasillos para detectarlos automáticamente"
+              title="Sube una foto o simplemente presiona Ctrl+V para escanear"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                 {isAnalyzing ? "sync" : "document_scanner"}
               </span>
-              <span>{isAnalyzing ? "Analizando..." : "Escanear Hoja Completa"}</span>
+              <span>{isAnalyzing ? "Analizando..." : "Escanear Hoja"}</span>
+              <span className="hidden md:inline px-1.5 py-0.5 rounded text-[10px] bg-white/20 font-mono tracking-tight">
+                Ctrl + V
+              </span>
             </button>
           </div>
 
@@ -488,7 +490,7 @@ export default function ManageSectoresAuditoria({
             </button>
           </div>
 
-          {/* Formulario desplegable para nuevo sector con botón IA */}
+          {/* Formulario desplegable para nuevo sector con botón IA y soporte Ctrl+V */}
           {mostrarNuevoSector && (
             <form onSubmit={handleCrearSector} className={`p-4 rounded-2xl border ${t.border} ${t.bgInput} space-y-3 animate-fadeIn`}>
               <div className="flex items-center justify-between">
@@ -497,18 +499,21 @@ export default function ManageSectoresAuditoria({
                   Crear Sector en {seccionActiva}
                 </h4>
 
-                {/* Botón de Rellenar con Foto */}
+                {/* Botón de Rellenar con Foto / Ctrl+V */}
                 <button
                   type="button"
                   disabled={isAnalyzing}
                   onClick={() => fileInputSingleRef.current?.click()}
                   className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
-                  title="Importa o toma una foto del letrero o nota para rellenar automáticamente"
+                  title="Sube una foto o simplemente presiona Ctrl+V para rellenar"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
                     {isAnalyzing ? "sync" : "photo_camera"}
                   </span>
-                  <span>{isAnalyzing ? "Extrayendo..." : "Rellenar desde Foto (IA)"}</span>
+                  <span>{isAnalyzing ? "Extrayendo..." : "Rellenar con Foto"}</span>
+                  <span className="hidden md:inline px-1 py-0.2 rounded text-[10px] bg-white/10 font-mono">
+                    Ctrl + V
+                  </span>
                 </button>
               </div>
 
@@ -583,7 +588,7 @@ export default function ManageSectoresAuditoria({
                 No hay sectores definidos para {seccionActiva}
               </p>
               <p className={`${t.textSecondary} text-xs max-w-sm mx-auto`}>
-                Puedes crear pasillos manualmente o importar una foto de la hoja con el botón "Escanear Hoja Completa".
+                Puedes crear pasillos manualmente o presionar <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px]">Ctrl + V</kbd> con una imagen copiada.
               </p>
               <div className="flex justify-center gap-2 pt-2">
                 <button
@@ -598,7 +603,7 @@ export default function ManageSectoresAuditoria({
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-sm inline-flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined" style={{ fontSize: 16 }}>document_scanner</span>
-                  Escanear hoja con IA
+                  Escanear hoja (o Ctrl+V)
                 </button>
               </div>
             </div>
@@ -776,7 +781,7 @@ export default function ManageSectoresAuditoria({
         {/* Footer */}
         <div className={`px-6 py-3 border-t ${t.border} flex items-center justify-between bg-slate-900/30 text-xs ${t.textSecondary}`}>
           <span>
-            💡 Tip: Puedes escanear hojas con pasillos impresos o usar el buscador superior.
+            💡 Tip: Puedes presionar <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px] text-white">Ctrl + V</kbd> en cualquier momento para pegar una imagen copiada.
           </span>
           <button
             onClick={onClose}
