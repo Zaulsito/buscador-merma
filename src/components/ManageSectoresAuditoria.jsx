@@ -14,6 +14,73 @@ const TIPOS_SECTOR = [
   "Isla"
 ];
 
+const parseTextToSectores = (rawText) => {
+  if (!rawText || typeof rawText !== "string") return { seccion: "", sectores: [] };
+
+  const lines = rawText
+    .split(/\r?\n/)
+    .map(l => l.replace(/<[^>]*>/g, '').trim()) // remover tags HTML como <u>
+    .filter(Boolean);
+
+  let currentSeccion = "";
+  let currentSector = null;
+  const sectores = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Detectar encabezados de sector
+    const isPasillo = /^pasillo\s+\w+/i.test(line) || /^p\s*\d+/i.test(line);
+    const isPared = /^pared\b/i.test(line);
+    const isGondola = /^g[oó]ndola\b/i.test(line);
+    const isCabecera = /^cabecera\b/i.test(line);
+
+    if (isPasillo || isPared || isGondola || isCabecera) {
+      const cleanName = line.replace(/[:]/g, '').trim();
+      let tipo = "Pasillo";
+      if (isPared) tipo = "Pared";
+      else if (isGondola) tipo = "Góndola";
+      else if (isCabecera) tipo = "Cabecera";
+
+      // Si es una pared y el pasillo anterior era "Pasillo 13-D", nombrarla "Pared 13-D"
+      let finalName = cleanName;
+      if (isPared && sectores.length > 0) {
+        const lastPasillo = [...sectores].reverse().find(s => s.tipo === "Pasillo");
+        if (lastPasillo) {
+          const numMatch = lastPasillo.nombre.match(/\d+[\w-]*/);
+          if (numMatch) {
+            finalName = `Pared ${numMatch[0]}`;
+          }
+        }
+      }
+
+      currentSector = {
+        nombre: finalName,
+        tipo,
+        items: []
+      };
+      sectores.push(currentSector);
+    } else if (line.startsWith('•') || line.startsWith('*') || line.startsWith('-')) {
+      const item = line.replace(/^[•*\-\s]+/, '').trim();
+      if (item) {
+        if (!currentSector) {
+          currentSector = { nombre: "General", tipo: "Pasillo", items: [] };
+          sectores.push(currentSector);
+        }
+        currentSector.items.push(item);
+      }
+    } else {
+      if (!currentSector && !currentSeccion) {
+        currentSeccion = line;
+      } else if (currentSector) {
+        currentSector.items.push(line);
+      }
+    }
+  }
+
+  return { seccion: currentSeccion, sectores };
+};
+
 export default function ManageSectoresAuditoria({ 
   sectores = [], 
   categorias = [], 
@@ -112,6 +179,17 @@ export default function ManageSectoresAuditoria({
         try {
           result = JSON.parse(result.replace(/```json|```/g, "").trim());
         } catch (err) {}
+      }
+
+      // Si no vienen sectores en formato JSON, extraerlos del texto plano o HTML que devuelva la IA
+      if (!result.sectores || result.sectores.length === 0) {
+        const rawText = data.text || data.descripcionProceso || (typeof data === "string" ? data : "");
+        if (rawText) {
+          const parsedFromText = parseTextToSectores(rawText);
+          if (parsedFromText.sectores.length > 0) {
+            result = parsedFromText;
+          }
+        }
       }
 
       if (modo === "single") {
