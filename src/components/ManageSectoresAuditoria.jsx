@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { db } from "../firebase/config";
 import { collection, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 import { useTheme } from "../context/ThemeContext";
@@ -38,6 +38,12 @@ export default function ManageSectoresAuditoria({
   const [nuevoTipo, setNuevoTipo] = useState("Pasillo");
   const [nuevoItemsTexto, setNuevoItemsTexto] = useState("");
 
+  // Estados de IA y Archivos
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const fileInputSingleRef = useRef(null);
+  const fileInputBulkRef = useRef(null);
+  const [bulkPreview, setBulkPreview] = useState(null);
+
   // Edición de sector
   const [editandoSectorId, setEditandoSectorId] = useState(null);
   const [editNombre, setEditNombre] = useState("");
@@ -54,7 +60,172 @@ export default function ManageSectoresAuditoria({
   // Búsqueda global o local
   const term = busqueda.trim().toLowerCase();
 
-  // Crear nuevo sector
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // IA: Escaneo individual para rellenar el formulario de nuevo sector
+  const handleScanSingle = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Analizando imagen con IA...");
+    setIsAnalyzing(true);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64,
+          mimeType: file.type || "image/jpeg",
+          tipo: "sectores_pasillos"
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Error al analizar imagen");
+
+      let result = data;
+      if (typeof result === "string") {
+        try {
+          result = JSON.parse(result.replace(/```json|```/g, "").trim());
+        } catch (err) {}
+      }
+
+      const firstSector = Array.isArray(result.sectores) && result.sectores.length > 0 ? result.sectores[0] : null;
+
+      if (!firstSector && (!result.nombre || !result.items)) {
+        toast.error("No se detectaron pasillos en la foto", { id: toastId });
+        return;
+      }
+
+      const sectorName = firstSector ? firstSector.nombre : (result.nombre || "");
+      const sectorTipo = firstSector ? (firstSector.tipo || "Pasillo") : (result.tipo || "Pasillo");
+      const sectorItems = firstSector ? (firstSector.items || []) : (result.items || []);
+
+      if (sectorName) setNuevoNombre(sectorName);
+      if (sectorTipo) setNuevoTipo(sectorTipo);
+      if (sectorItems.length > 0) setNuevoItemsTexto(sectorItems.join(", "));
+
+      toast.success("¡Datos extraídos con éxito! Revisa y guarda el sector.", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Error al procesar la imagen", { id: toastId });
+    } finally {
+      setIsAnalyzing(false);
+      if (fileInputSingleRef.current) fileInputSingleRef.current.value = "";
+    }
+  };
+
+  // IA: Escaneo de hoja completa con múltiples pasillos
+  const handleScanBulk = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Escaneando hoja completa de pasillos con IA...");
+    setIsAnalyzing(true);
+
+    try {
+      const base64 = await fileToBase64(file);
+      const res = await fetch("/api/analizar-ficha", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: base64,
+          mimeType: file.type || "image/jpeg",
+          tipo: "sectores_pasillos"
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Error al analizar imagen");
+
+      let result = data;
+      if (typeof result === "string") {
+        try {
+          result = JSON.parse(result.replace(/```json|```/g, "").trim());
+        } catch (err) {}
+      }
+
+      const detectedSectores = Array.isArray(result.sectores) ? result.sectores : [];
+
+      if (detectedSectores.length === 0) {
+        toast.error("No se detectaron pasillos o sectores en la hoja", { id: toastId });
+        return;
+      }
+
+      // Determinar sección destino
+      let detectedSeccion = (result.seccion || "").trim();
+      if (detectedSeccion) {
+        const match = categorias.find(c => c.nombre.toLowerCase() === detectedSeccion.toLowerCase());
+        if (match) detectedSeccion = match.nombre;
+        else detectedSeccion = seccionActiva;
+      } else {
+        detectedSeccion = seccionActiva;
+      }
+
+      setBulkPreview({
+        seccion: detectedSeccion,
+        sectores: detectedSectores.map((s, idx) => ({
+          id: `bulk_${idx}`,
+          nombre: s.nombre || `Pasillo ${idx + 1}`,
+          tipo: s.tipo || "Pasillo",
+          items: Array.isArray(s.items) ? s.items : [],
+          selected: true
+        }))
+      });
+
+      toast.success(`¡Se detectaron ${detectedSectores.length} sectores! Revisa la vista previa.`, { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Error al procesar la hoja", { id: toastId });
+    } finally {
+      setIsAnalyzing(false);
+      if (fileInputBulkRef.current) fileInputBulkRef.current.value = "";
+    }
+  };
+
+  // Confirmar y guardar sectores en lote
+  const handleConfirmBulk = async () => {
+    if (!bulkPreview || !bulkPreview.sectores) return;
+    const toSave = bulkPreview.sectores.filter(s => s.selected);
+    if (toSave.length === 0) {
+      toast.error("Selecciona al menos un sector para guardar");
+      return;
+    }
+
+    const toastId = toast.loading(`Guardando ${toSave.length} sectores en ${bulkPreview.seccion}...`);
+    try {
+      for (let i = 0; i < toSave.length; i++) {
+        const sec = toSave[i];
+        await addDoc(collection(db, "auditoria_sectores"), {
+          seccion: bulkPreview.seccion,
+          nombre: sec.nombre.trim(),
+          tipo: sec.tipo || "Pasillo",
+          items: sec.items || [],
+          orden: sectoresDeSeccion.length + i + 1,
+          creadoEn: new Date()
+        });
+      }
+
+      toast.success(`¡${toSave.length} sectores guardados correctamente!`, { id: toastId });
+      setBulkPreview(null);
+      setSeccionActiva(bulkPreview.seccion);
+      onUpdate();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error al guardar sectores en lote", { id: toastId });
+    }
+  };
+
+  // Crear nuevo sector manualmente
   const handleCrearSector = async (e) => {
     e.preventDefault();
     if (!nuevoNombre.trim()) {
@@ -159,7 +330,26 @@ export default function ManageSectoresAuditoria({
 
   return (
     <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[70] p-4 backdrop-blur-md animate-fadeIn">
-      <div className={`${t.bgCard} rounded-3xl w-full max-w-5xl shadow-2xl border ${t.border} flex flex-col max-h-[92vh] overflow-hidden`}>
+      
+      {/* Input oculto para escaneo individual */}
+      <input
+        ref={fileInputSingleRef}
+        type="file"
+        accept="image/*"
+        onChange={handleScanSingle}
+        className="hidden"
+      />
+
+      {/* Input oculto para escaneo de hoja completa */}
+      <input
+        ref={fileInputBulkRef}
+        type="file"
+        accept="image/*"
+        onChange={handleScanBulk}
+        className="hidden"
+      />
+
+      <div className={`${t.bgCard} rounded-3xl w-full max-w-5xl shadow-2xl border ${t.border} flex flex-col max-h-[92vh] overflow-hidden relative`}>
         
         {/* Header */}
         <div className={`px-6 py-4 border-b ${t.border} flex items-center justify-between bg-slate-900/40`}>
@@ -186,28 +376,45 @@ export default function ManageSectoresAuditoria({
           </button>
         </div>
 
-        {/* Barra de Filtros y Búsqueda */}
+        {/* Barra de Filtros, Búsqueda y Botón Hoja Completa */}
         <div className={`p-4 border-b ${t.border} space-y-3 bg-slate-900/20`}>
-          {/* Buscador inteligente */}
-          <div className="relative">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
-              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>search</span>
-            </span>
-            <input
-              type="text"
-              placeholder="Buscar producto o categoría (ej: Pisco, Whisky, Aperol, Espumantes, 14-D)..."
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              className={`w-full pl-10 pr-10 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} text-sm focus:outline-none focus:border-purple-500 transition-colors`}
-            />
-            {busqueda && (
-              <button 
-                onClick={() => setBusqueda("")}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
-              </button>
-            )}
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* Buscador inteligente */}
+            <div className="relative flex-1">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 pointer-events-none">
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>search</span>
+              </span>
+              <input
+                type="text"
+                placeholder="Buscar producto o categoría (ej: Pisco, Whisky, Aperol, Espumantes, 14-D)..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                className={`w-full pl-10 pr-10 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} text-sm focus:outline-none focus:border-purple-500 transition-colors`}
+              />
+              {busqueda && (
+                <button 
+                  onClick={() => setBusqueda("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                </button>
+              )}
+            </div>
+
+            {/* Botón Escanear Hoja Completa con IA */}
+            <button
+              type="button"
+              disabled={isAnalyzing}
+              onClick={() => fileInputBulkRef.current?.click()}
+              className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 flex-shrink-0 disabled:opacity-50"
+              title="Sube una foto de una hoja con varios pasillos para detectarlos automáticamente"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                {isAnalyzing ? "sync" : "document_scanner"}
+              </span>
+              <span>{isAnalyzing ? "Analizando..." : "Escanear Hoja Completa"}</span>
+            </button>
           </div>
 
           {/* Pestañas de Secciones */}
@@ -269,13 +476,30 @@ export default function ManageSectoresAuditoria({
             </button>
           </div>
 
-          {/* Formulario desplegable para nuevo sector */}
+          {/* Formulario desplegable para nuevo sector con botón IA */}
           {mostrarNuevoSector && (
             <form onSubmit={handleCrearSector} className={`p-4 rounded-2xl border ${t.border} ${t.bgInput} space-y-3 animate-fadeIn`}>
-              <h4 className={`text-sm font-bold ${t.text} flex items-center gap-1.5 text-purple-400`}>
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>playlist_add</span>
-                Crear Sector en {seccionActiva}
-              </h4>
+              <div className="flex items-center justify-between">
+                <h4 className={`text-sm font-bold ${t.text} flex items-center gap-1.5 text-purple-400`}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>playlist_add</span>
+                  Crear Sector en {seccionActiva}
+                </h4>
+
+                {/* Botón de Rellenar con Foto */}
+                <button
+                  type="button"
+                  disabled={isAnalyzing}
+                  onClick={() => fileInputSingleRef.current?.click()}
+                  className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  title="Importa o toma una foto del letrero o nota para rellenar automáticamente"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                    {isAnalyzing ? "sync" : "photo_camera"}
+                  </span>
+                  <span>{isAnalyzing ? "Extrayendo..." : "Rellenar desde Foto (IA)"}</span>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label className={`block text-xs font-semibold ${t.textSecondary} mb-1`}>
@@ -308,11 +532,11 @@ export default function ManageSectoresAuditoria({
 
               <div>
                 <label className={`block text-xs font-semibold ${t.textSecondary} mb-1`}>
-                  Productos o categorías iniciales (opcional, separados por coma)
+                  Productos o categorías del pasillo (separados por coma o viñetas)
                 </label>
                 <input
                   type="text"
-                  placeholder="Ej: Rosé, Late harvest, Mezcla tinto"
+                  placeholder="Ej: Rosé, Late harvest, Mezcla tinto..."
                   value={nuevoItemsTexto}
                   onChange={(e) => setNuevoItemsTexto(e.target.value)}
                   className={`w-full px-3 py-2 rounded-xl ${t.bgCard} border ${t.border} ${t.text} text-sm focus:outline-none focus:border-purple-500`}
@@ -347,15 +571,24 @@ export default function ManageSectoresAuditoria({
                 No hay sectores definidos para {seccionActiva}
               </p>
               <p className={`${t.textSecondary} text-xs max-w-sm mx-auto`}>
-                Agrega los pasillos y paredes de esta sección para organizar qué categorías de productos corresponden a cada lugar.
+                Puedes crear pasillos manualmente o importar una foto de la hoja con el botón "Escanear Hoja Completa".
               </p>
-              <button
-                onClick={() => setMostrarNuevoSector(true)}
-                className="mt-2 px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-sm inline-flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                Crear primer pasillo
-              </button>
+              <div className="flex justify-center gap-2 pt-2">
+                <button
+                  onClick={() => setMostrarNuevoSector(true)}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl shadow-sm inline-flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                  Crear pasillo manual
+                </button>
+                <button
+                  onClick={() => fileInputBulkRef.current?.click()}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-sm inline-flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>document_scanner</span>
+                  Escanear hoja con IA
+                </button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -531,7 +764,7 @@ export default function ManageSectoresAuditoria({
         {/* Footer */}
         <div className={`px-6 py-3 border-t ${t.border} flex items-center justify-between bg-slate-900/30 text-xs ${t.textSecondary}`}>
           <span>
-            💡 Tip: Puedes buscar cualquier producto arriba para ver en qué pasillo o pared está ubicado.
+            💡 Tip: Puedes escanear hojas con pasillos impresos o usar el buscador superior.
           </span>
           <button
             onClick={onClose}
@@ -540,6 +773,114 @@ export default function ManageSectoresAuditoria({
             Cerrar
           </button>
         </div>
+
+        {/* Modal de Vista Previa para Importación en Lote (Hoja Completa) */}
+        {bulkPreview && (
+          <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-[80] p-4 backdrop-blur-md animate-fadeIn">
+            <div className={`${t.bgCard} rounded-3xl w-full max-w-2xl shadow-2xl border ${t.border} p-6 flex flex-col max-h-[85vh]`}>
+              <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 24 }}>
+                    document_scanner
+                  </span>
+                  <div>
+                    <h3 className={`text-base font-black ${t.text}`}>
+                      Vista Previa de Sectores Detectados
+                    </h3>
+                    <p className={`text-xs ${t.textSecondary}`}>
+                      Revisa los pasillos y productos extraídos de la hoja
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBulkPreview(null)}
+                  className={`w-8 h-8 rounded-full ${t.bgInput} ${t.textSecondary} flex items-center justify-center hover:text-white`}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>close</span>
+                </button>
+              </div>
+
+              {/* Selector de Sección Destino */}
+              <div className="mb-4 p-3 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-between gap-3">
+                <span className="text-xs font-bold text-purple-300">
+                  Guardar estos sectores en la sección:
+                </span>
+                <select
+                  value={bulkPreview.seccion}
+                  onChange={(e) => setBulkPreview(prev => ({ ...prev, seccion: e.target.value }))}
+                  className={`px-3 py-1.5 rounded-lg ${t.bgCard} border ${t.border} ${t.text} text-xs font-bold focus:outline-none`}
+                >
+                  {categorias.map(c => (
+                    <option key={c.id || c.nombre} value={c.nombre}>{c.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lista de sectores detectados */}
+              <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 mb-4">
+                {bulkPreview.sectores.map((sec, idx) => (
+                  <div
+                    key={sec.id}
+                    className={`p-3 rounded-xl border transition-all ${
+                      sec.selected ? "border-purple-500/50 bg-slate-900/60" : "border-white/5 opacity-50 bg-slate-900/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={sec.selected}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setBulkPreview(prev => ({
+                              ...prev,
+                              sectores: prev.sectores.map((s, i) => i === idx ? { ...s, selected: checked } : s)
+                            }));
+                          }}
+                          className="rounded text-purple-600 focus:ring-0"
+                        />
+                        <span className={`text-xs font-black ${t.text}`}>{sec.nombre}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-white/10 text-slate-300 uppercase font-bold">
+                          {sec.tipo}
+                        </span>
+                      </label>
+                      <span className={`text-[11px] ${t.textSecondary}`}>
+                        {sec.items.length} productos
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1 pl-6">
+                      {sec.items.map((it, i) => (
+                        <span key={i} className="text-[10px] px-2 py-0.5 rounded bg-white/5 text-slate-300 border border-white/5">
+                          {it}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex items-center justify-between pt-3 border-t border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setBulkPreview(null)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold ${t.bgCard} ${t.textSecondary} hover:text-white`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmBulk}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-500/20"
+                >
+                  Guardar {bulkPreview.sectores.filter(s => s.selected).length} Sectores en {bulkPreview.seccion}
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -252,6 +252,35 @@ Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente es
   "categoria": "Nombre Categoria"
 }
 Si un dato no aparece, déjalo como string vacío "". Responde ÚNICAMENTE con el JSON.`;
+    } else if (tipo === "sectores_pasillos") {
+      prompt = `Eres un asistente experto en organizar inventarios y distribuciones de pasillos en supermercados y retail chileno.
+Analiza la imagen proporcionada (que puede ser una lista impresa, un letrero de pasillo, una foto de una hoja de papel, pizarra, planilla o nota).
+
+Tu objetivo es extraer:
+1. "seccion": La sección o departamento general si aparece en el título/encabezado (ej: "Botillería", "Abarrotes", "Lácteos", "Carnicería", etc.). Si no aparece explícito, déjalo como string vacío "".
+2. "sectores": Una lista con CADA pasillo, pared, góndola o sector detectado en la imagen.
+Para cada sector, extrae:
+- "nombre": El nombre exacto del sector (ej: "Pasillo 13-D", "Pared 13-D", "Pasillo 14-D", "Pared 14-D", "Cabecera 2", etc. Si una pared está bajo un pasillo específico, nómbrala claramente como "Pared [Pasillo]").
+- "tipo": Uno de estos valores exactos: "Pasillo", "Pared", "Góndola", "Cabecera", "Mueble", "Cámara / Frío", "Isla".
+- "items": Array de strings con las categorías, familias o tipos de productos asociados a ese sector (ej: ["Rose", "Late harvest", "Mezcla tinto"]). Limpia viñetas, guiones, asteriscos o números. Conserva nombres legibles y claros.
+
+Devuelve ÚNICAMENTE un JSON válido sin markdown ni explicaciones con esta estructura exacta:
+{
+  "seccion": "Botillería",
+  "sectores": [
+    {
+      "nombre": "Pasillo 13-D",
+      "tipo": "Pasillo",
+      "items": ["Rose", "Late harvest", "Mezcla tinto"]
+    },
+    {
+      "nombre": "Pared 13-D",
+      "tipo": "Pared",
+      "items": ["Agua tonica", "Tequila", "Whisky"]
+    }
+  ]
+}
+Responde ÚNICAMENTE con el JSON.`;
     } else {
       prompt = `Transcribe EXACTAMENTE y al COMPLETO todo el texto del proceso de elaboración que aparece en esta imagen, tal cual como está escrito, sin resumir, sin omitir nada, sin parafrasear.
 Mantén el formato original:
@@ -292,7 +321,7 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
     const texto = data.candidates[0].content?.parts?.[0]?.text?.trim() || "";
     if (!texto) return res.status(500).json({ error: "Gemini respondió vacío" });
 
-    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util" || tipo === "planograma" || tipo === "precio") {
+    if (tipo === "completa" || tipo === "ingredientes" || tipo === "vida_util" || tipo === "planograma" || tipo === "precio" || tipo === "sectores_pasillos") {
       try {
         const clean = texto.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
