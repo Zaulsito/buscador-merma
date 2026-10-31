@@ -236,6 +236,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [ean, setEan] = useState("");
   const [sku, setSku] = useState("");
   const [ubicacion, setUbicacion] = useState("");
+  const [ubicacionInputFocused, setUbicacionInputFocused] = useState(false);
   const [categoria, setCategoria] = useState("");
   const [imagenUrl, setImagenUrl] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -320,10 +321,95 @@ export default function AuditoriaPage({ onBackToSelector }) {
     }
   };
 
-  const sectoresSugeridos = useMemo(() => {
+  const sectoresDeCategoria = useMemo(() => {
     if (!categoria) return [];
-    return sectores.filter(s => (s.seccion || "").toLowerCase() === categoria.toLowerCase());
+    return sectores.filter(s => normalizeText(s.seccion) === normalizeText(categoria));
   }, [sectores, categoria]);
+
+  // Si el nombre del producto contiene palabras clave presentes en los productos de un pasillo
+  const sectorSugeridoPorNombre = useMemo(() => {
+    if (!nombre.trim() || !categoria) return null;
+    const nNorm = normalizeText(nombre);
+    for (const sec of sectoresDeCategoria) {
+      const items = Array.isArray(sec.items) ? sec.items : (Array.isArray(sec.productos) ? sec.productos : []);
+      for (const it of items) {
+        const itNorm = normalizeText(it);
+        if (itNorm && (nNorm.includes(itNorm) || itNorm.includes(nNorm))) {
+          return { sector: sec, coincidencia: it };
+        }
+      }
+    }
+    return null;
+  }, [nombre, categoria, sectoresDeCategoria]);
+
+  // Sugerencias de pasillos (máximo 5, no estricto con acentos)
+  const sugerenciasUbicacion = useMemo(() => {
+    if (!categoria) return [];
+    const term = normalizeText(ubicacion.trim());
+
+    if (!term) {
+      const lista = [];
+      if (sectorSugeridoPorNombre) {
+        lista.push(sectorSugeridoPorNombre.sector);
+      }
+      for (const s of sectoresDeCategoria) {
+        if (!lista.some(x => x.id === s.id)) {
+          lista.push(s);
+        }
+      }
+      return lista.slice(0, 5);
+    }
+
+    // Coincidencia con nombre del sector (ej: "13" -> "Pasillo 13-D")
+    const coincidenNombre = sectoresDeCategoria.filter(s => 
+      normalizeText(s.nombre).includes(term)
+    );
+
+    // Coincidencia con productos registrados en el sector
+    const coincidenItems = sectoresDeCategoria.filter(s => {
+      if (coincidenNombre.some(c => c.id === s.id)) return false;
+      const items = Array.isArray(s.items) ? s.items : (Array.isArray(s.productos) ? s.productos : []);
+      return items.some(it => normalizeText(it).includes(term));
+    });
+
+    return [...coincidenNombre, ...coincidenItems].slice(0, 5);
+  }, [ubicacion, categoria, sectoresDeCategoria, sectorSugeridoPorNombre]);
+
+  // Verifica si el texto actual coincide exactamente con algún pasillo existente
+  const ubicacionExiste = useMemo(() => {
+    const term = normalizeText(ubicacion.trim());
+    if (!term) return true;
+    return sectoresDeCategoria.some(s => normalizeText(s.nombre) === term);
+  }, [ubicacion, sectoresDeCategoria]);
+
+  // Agregar nuevo pasillo directamente si no existe
+  const handleCrearPasilloRapido = async (pasilloNombre) => {
+    const clean = (pasilloNombre || ubicacion).trim();
+    if (!clean) return;
+    if (!categoria) {
+      toast.error("Selecciona una categoría primero");
+      return;
+    }
+
+    try {
+      const nuevo = {
+        nombre: clean,
+        seccion: categoria,
+        tipo: clean.toLowerCase().includes("pared") ? "Pared" : "Pasillo",
+        items: nombre.trim() ? [nombre.trim()] : [],
+        productos: nombre.trim() ? [nombre.trim()] : [],
+        createdAt: serverTimestamp()
+      };
+      await addDoc(collection(db, "auditoria_sectores"), nuevo);
+      setUbicacion(clean);
+      setUbicacionInputFocused(false);
+      toast.success(`Pasillo "${clean}" agregado a ${categoria}`);
+      await recargarSectores();
+    } catch (err) {
+      console.error("Error al crear pasillo rápido:", err);
+      toast.error("Error al agregar el pasillo");
+    }
+  };
 
   const cargarProductos = async () => {
     try {
@@ -339,6 +425,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setEan("");
     setSku("");
     setUbicacion("");
+    setUbicacionInputFocused(false);
     setCategoria(categoriasList.length > 0 ? categoriasList[0].nombre : "");
     setImagenUrl("");
     setImageFile(null);
@@ -622,6 +709,49 @@ export default function AuditoriaPage({ onBackToSelector }) {
         await addDoc(collection(db, "auditoria_productos"), datos);
         toast.success("¡Producto agregado! Puedes continuar agregando.");
         resetForm();
+      }
+
+      // Asegurar que si la ubicación ingresada no existía en los sectores de esta sección, se cree automáticamente
+      if (ubicacion.trim() && categoria) {
+        const cleanUbi = ubicacion.trim();
+        const normUbi = normalizeText(cleanUbi);
+        const secExistente = sectores.find(s => 
+          normalizeText(s.seccion) === normalizeText(categoria) && 
+          normalizeText(s.nombre) === normUbi
+        );
+
+        if (!secExistente) {
+          try {
+            await addDoc(collection(db, "auditoria_sectores"), {
+              nombre: cleanUbi,
+              seccion: categoria,
+              tipo: cleanUbi.toLowerCase().includes("pared") ? "Pared" : "Pasillo",
+              items: nombre.trim() ? [nombre.trim()] : [],
+              productos: nombre.trim() ? [nombre.trim()] : [],
+              createdAt: serverTimestamp()
+            });
+            recargarSectores();
+          } catch (secErr) {
+            console.warn("No se pudo autoguardar el sector nuevo:", secErr);
+          }
+        } else if (nombre.trim()) {
+          const itemsActuales = Array.isArray(secExistente.items) 
+            ? secExistente.items 
+            : (Array.isArray(secExistente.productos) ? secExistente.productos : []);
+          const normNombre = normalizeText(nombre.trim());
+          if (!itemsActuales.some(it => normalizeText(it) === normNombre)) {
+            try {
+              await updateDoc(doc(db, "auditoria_sectores", secExistente.id), {
+                items: [...itemsActuales, nombre.trim()],
+                productos: [...itemsActuales, nombre.trim()],
+                updatedAt: serverTimestamp()
+              });
+              recargarSectores();
+            } catch (secErr) {
+              console.warn("No se pudo vincular producto al sector:", secErr);
+            }
+          }
+        }
       }
 
       cargarProductos();
@@ -1120,37 +1250,125 @@ const productosFiltrados = productos.filter(p => {
                       <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>
                         Ubicación
                       </label>
-                      {sectoresSugeridos.length > 0 && (
+                      {categoria && (
                         <span className="text-[10px] text-purple-400 font-semibold">
-                          Sugeridos para {categoria}
+                          {sugerenciasUbicacion.length > 0 ? `Sugeridos para ${categoria} (máx 5)` : `Sin pasillos en ${categoria}`}
                         </span>
                       )}
                     </div>
-                    <input 
-                      type="text"
-                      value={ubicacion}
-                      onChange={(e) => setUbicacion(e.target.value)}
-                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
-                      placeholder="Ej: Pasillo 13-D, Pared..."
-                    />
-                    {sectoresSugeridos.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {sectoresSugeridos.map(sec => (
-                          <button
-                            key={sec.id}
-                            type="button"
-                            onClick={() => setUbicacion(sec.nombre)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                              ubicacion === sec.nombre
-                                ? "bg-purple-600 text-white border-purple-400 shadow-sm"
-                                : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-purple-300 hover:border-purple-500/40`
-                            }`}
-                          >
-                            {sec.nombre}
-                          </button>
-                        ))}
+
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={ubicacion}
+                        onFocus={() => setUbicacionInputFocused(true)}
+                        onBlur={() => setTimeout(() => setUbicacionInputFocused(false), 250)}
+                        onChange={(e) => setUbicacion(e.target.value)}
+                        className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                        placeholder="Ej: Pasillo 13-D, Pared..."
+                      />
+
+                      {/* Dropdown flotante con autocompletado si está enfocado */}
+                      {ubicacionInputFocused && (sugerenciasUbicacion.length > 0 || (!ubicacionExiste && ubicacion.trim())) && (
+                        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900 border border-purple-500/50 rounded-xl shadow-2xl overflow-hidden backdrop-blur-md animate-fadeIn">
+                          {sugerenciasUbicacion.length > 0 && (
+                            <div className="divide-y divide-white/5 max-h-48 overflow-y-auto">
+                              {sugerenciasUbicacion.map(sec => {
+                                const isSelected = normalizeText(ubicacion) === normalizeText(sec.nombre);
+                                return (
+                                  <button
+                                    key={sec.id}
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                      e.preventDefault();
+                                      setUbicacion(sec.nombre);
+                                      setUbicacionInputFocused(false);
+                                    }}
+                                    className={`w-full px-3 py-2 text-left hover:bg-purple-600/25 transition-colors flex items-center justify-between gap-2 text-xs group ${
+                                      isSelected ? "bg-purple-600/30 text-purple-300 font-bold" : "text-slate-200"
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2 truncate">
+                                      <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 16 }}>
+                                        meeting_room
+                                      </span>
+                                      <span className="truncate">{sec.nombre}</span>
+                                    </div>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-slate-400 group-hover:text-purple-300">
+                                      {sec.tipo || "Pasillo"}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {!ubicacionExiste && ubicacion.trim() && (
+                            <button
+                              type="button"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                handleCrearPasilloRapido(ubicacion.trim());
+                              }}
+                              className="w-full px-3 py-2.5 text-left bg-purple-600/20 hover:bg-purple-600/35 border-t border-purple-500/30 transition-colors flex items-center gap-2 text-xs font-bold text-purple-300"
+                            >
+                              <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 18 }}>
+                                add_circle
+                              </span>
+                              <span>Agregar <strong>"{ubicacion.trim()}"</strong> a pasillos de {categoria}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Banner si el nombre del producto sugiere un pasillo específico */}
+                    {sectorSugeridoPorNombre && ubicacion !== sectorSugeridoPorNombre.sector.nombre && (
+                      <div className="mt-2 p-2 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-between text-xs">
+                        <span className="text-purple-300 flex items-center gap-1.5 truncate mr-2">
+                          <span className="material-symbols-outlined text-purple-400 flex-shrink-0" style={{ fontSize: 16 }}>lightbulb</span>
+                          <span className="truncate">Sugerido por nombre: <strong>{sectorSugeridoPorNombre.sector.nombre}</strong> ({sectorSugeridoPorNombre.coincidencia})</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setUbicacion(sectorSugeridoPorNombre.sector.nombre)}
+                          className="px-2 py-0.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-[11px] font-bold flex-shrink-0"
+                        >
+                          Usar
+                        </button>
                       </div>
                     )}
+
+                    {/* Pastillas de sugerencias rápidas (máximo 5) */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {sugerenciasUbicacion.map(sec => (
+                        <button
+                          key={sec.id}
+                          type="button"
+                          onClick={() => setUbicacion(sec.nombre)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                            normalizeText(ubicacion) === normalizeText(sec.nombre)
+                              ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                              : `${t.bgCard} ${t.border} ${t.textSecondary} hover:text-purple-300 hover:border-purple-500/40`
+                          }`}
+                        >
+                          {sec.nombre}
+                        </button>
+                      ))}
+
+                      {/* Si escribió algo que no existe en los pasillos de la categoría, permitir agregarlo con un clic */}
+                      {!ubicacionExiste && ubicacion.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => handleCrearPasilloRapido(ubicacion.trim())}
+                          className="px-2.5 py-1 rounded-lg text-xs font-bold border border-dashed border-purple-500/60 bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 transition-all flex items-center gap-1"
+                          title={`Agregar "${ubicacion.trim()}" como nuevo pasillo para ${categoria}`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+                          <span>Agregar "{ubicacion.trim()}"</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
