@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import toast from "react-hot-toast";
 import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
 import ManageSectoresAuditoria from "../components/ManageSectoresAuditoria";
+import MapaSupermercadoLeaflet from "../components/MapaSupermercadoLeaflet";
 
 const DEFAULT_SECTORES_BOTILLERIA = [
   {
@@ -977,6 +978,22 @@ export default function AuditoriaPage({ onBackToSelector }) {
                   {sectores.length}
                 </span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("mapa")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm transition-all ${
+                  activeTab === "mapa"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    : `${t.textSecondary} hover:text-white hover:bg-white/5`
+                }`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>location_on</span>
+                <span>Mapa del Local</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Demo
+                </span>
+              </button>
             </div>
 
             {/* Botón rápido Agregar Producto si está en pestaña productos */}
@@ -1395,7 +1412,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
           )}
 
         </div>
-      ) : (
+      ) : activeTab === "sectores" ? (
         <div className="space-y-6 animate-fadeIn">
           <ManageSectoresAuditoria
             embedded={true}
@@ -1404,6 +1421,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
             productos={productos}
             seccionInicial={categoriaFiltro === "Todas" ? (uniqueCategorias[0]?.nombre || "Botillería") : categoriaFiltro}
             onUpdate={recargarSectores}
+          />
+        </div>
+      ) : (
+        <div className="space-y-6 animate-fadeIn">
+          <MapaSupermercadoLeaflet
+            productos={productos}
+            sectores={sectores}
           />
         </div>
       )}
