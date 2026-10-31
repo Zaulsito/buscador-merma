@@ -14,42 +14,60 @@ const TIPOS_SECTOR = [
   "Isla"
 ];
 
-const parseTextToSectores = (rawText) => {
+const parseTextToSectores = (rawText, categoriasList = []) => {
   if (!rawText || typeof rawText !== "string") return { seccion: "", sectores: [] };
 
-  const lines = rawText
-    .split(/\r?\n/)
-    .map(l => l.replace(/<[^>]*>/g, '').trim()) // remover tags HTML como <u>
-    .filter(Boolean);
+  // Limpiar formato: remover tags HTML (<u>) y markdown (*, _, #, ~, `)
+  const cleanLine = (l) => l
+    .replace(/<[^>]*>/g, '') // tags HTML
+    .replace(/[*_#~`]/g, '')  // markdown bold/italics
+    .trim();
+
+  const originalLines = rawText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
   let currentSeccion = "";
   let currentSector = null;
   const sectores = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  for (let i = 0; i < originalLines.length; i++) {
+    const orig = originalLines[i];
+    const clean = cleanLine(orig);
 
-    // Detectar encabezados de sector
-    const isPasillo = /^pasillo\s+\w+/i.test(line) || /^p\s*\d+/i.test(line);
-    const isPared = /^pared\b/i.test(line);
-    const isGondola = /^g[oó]ndola\b/i.test(line);
-    const isCabecera = /^cabecera\b/i.test(line);
+    if (!clean) continue;
+
+    // 1. Verificar si la línea corresponde al título de una sección/categoría conocida (ej. "Masivo", "Botillería")
+    const catMatch = categoriasList.find(c => {
+      const nom = (c.nombre || c || "").toLowerCase();
+      return nom === clean.toLowerCase() || clean.toLowerCase().includes(nom);
+    });
+
+    if (!currentSector && catMatch && !currentSeccion) {
+      currentSeccion = catMatch.nombre || catMatch;
+      continue;
+    }
+
+    // 2. Detectar encabezados de sector / pasillo:
+    // ej: "Pasillo 11-C", "Pasillo 11 C", "Pared", "Pared (todo auto)", "Góndola 2", "Cabecera 4"
+    const isPasillo = /^pasillo\s*[\w\d-]+/i.test(clean) || /^p\s*\d+/i.test(clean);
+    const isPared = /^pared\b/i.test(clean);
+    const isGondola = /^g[oó]ndola\b/i.test(clean);
+    const isCabecera = /^cabecera\b/i.test(clean);
 
     if (isPasillo || isPared || isGondola || isCabecera) {
-      const cleanName = line.replace(/[:]/g, '').trim();
       let tipo = "Pasillo";
       if (isPared) tipo = "Pared";
       else if (isGondola) tipo = "Góndola";
       else if (isCabecera) tipo = "Cabecera";
 
-      // Si es una pared y el pasillo anterior era "Pasillo 13-D", nombrarla "Pared 13-D"
-      let finalName = cleanName;
-      if (isPared && sectores.length > 0) {
+      let finalName = clean.replace(/[:]+$/, '').trim();
+
+      // Si es una pared y el pasillo anterior era "Pasillo 11-C", asociarla como "Pared 11-C"
+      if (isPared && !/\d/.test(finalName) && sectores.length > 0) {
         const lastPasillo = [...sectores].reverse().find(s => s.tipo === "Pasillo");
         if (lastPasillo) {
           const numMatch = lastPasillo.nombre.match(/\d+[\w-]*/);
           if (numMatch) {
-            finalName = `Pared ${numMatch[0]}`;
+            finalName = `${finalName} ${numMatch[0]}`;
           }
         }
       }
@@ -60,20 +78,24 @@ const parseTextToSectores = (rawText) => {
         items: []
       };
       sectores.push(currentSector);
-    } else if (line.startsWith('•') || line.startsWith('*') || line.startsWith('-')) {
-      const item = line.replace(/^[•*\-\s]+/, '').trim();
-      if (item) {
-        if (!currentSector) {
+      continue;
+    }
+
+    // 3. Detectar productos o ítems
+    const isBullet = /^[•*\-+]\s+/.test(orig) || /^\d+[.)]\s+/.test(orig);
+    const cleanItem = clean.replace(/^[•*\-+]\s+/, '').replace(/^\d+[.)]\s+/, '').trim();
+
+    if (cleanItem) {
+      if (!currentSector) {
+        if (!currentSeccion && !isBullet) {
+          currentSeccion = cleanItem;
+        } else {
           currentSector = { nombre: "General", tipo: "Pasillo", items: [] };
           sectores.push(currentSector);
+          currentSector.items.push(cleanItem);
         }
-        currentSector.items.push(item);
-      }
-    } else {
-      if (!currentSector && !currentSeccion) {
-        currentSeccion = line;
-      } else if (currentSector) {
-        currentSector.items.push(line);
+      } else {
+        currentSector.items.push(cleanItem);
       }
     }
   }
@@ -185,7 +207,7 @@ export default function ManageSectoresAuditoria({
       if (!result.sectores || result.sectores.length === 0) {
         const rawText = data.text || data.descripcionProceso || (typeof data === "string" ? data : "");
         if (rawText) {
-          const parsedFromText = parseTextToSectores(rawText);
+          const parsedFromText = parseTextToSectores(rawText, categoriasUnicas);
           if (parsedFromText.sectores.length > 0) {
             result = parsedFromText;
           }
