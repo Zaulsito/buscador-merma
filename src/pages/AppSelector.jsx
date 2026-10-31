@@ -66,7 +66,7 @@ export default function AppSelector({ onSelectApp }) {
             </div>
           </button>
 
-          {/* Card Auditoria */}
+          {/* Card Ubicación de Productos */}
           <button 
             onClick={() => onSelectApp("auditoria")}
             className={`group relative overflow-hidden flex flex-col p-8 rounded-3xl border ${t.border} ${t.bgCard} shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 text-left`}
@@ -74,16 +74,16 @@ export default function AppSelector({ onSelectApp }) {
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
             
             <div className="w-16 h-16 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 border border-purple-500/30">
-              <span className="material-symbols-outlined text-purple-500" style={{ fontSize: 32 }}>fact_check</span>
+              <span className="material-symbols-outlined text-purple-500" style={{ fontSize: 32 }}>location_on</span>
             </div>
             
-            <h3 className={`text-2xl font-black ${t.text} mb-3`}>Auditoría</h3>
+            <h3 className={`text-2xl font-black ${t.text} mb-3`}>Ubicación de Productos</h3>
             <p className={`${t.textSecondary} flex-1 leading-relaxed`}>
-              Panel dedicado a la revisión, evaluación y control de calidad de los procesos e inventarios.
+              Mapeo de productos en pasillos, gestión de sectores por sección y catálogo detallado.
             </p>
             
             <div className="mt-8 flex items-center gap-2 text-purple-500 font-bold text-sm uppercase tracking-wider">
-              Ingresar a Auditoría
+              Ingresar a Ubicación
               <span className="material-symbols-outlined transition-transform group-hover:translate-x-1" style={{ fontSize: 18 }}>arrow_forward</span>
             </div>
           </button>

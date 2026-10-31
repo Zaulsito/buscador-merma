@@ -222,6 +222,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
+  // Navigation Tabs
+  const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores"
+
   // Modals
   const [modalOpen, setModalOpen] = useState(false);
   const [manageCatOpen, setManageCatOpen] = useState(false);
@@ -410,6 +413,36 @@ export default function AuditoriaPage({ onBackToSelector }) {
       toast.error("Error al agregar el pasillo");
     }
   };
+
+  // Métricas para Resumen a Detalle
+  const metricas = useMemo(() => {
+    const total = productos.length;
+    const conUbicacion = productos.filter(p => p.ubicacion && p.ubicacion.trim()).length;
+    const sinUbicacion = total - conUbicacion;
+    const pctUbicados = total > 0 ? Math.round((conUbicacion / total) * 100) : 0;
+    const totalSectores = sectores.length;
+
+    // Métricas para la categoría seleccionada
+    const productosDeCat = categoriaFiltro === "Todas" 
+      ? productos 
+      : productos.filter(p => normalizeText(p.categoria) === normalizeText(categoriaFiltro));
+    const totalCat = productosDeCat.length;
+    const conUbiCat = productosDeCat.filter(p => p.ubicacion && p.ubicacion.trim()).length;
+    const sinUbiCat = totalCat - conUbiCat;
+    const pctCat = totalCat > 0 ? Math.round((conUbiCat / totalCat) * 100) : 0;
+
+    return {
+      total,
+      conUbicacion,
+      sinUbicacion,
+      pctUbicados,
+      totalSectores,
+      totalCat,
+      conUbiCat,
+      sinUbiCat,
+      pctCat
+    };
+  }, [productos, sectores, categoriaFiltro]);
 
   const cargarProductos = async () => {
     try {
@@ -867,12 +900,12 @@ const productosFiltrados = productos.filter(p => {
           </button>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/20">
             <span className="material-symbols-outlined text-white" style={{ fontSize: 24, fontVariationSettings: "'FILL' 1" }}>
-              fact_check
+              location_on
             </span>
           </div>
           <div>
-            <h1 className={`text-xl font-black ${t.text}`}>Auditoría Jumbo</h1>
-            <p className={`text-xs ${t.textSecondary}`}>Inventario y Control</p>
+            <h1 className={`text-xl font-black ${t.text}`}>Ubicación de Productos</h1>
+            <p className={`text-xs ${t.textSecondary}`}>Gestión de Pasillos y Catálogo</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -894,7 +927,160 @@ const productosFiltrados = productos.filter(p => {
       <main className="relative z-10 flex-1 flex flex-col p-6 overflow-y-auto">
         <div className="max-w-6xl w-full mx-auto space-y-6">
           
-          {/* Categorías (Filtros Rápidos) */}
+          {/* Menú del Comienzo (Dos Opciones: Productos y Sectores) */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+            <div className={`flex items-center p-1.5 rounded-2xl ${t.bgCard} border ${t.border} shadow-sm self-start`}>
+              <button
+                type="button"
+                onClick={() => setActiveTab("productos")}
+                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-black text-sm transition-all ${
+                  activeTab === "productos"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    : `${t.textSecondary} hover:text-white hover:bg-white/5`
+                }`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>inventory_2</span>
+                <span>Productos</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === "productos" ? "bg-black/25 text-white" : "bg-white/10 text-slate-300"
+                }`}>
+                  {productos.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("sectores")}
+                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-black text-sm transition-all ${
+                  activeTab === "sectores"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    : `${t.textSecondary} hover:text-white hover:bg-white/5`
+                }`}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>map</span>
+                <span>Sectores</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                  activeTab === "sectores" ? "bg-black/25 text-white" : "bg-white/10 text-slate-300"
+                }`}>
+                  {sectores.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Botón rápido Agregar Producto si está en pestaña productos */}
+            {activeTab === "productos" && (
+              <button 
+                onClick={abrirNuevo}
+                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2 text-sm self-start sm:self-auto"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
+                <span>Agregar Producto</span>
+              </button>
+            )}
+          </div>
+
+          {activeTab === "productos" ? (
+            <div className="space-y-6 animate-fadeIn">
+              
+              {/* Resumen a Detalle de Productos y Secciones */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                
+                {/* Total Productos */}
+                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Total Productos</span>
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>inventory_2</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-2xl sm:text-3xl font-black ${t.text}`}>{metricas.total}</div>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>En {uniqueCategorias.length} secciones</p>
+                  </div>
+                </div>
+
+                {/* Con Ubicación */}
+                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Ubicados</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>location_on</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-emerald-400">{metricas.conUbicacion}</span>
+                      <span className="text-xs font-bold text-emerald-400/80">({metricas.pctUbicados}%)</span>
+                    </div>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>Con pasillo asignado</p>
+                  </div>
+                </div>
+
+                {/* Sin Ubicación (Pendientes) */}
+                <div className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>Sin Ubicación</span>
+                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>wrong_location</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-2xl sm:text-3xl font-black text-amber-400">{metricas.sinUbicacion}</span>
+                      <span className="text-xs font-bold text-amber-400/80">({100 - metricas.pctUbicados}%)</span>
+                    </div>
+                    <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>Pendientes por ubicar</p>
+                  </div>
+                </div>
+
+                {/* Pasillos Activos */}
+                <div 
+                  onClick={() => setActiveTab("sectores")}
+                  className={`p-4 rounded-2xl border ${t.border} ${t.bgCard} shadow-sm flex flex-col justify-between cursor-pointer hover:border-purple-500/50 transition-all group`}
+                  title="Ir a pestaña de Sectores"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary} group-hover:text-purple-300 transition-colors`}>Pasillos Activos</span>
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>map</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className={`text-2xl sm:text-3xl font-black text-purple-400`}>{metricas.totalSectores}</div>
+                    <p className={`text-[11px] text-purple-300/80 mt-0.5 flex items-center gap-1`}>
+                      <span>Explorar sectores</span>
+                      <span className="material-symbols-outlined" style={{ fontSize: 12 }}>arrow_forward</span>
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Detalle de la Sección Activa */}
+              {categoriaFiltro !== "Todas" && (
+                <div className={`p-4 rounded-2xl ${t.bgCard} border ${t.border} flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-purple-500/5`}>
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 24 }}>category</span>
+                    <div>
+                      <h3 className={`text-sm font-bold ${t.text}`}>
+                        Sección: <span className="text-purple-400">{categoriaFiltro}</span>
+                      </h3>
+                      <p className={`text-xs ${t.textSecondary}`}>
+                        {metricas.totalCat} productos &bull; <span className="text-emerald-400 font-semibold">{metricas.conUbiCat} ubicados</span> &bull; <span className="text-amber-400 font-semibold">{metricas.sinUbiCat} sin ubicación</span> ({metricas.pctCat}% cubierto)
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("sectores")}
+                    className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 self-end sm:self-auto"
+                  >
+                    <span>Ver pasillos de {categoriaFiltro}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>arrow_forward</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Categorías (Filtros Rápidos) */}
           <div className="flex items-center gap-2">
             <button 
               onClick={() => scrollCategories('left')}
@@ -986,7 +1172,7 @@ const productosFiltrados = productos.filter(p => {
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                onClick={() => setManageSectoresOpen(true)}
+                onClick={() => setActiveTab("sectores")}
                 className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border ${t.border} ${t.bgCard} ${t.text} hover:border-purple-500 hover:text-purple-400 font-bold transition-all flex items-center justify-center gap-2 shadow-sm`}
                 title="Mapa y distribución de sectores y pasillos"
               >
@@ -1101,6 +1287,20 @@ const productosFiltrados = productos.filter(p => {
           )}
 
         </div>
+      ) : (
+        <div className="space-y-6 animate-fadeIn">
+          <ManageSectoresAuditoria
+            embedded={true}
+            sectores={sectores}
+            categorias={uniqueCategorias}
+            productos={productos}
+            seccionInicial={categoriaFiltro === "Todas" ? (uniqueCategorias[0]?.nombre || "Botillería") : categoriaFiltro}
+            onUpdate={recargarSectores}
+          />
+        </div>
+      )}
+
+        </div>
       </main>
 
       {/* Modal Agregar/Editar */}
@@ -1109,7 +1309,7 @@ const productosFiltrados = productos.filter(p => {
           <div className={`${t.bgCard} w-full max-w-lg rounded-3xl shadow-2xl border ${t.border} overflow-hidden flex flex-col max-h-[90vh]`}>
             <div className={`px-6 py-4 border-b ${t.border} flex justify-between items-center`}>
               <h2 className={`text-xl font-bold ${t.text}`}>
-                {editando ? "Editar Producto" : "Nuevo Producto Jumbo"}
+                {editando ? "Editar Producto" : "Nuevo Producto"}
               </h2>
               <button 
                 onClick={() => setModalOpen(false)}

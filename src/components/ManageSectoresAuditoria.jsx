@@ -111,6 +111,7 @@ export default function ManageSectoresAuditoria({
   categorias = [], 
   productos = [],
   seccionInicial = "Botillería",
+  embedded = false,
   onClose, 
   onUpdate 
 }) {
@@ -513,7 +514,7 @@ export default function ManageSectoresAuditoria({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-[70] p-4 backdrop-blur-md animate-fadeIn">
+    <div className={embedded ? "w-full animate-fadeIn" : "fixed inset-0 bg-black/75 flex items-center justify-center z-[70] p-4 backdrop-blur-md animate-fadeIn"}>
       
       {/* Input oculto para escaneo individual */}
       <input
@@ -533,7 +534,7 @@ export default function ManageSectoresAuditoria({
         className="hidden"
       />
 
-      <div className={`${t.bgCard} rounded-3xl w-full max-w-5xl shadow-2xl border ${t.border} flex flex-col max-h-[92vh] overflow-hidden relative`}>
+      <div className={`${t.bgCard} rounded-3xl w-full shadow-2xl border ${t.border} flex flex-col ${embedded ? "min-h-[600px]" : "max-w-5xl max-h-[92vh] overflow-hidden"} relative`}>
         
         {/* Header */}
         <div className={`px-6 py-4 border-b ${t.border} flex items-center justify-between bg-slate-900/40`}>
@@ -552,12 +553,14 @@ export default function ManageSectoresAuditoria({
               </p>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className={`w-9 h-9 flex items-center justify-center rounded-xl ${t.bgInput} ${t.textSecondary} hover:text-white transition-colors`}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
-          </button>
+          {onClose && (
+            <button 
+              onClick={onClose} 
+              className={`w-9 h-9 flex items-center justify-center rounded-xl ${t.bgInput} ${t.textSecondary} hover:text-white transition-colors`}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
+            </button>
+          )}
         </div>
 
         {/* Barra de Filtros, Búsqueda y Botón Hoja Completa */}

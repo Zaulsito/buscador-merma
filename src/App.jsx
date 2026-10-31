@@ -29,7 +29,7 @@ export default function App() {
 
   useEffect(() => {
     if (appSelected === "auditoria") {
-      document.title = "Auditoria Jumbo.cl";
+      document.title = "Ubicación de Productos - Jumbo";
     } else {
       document.title = "Cetelio";
     }
