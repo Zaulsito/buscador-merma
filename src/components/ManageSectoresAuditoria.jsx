@@ -23,6 +23,18 @@ export default function ManageSectoresAuditoria({
 }) {
   const { t } = useTheme();
 
+  // Deduplicar categorías recibidas
+  const categoriasUnicas = useMemo(() => {
+    const map = new Map();
+    (categorias || []).forEach(c => {
+      const nom = (typeof c === "string" ? c : (c?.nombre || "")).trim();
+      if (nom && !map.has(nom.toLowerCase())) {
+        map.set(nom.toLowerCase(), typeof c === "string" ? { id: nom, nombre: nom } : c);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+  }, [categorias]);
+
   // Sección activa
   const [seccionActiva, setSeccionActiva] = useState(() => {
     if (categorias.some(c => c.nombre === seccionInicial)) return seccionInicial;
@@ -419,7 +431,7 @@ export default function ManageSectoresAuditoria({
 
           {/* Pestañas de Secciones */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {categorias.map(cat => {
+            {categoriasUnicas.map(cat => {
               const count = sectores.filter(s => (s.seccion || "").toLowerCase() === cat.nombre.toLowerCase()).length;
               const isSelected = seccionActiva.toLowerCase() === cat.nombre.toLowerCase();
               return (
@@ -810,7 +822,7 @@ export default function ManageSectoresAuditoria({
                   onChange={(e) => setBulkPreview(prev => ({ ...prev, seccion: e.target.value }))}
                   className={`px-3 py-1.5 rounded-lg ${t.bgCard} border ${t.border} ${t.text} text-xs font-bold focus:outline-none`}
                 >
-                  {categorias.map(c => (
+                  {categoriasUnicas.map(c => (
                     <option key={c.id || c.nombre} value={c.nombre}>{c.nombre}</option>
                   ))}
                 </select>
