@@ -224,8 +224,14 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
   // Navigation Tabs & Quick Filters
-  const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores"
+  const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores" | "mapa"
   const [filtroUbicacion, setFiltroUbicacion] = useState("todos"); // "todos" | "ubicados" | "sin_ubicacion"
+  const [productoEnfocadoMapa, setProductoEnfocadoMapa] = useState(null);
+
+  const enfocarEnMapa = (producto) => {
+    setProductoEnfocadoMapa(producto);
+    setActiveTab("mapa");
+  };
 
   // Modals
   const [modalOpen, setModalOpen] = useState(false);
@@ -937,24 +943,24 @@ export default function AuditoriaPage({ onBackToSelector }) {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col p-6 overflow-y-auto">
-        <div className="max-w-6xl w-full mx-auto space-y-6">
+      <main className="relative z-10 flex-1 flex flex-col p-3 sm:p-6 overflow-y-auto overflow-x-hidden">
+        <div className="max-w-6xl w-full mx-auto space-y-4 sm:space-y-6">
           
-          {/* Menú del Comienzo (Dos Opciones: Productos y Sectores) */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div className={`flex items-center p-1.5 rounded-2xl ${t.bgCard} border ${t.border} shadow-sm self-start`}>
+          {/* Menú Superior: Productos, Sectores y Mapa */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4">
+            <div className={`grid grid-cols-3 sm:flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl ${t.bgCard} border ${t.border} shadow-sm w-full sm:w-auto gap-1`}>
               <button
                 type="button"
                 onClick={() => setActiveTab("productos")}
-                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-black text-sm transition-all ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
                   activeTab === "productos"
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : `${t.textSecondary} hover:text-white hover:bg-white/5`
                 }`}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>inventory_2</span>
-                <span>Productos</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                <span className="material-symbols-outlined text-[17px] sm:text-[20px]">inventory_2</span>
+                <span className="truncate">Productos</span>
+                <span className={`px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full text-[10px] sm:text-xs font-bold ${
                   activeTab === "productos" ? "bg-black/25 text-white" : "bg-white/10 text-slate-300"
                 }`}>
                   {productos.length}
@@ -964,15 +970,15 @@ export default function AuditoriaPage({ onBackToSelector }) {
               <button
                 type="button"
                 onClick={() => setActiveTab("sectores")}
-                className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl font-black text-sm transition-all ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
                   activeTab === "sectores"
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : `${t.textSecondary} hover:text-white hover:bg-white/5`
                 }`}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>map</span>
-                <span>Sectores</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                <span className="material-symbols-outlined text-[17px] sm:text-[20px]">shelves</span>
+                <span className="truncate">Sectores</span>
+                <span className={`px-1.5 py-0.2 sm:px-2 sm:py-0.5 rounded-full text-[10px] sm:text-xs font-bold ${
                   activeTab === "sectores" ? "bg-black/25 text-white" : "bg-white/10 text-slate-300"
                 }`}>
                   {sectores.length}
@@ -981,17 +987,21 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
               <button
                 type="button"
-                onClick={() => setActiveTab("mapa")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-sm transition-all ${
+                onClick={() => {
+                  setProductoEnfocadoMapa(null);
+                  setActiveTab("mapa");
+                }}
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
                   activeTab === "mapa"
-                    ? "bg-purple-600 text-white shadow-lg shadow-purple-500/30 scale-[1.02]"
+                    ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : `${t.textSecondary} hover:text-white hover:bg-white/5`
                 }`}
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>location_on</span>
-                <span>Mapa del Local</span>
-                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Demo
+                <span className="material-symbols-outlined text-[17px] sm:text-[20px]">map</span>
+                <span className="hidden sm:inline">Mapa Interactivo</span>
+                <span className="sm:hidden">Mapa</span>
+                <span className="hidden sm:inline px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                  En vivo
                 </span>
               </button>
             </div>
@@ -1000,9 +1010,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
             {activeTab === "productos" && (
               <button 
                 onClick={abrirNuevo}
-                className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2 text-sm self-start sm:self-auto"
+                className="px-4 py-2 sm:px-5 sm:py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm self-stretch sm:self-auto"
               >
-                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_circle</span>
+                <span className="material-symbols-outlined text-[18px] sm:text-[20px]">add_circle</span>
                 <span>Agregar Producto</span>
               </button>
             )}
@@ -1362,12 +1372,26 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     </div>
                     
                     <div className="mt-auto flex flex-col gap-2">
-                      <div className="flex items-center gap-2 text-sm text-purple-400">
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
-                        <span className="truncate">{prod.ubicacion || "Sin ubicación"}</span>
+                      <div className="flex items-center justify-between gap-2 text-sm text-purple-400">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
+                          <span className="truncate text-xs font-semibold">{prod.ubicacion || "Sin ubicación"}</span>
+                        </div>
+                        {prod.ubicacion && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              enfocarEnMapa(prod);
+                            }}
+                            className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-black bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                            title="Ver en mapa interactivo"
+                          >
+                            <span>📍</span>
+                            <span>Ver en mapa</span>
+                          </button>
+                        )}
                       </div>
-                      
-                      
                     </div>
                   </div>
                 </div>
@@ -1429,7 +1453,17 @@ export default function AuditoriaPage({ onBackToSelector }) {
             productos={productos}
             sectores={sectores}
             categorias={uniqueCategorias}
-            onUpdateSectores={recargarSectores}
+            productoEnfocado={productoEnfocadoMapa}
+            onVerProducto={(prod) => {
+              setEditando(prod);
+              setNombre(prod.nombre || "");
+              setEan(prod.ean || "");
+              setSku(prod.sku || "");
+              setUbicacion(prod.ubicacion || "");
+              setCategoria(prod.categoria || "");
+              setImagenUrl(prod.imagenUrl || "");
+              setModalOpen(true);
+            }}
           />
         </div>
       )}

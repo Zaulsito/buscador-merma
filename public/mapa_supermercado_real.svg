@@ -1,0 +1,821 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2400 1200" width="2400" height="1200">
+  <defs>
+    <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#f1f5f9" stroke-width="0.8" />
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="#ffffff" />
+  <rect width="100%" height="100%" fill="url(#gridPattern)" />
+  <!-- Walkways (Pasillo Central) -->
+  <g transform="rotate(270, 520.76, 566.64)">
+      <rect x="-4.01" y="526.68" width="1049.54" height="79.92" rx="2.5" ry="2.5" fill="#d9f2d0" stroke="#1e293b" stroke-width="1.2" />
+      <text x="520.76" y="570.84" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PASILLO CENTRAL</text></g>
+  <g>
+      <rect x="562.87" y="967.73" width="1333.17" height="68.26" rx="2.5" ry="2.5" fill="#d9f2d0" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1229.45" y="1006.06" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PASILLO CENTRAL</text></g>
+  <g>
+      <rect x="560.70" y="570.95" width="1285.07" height="66.61" rx="2.5" ry="2.5" fill="#d9f2d0" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1203.24" y="608.46" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PASILLO CENTRAL</text></g>
+  <!-- Gondolas, Shelves & Labels -->
+  <g>
+      <rect x="120.00" y="18.20" width="278.00" height="16.66" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="29.92" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.7px" font-weight="700" fill="#0f172a" pointer-events="none">CUMPLEAÑOS</text></g>
+  <g>
+      <rect x="120.00" y="51.92" width="278.00" height="18.66" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="65.03" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="700" fill="#0f172a" pointer-events="none">JUGETERÍA</text></g>
+  <g>
+      <rect x="120.00" y="72.02" width="278.00" height="18.72" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="181.44" y="103.87" width="89.60" height="35.32" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="226.24" y="125.73" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PELUCHES</text></g>
+  <g>
+      <rect x="307.81" y="105.17" width="89.60" height="35.38" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="352.61" y="127.06" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PELUCHES</text></g>
+  <g>
+      <rect x="52.73" y="18.27" width="80.22" height="16.60" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="92.84" y="29.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.6px" font-weight="700" fill="#0f172a" pointer-events="none">LIBRERIA</text></g>
+  <g>
+      <rect x="120.00" y="155.09" width="278.00" height="19.68" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="168.92" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.4px" font-weight="700" fill="#0f172a" pointer-events="none">JUGETERÍA</text></g>
+  <g>
+      <rect x="120.00" y="172.79" width="278.00" height="19.41" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="186.43" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.3px" font-weight="700" fill="#0f172a" pointer-events="none">LIBRERÍA</text></g>
+  <g>
+      <rect x="120.00" y="211.00" width="278.00" height="19.37" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="224.62" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.2px" font-weight="700" fill="#0f172a" pointer-events="none">LIBRERÍA</text></g>
+  <g>
+      <rect x="120.00" y="228.85" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="241.03" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">DEPORTES</text></g>
+  <g>
+      <rect x="120.00" y="262.95" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="275.14" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">DEPORTES</text></g>
+  <g>
+      <rect x="120.00" y="281.20" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="293.38" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">CAMPING</text></g>
+  <g>
+      <rect x="120.00" y="315.30" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="327.48" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">CAMPING</text></g>
+  <g>
+      <rect x="120.00" y="331.96" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="344.14" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">AUTOMOTOR</text></g>
+  <g>
+      <rect x="120.00" y="366.46" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="378.64" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">FERRETERÍA</text></g>
+  <g>
+      <rect x="120.00" y="384.31" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="396.49" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="418.81" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="430.99" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="433.85" width="278.00" height="17.27" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="445.99" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="469.97" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="482.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="482.49" width="278.00" height="17.16" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="494.55" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="518.17" width="278.00" height="17.16" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="530.23" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="536.24" width="278.00" height="17.16" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="548.30" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g>
+      <rect x="120.00" y="568.47" width="278.00" height="17.16" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="580.53" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">AUDIO Y VIDEO</text></g>
+  <g>
+      <rect x="120.00" y="585.74" width="278.00" height="17.16" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="597.81" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">AUDIO Y VIDEO</text></g>
+  <g>
+      <rect x="402.00" y="37.08" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="45.85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">16-C</text></g>
+  <g>
+      <rect x="402.00" y="116.22" width="54.00" height="12.48" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="125.09" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">15-C</text></g>
+  <g>
+      <rect x="402.00" y="195.44" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="204.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">14-C</text></g>
+  <g>
+      <rect x="402.00" y="248.13" width="54.00" height="12.45" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="256.98" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">13-C</text></g>
+  <g>
+      <rect x="402.00" y="301.35" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="310.12" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">12-C</text></g>
+  <g>
+      <rect x="402.00" y="352.94" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="361.70" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">11-C</text></g>
+  <g>
+      <rect x="402.00" y="404.12" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="412.89" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">10-C</text></g>
+  <g>
+      <rect x="402.00" y="455.37" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="464.13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">10-C</text></g>
+  <g>
+      <rect x="402.00" y="507.69" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="516.45" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">10-C</text></g>
+  <g>
+      <rect x="402.00" y="559.67" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="568.43" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">9-C</text></g>
+  <g>
+      <rect x="120.00" y="645.29" width="278.00" height="17.33" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="657.47" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">AUDIO Y VIDEO</text></g>
+  <g>
+      <rect x="402.00" y="682.58" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="691.37" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">7-C</text></g>
+  <g>
+      <rect x="120.00" y="662.28" width="278.00" height="17.48" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="674.56" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="690.45" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="702.61" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="707.72" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="719.89" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="742.27" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="754.44" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="759.55" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="771.71" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="795.20" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="807.37" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="812.48" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="824.64" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="846.29" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="858.46" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="863.57" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="875.73" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="898.12" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="910.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="924.27" width="278.00" height="17.48" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="936.56" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">TEXTIL - MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="951.04" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="963.21" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">TEXTIL - MENAJE</text></g>
+  <g>
+      <rect x="120.00" y="968.32" width="278.00" height="17.31" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="980.48" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE</text></g>
+  <g>
+      <rect x="35.41" y="1029.21" width="420.44" height="17.48" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="245.63" y="1041.50" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">TODO BAÑO - FLORES</text></g>
+  <g>
+      <rect x="402.00" y="734.44" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="743.23" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">6-C</text></g>
+  <g>
+      <rect x="402.00" y="787.18" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="795.97" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">5-C</text></g>
+  <g>
+      <rect x="402.00" y="839.53" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="848.32" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">4-C</text></g>
+  <g>
+      <rect x="402.00" y="891.88" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="900.67" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">3-C</text></g>
+  <g>
+      <rect x="402.00" y="944.62" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="953.41" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">2-C</text></g>
+  <g>
+      <rect x="402.00" y="1006.09" width="54.00" height="12.34" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="1014.88" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">1-C</text></g>
+  <g transform="rotate(90, 43.74, 912.05)">
+      <rect x="-73.49" y="903.31" width="234.46" height="17.48" rx="2.5" ry="2.5" fill="#f2aa84" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.74" y="916.25" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">MENAJE Y HOGAR</text></g>
+  <g transform="rotate(90, 43.74, 718.35)">
+      <rect x="-30.20" y="709.61" width="147.88" height="17.48" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.74" y="722.55" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">ELECTRONICA</text></g>
+  <g transform="rotate(90, 43.62, 629.14)">
+      <rect x="26.16" y="620.70" width="34.92" height="16.89" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.62" y="633.34" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PUERTA</text></g>
+  <g transform="rotate(90, 43.74, 522.51)">
+      <rect x="-43.48" y="513.77" width="174.44" height="17.48" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.74" y="526.71" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">MASCOTAS</text></g>
+  <g transform="rotate(90, 43.74, 366.83)">
+      <rect x="-20.56" y="358.09" width="128.59" height="17.48" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.74" y="371.03" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">AUTOMOTOR</text></g>
+  <g transform="rotate(90, 43.74, 169.03)">
+      <rect x="-90.11" y="160.29" width="267.70" height="17.48" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="43.74" y="173.23" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">LIBRERÍA</text></g>
+  <g>
+      <rect x="35.78" y="1029.29" width="418.67" height="153.24" rx="2.5" ry="2.5" fill="#CCFF99" stroke="#1e293b" stroke-width="1.2" />
+      <text x="245.12" y="1110.11" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">RINCÓN JUMBO</text></g>
+  <g>
+      <rect x="454.11" y="1119.72" width="168.68" height="17.22" rx="2.5" ry="2.5" fill="#96dcf8" stroke="#1e293b" stroke-width="1.2" />
+      <text x="538.45" y="1131.83" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">ACCESO PRINCIPAL</text></g>
+  <g>
+      <line x1="625.86" y1="1115.30" x2="708.46" y2="1133.68" stroke="#1e293b" stroke-width="2" /></g>
+  <g>
+      <line x1="706.90" y1="1133.95" x2="881.27" y2="1134.20" stroke="#1e293b" stroke-width="2" /></g>
+  <g>
+      <line x1="879.78" y1="1054.50" x2="880.00" y2="1140.36" stroke="#1e293b" stroke-width="2" /></g>
+  <g>
+      <rect x="622.00" y="895.07" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="912.29" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="845.56" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="862.78" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="689.48" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="791.00" y="701.60" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">IMPORTADOS</text></g>
+  <g>
+      <rect x="622.00" y="703.73" width="338.00" height="17.18" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="791.00" y="715.81" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">ECO FRIENDLY</text></g>
+  <g>
+      <rect x="622.00" y="791.73" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="808.96" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="740.07" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="757.29" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="622.00" y="636.73" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="791.00" y="648.86" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">IMPORTADOS</text></g>
+  <g>
+      <rect x="622.00" y="653.95" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="791.00" y="666.08" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">IMPORTADOS</text></g>
+  <g>
+      <rect x="622.00" y="948.34" width="338.00" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="623.63" y="965.56" width="335.24" height="17.25" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(90, 1017.18, 711.14)">
+      <rect x="943.90" y="701.61" width="146.56" height="19.06" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1017.18" y="715.34" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">MURAL</text></g>
+  <g transform="rotate(90, 1017.18, 840.14)">
+      <rect x="961.52" y="830.61" width="111.32" height="19.06" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1017.18" y="844.34" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">REFRI - CONGELADOS</text></g>
+  <g transform="rotate(90, 1017.18, 939.46)">
+      <rect x="973.56" y="929.93" width="87.24" height="19.06" rx="2.5" ry="2.5" fill="#FFC000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1017.18" y="943.66" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PILAR</text></g>
+  <g transform="rotate(90, 1017.30, 448.18)">
+      <rect x="914.33" y="438.65" width="205.93" height="19.06" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1017.30" y="452.38" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">JAMON - SALAME - VIENESAS</text></g>
+  <g>
+      <rect x="540.38" y="17.00" width="265.97" height="18.00" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="673.36" y="29.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#ffffff" pointer-events="none">CARNICERIA</text></g>
+  <g>
+      <rect x="806.35" y="17.00" width="240.16" height="18.00" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="926.43" y="29.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">FIAMBRERÍA</text></g>
+  <g>
+      <rect x="611.17" y="52.89" width="147.62" height="33.91" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="684.98" y="74.04" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#ffffff" pointer-events="none">BROCHETAS/POLLO</text></g>
+  <g transform="rotate(90, 1016.26, 200.43)">
+      <rect x="920.94" y="190.90" width="190.65" height="19.06" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1016.26" y="204.63" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">QUESOS</text></g>
+  <g transform="rotate(270, 656.11, 215.55)">
+      <rect x="597.72" y="186.35" width="116.79" height="58.40" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 714.63, 215.49)">
+      <rect x="656.30" y="186.15" width="116.66" height="58.68" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="627.08" y="274.01" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="627.08" y="135.72" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 876.28, 214.97)">
+      <rect x="817.88" y="185.77" width="116.79" height="58.40" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 934.98, 214.91)">
+      <rect x="876.65" y="185.38" width="116.66" height="59.06" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="934.98" y="219.11" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">QUESOS</text></g>
+  <g>
+      <rect x="847.24" y="273.43" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="847.24" y="135.14" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 875.70, 461.88)">
+      <rect x="817.30" y="432.68" width="116.79" height="58.40" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 934.40, 461.82)">
+      <rect x="876.07" y="432.29" width="116.66" height="59.06" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="934.40" y="466.02" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">SALCHICHAS Y LONGANIZAS</text></g>
+  <g>
+      <rect x="846.66" y="520.35" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="846.66" y="382.05" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 656.11, 463.62)">
+      <rect x="597.72" y="434.42" width="116.79" height="58.40" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(270, 714.82, 463.56)">
+      <rect x="656.49" y="434.03" width="116.66" height="59.06" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="627.08" y="522.09" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="627.08" y="383.79" width="117.05" height="21.32" rx="2.5" ry="2.5" fill="#FF0000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="811.15" y="52.53" width="162.27" height="33.54" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="892.29" y="73.50" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">QUESOS</text></g>
+  <g>
+      <rect x="456.69" y="18.83" width="83.15" height="13.06" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="498.27" y="28.01" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.6px" font-weight="700" fill="#0f172a" pointer-events="none">Puerta</text></g>
+  <g>
+      <rect x="1047.85" y="17.48" width="82.59" height="13.78" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1089.14" y="27.16" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.0px" font-weight="700" fill="#0f172a" pointer-events="none">Puerta</text></g>
+  <g transform="rotate(90, 1038.53, 196.52)">
+      <rect x="945.15" y="186.99" width="186.76" height="19.06" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1038.53" y="200.72" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">MANTE - JUGOS</text></g>
+  <g transform="rotate(90, 1036.38, 448.37)">
+      <rect x="933.41" y="438.24" width="205.93" height="20.26" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1036.38" y="452.57" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">POSTRES</text></g>
+  <g>
+      <rect x="1007.63" y="551.78" width="38.02" height="12.22" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1026.64" y="560.51" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g transform="rotate(90, 1106.34, 339.69)">
+      <rect x="888.93" y="330.77" width="434.81" height="17.84" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1106.34" y="343.89" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">YOGURTH</text></g>
+  <g transform="rotate(90, 1120.78, 338.51)">
+      <rect x="904.30" y="329.16" width="432.96" height="18.69" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1120.78" y="342.71" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">HEALADOS - FRUTAS CONGELADAS</text></g>
+  <g>
+      <rect x="1093.27" y="552.64" width="38.02" height="11.36" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1112.28" y="560.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g transform="rotate(90, 1185.66, 338.85)">
+      <rect x="969.42" y="329.09" width="432.48" height="19.52" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1185.66" y="342.13" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">HAMBURGUESAS - P. FRITAS - PULPAS</text></g>
+  <g transform="rotate(90, 1207.49, 207.85)">
+      <rect x="1122.14" y="198.22" width="170.69" height="19.26" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1207.49" y="212.05" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">HUEVOS</text></g>
+  <g>
+      <rect x="1179.60" y="557.52" width="38.25" height="6.48" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1198.73" y="563.39" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1129.21" y="17.00" width="201.44" height="18.00" rx="2.5" ry="2.5" fill="#0070C0" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1229.93" y="29.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#ffffff" pointer-events="none">PESCADERÍA</text></g>
+  <g>
+      <rect x="1096.40" y="104.59" width="36.24" height="18.59" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1114.52" y="117.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1245.92" y="138.03" width="80.02" height="17.89" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1285.93" y="150.61" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">POTES</text></g>
+  <g transform="rotate(90, 1204.66, 451.69)">
+      <rect x="1101.34" y="442.13" width="206.65" height="19.13" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1204.66" y="455.89" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FRUTOS SECOS</text></g>
+  <g transform="rotate(90, 1207.53, 320.46)">
+      <rect x="1180.09" y="310.83" width="54.87" height="19.26" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1207.53" y="324.66" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PLANTAS</text></g>
+  <g>
+      <rect x="1149.21" y="52.75" width="148.95" height="33.99" rx="2.5" ry="2.5" fill="#0070C0" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1223.69" y="73.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#ffffff" pointer-events="none">PESCADERÍA/CONG</text></g>
+  <g transform="rotate(90, 1285.38, 468.71)">
+      <rect x="1200.37" y="428.88" width="170.00" height="79.65" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1285.38" y="472.91" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VERDURAS</text></g>
+  <g transform="rotate(90, 1286.13, 226.19)">
+      <rect x="1216.84" y="186.37" width="138.59" height="79.65" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1286.13" y="230.39" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FRUTAS</text></g>
+  <g transform="rotate(90, 1411.91, 467.95)">
+      <rect x="1326.91" y="425.11" width="170.00" height="85.68" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1411.91" y="472.15" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VERDURAS</text></g>
+  <g transform="rotate(90, 1411.53, 225.71)">
+      <rect x="1342.73" y="182.49" width="137.62" height="86.44" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1411.53" y="229.91" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FRUTAS</text></g>
+  <g>
+      <rect x="1367.93" y="140.29" width="86.80" height="15.63" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1411.33" y="151.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.1px" font-weight="700" fill="#0f172a" pointer-events="none">EXPOSICION</text></g>
+  <g transform="rotate(90, 1033.63, 795.00)">
+      <rect x="884.63" y="797.21" width="298.00" height="18.70" rx="2.5" ry="2.5" fill="#aeaeae" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1033.63" y="799.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">MURAL DE VESTUARIO</text></g>
+  <g transform="rotate(90, 1490.62, 369.80)">
+      <rect x="1311.41" y="360.04" width="358.41" height="19.52" rx="2.5" ry="2.5" fill="#8ed973" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1490.62" y="373.07" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">VERDURAS - HONGOS - ENSALADAS</text></g>
+  <g transform="rotate(90, 1517.83, 330.75)">
+      <rect x="1292.16" y="320.99" width="451.33" height="19.52" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1517.83" y="334.95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">LECHES EN CAJA Y SABORES</text></g>
+  <g>
+      <rect x="1484.31" y="557.72" width="41.62" height="6.28" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1505.12" y="563.48" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">Info</text></g>
+  <g>
+      <rect x="1557.34" y="104.31" width="39.39" height="17.58" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1577.03" y="116.67" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.2px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1330.76" y="17.48" width="52.61" height="11.30" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1357.07" y="25.75" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">Puerta</text></g>
+  <g>
+      <rect x="1388.19" y="17.00" width="202.42" height="18.00" rx="2.5" ry="2.5" fill="#E6D38E" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1489.40" y="29.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">PLATOS PREPARADOS</text></g>
+  <g transform="rotate(90, 1567.10, 342.81)">
+      <rect x="1345.90" y="339.11" width="442.38" height="19.52" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1567.10" y="346.08" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">CREMAS - MANJAR - PACK DE LECHE</text></g>
+  <g transform="rotate(90, 1586.84, 342.81)">
+      <rect x="1365.64" y="338.82" width="442.38" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1586.84" y="346.08" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">CEREALES - COLADOS - ALIMENTO BEBÉ - AVENA</text></g>
+  <g>
+      <rect x="1635.22" y="104.60" width="39.39" height="17.66" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(90, 1644.98, 342.97)">
+      <rect x="1423.95" y="339.93" width="442.06" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1644.98" y="346.25" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">CACAO - NATUR - BARRAS CEREAL - LECCHE Y CACAO EN POLVO</text></g>
+  <g transform="rotate(90, 1664.71, 342.97)">
+      <rect x="1443.69" y="339.64" width="442.06" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1664.71" y="346.25" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">AZUCAR - MERMELADA - REPOSTERÍA - GELATINA - HARINAS - CHANCACA</text></g>
+  <g>
+      <rect x="1719.48" y="104.60" width="39.39" height="17.66" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(90, 1729.24, 342.97)">
+      <rect x="1508.21" y="339.93" width="442.06" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1729.24" y="347.17" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#ffffff" pointer-events="none">CAFÉ GRANO - TÉ - INFUSIONES</text></g>
+  <g transform="rotate(90, 1748.98, 342.97)">
+      <rect x="1527.95" y="339.64" width="442.06" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1748.98" y="346.25" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">CONSERVAS -COMPOTAS - LECHE EVAPORADA -MOTE - LATAS</text></g>
+  <g transform="rotate(90, 1813.50, 334.57)">
+      <rect x="1584.07" y="331.52" width="458.86" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1813.50" y="337.85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">ARROZ - LEGUMBRES - CUSCUS - SAL - SAZONADOR - SOPAS Y CALDOS</text></g>
+  <g transform="rotate(90, 1833.24, 334.58)">
+      <rect x="1603.82" y="331.24" width="458.84" height="19.52" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1833.24" y="337.86" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">ALIÑOS - ADEREZOS - SALSAS PARA UNTAR</text></g>
+  <g>
+      <rect x="1585.43" y="17.00" width="258.33" height="18.00" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1714.59" y="29.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">PANADERÍA</text></g>
+  <g>
+      <rect x="1381.08" y="52.71" width="122.28" height="33.43" rx="2.5" ry="2.5" fill="#E6D38E" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1442.22" y="73.63" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">ENSALADAS/SANDWICH</text></g>
+  <g>
+      <rect x="1541.54" y="53.27" width="103.09" height="33.99" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1593.09" y="74.46" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PASTELES</text></g>
+  <g>
+      <rect x="1663.46" y="53.74" width="112.51" height="33.99" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1719.72" y="74.93" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">TORTAS</text></g>
+  <g>
+      <rect x="1787.74" y="53.74" width="56.96" height="33.99" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1816.22" y="74.93" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PANES</text></g>
+  <g>
+      <rect x="1841.48" y="17.48" width="465.29" height="17.22" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2074.12" y="28.81" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">MOLDE / ENVASADOS / PANCUTRAS</text></g>
+  <g>
+      <rect x="1895.00" y="51.92" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1895.00" y="69.42" width="338.00" height="17.14" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1895.00" y="122.02" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1895.00" y="138.31" width="338.00" height="17.14" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="150.36" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.9px" font-weight="700" fill="#ffffff" pointer-events="none">GALLETAS MINI</text></g>
+  <g>
+      <rect x="1895.00" y="191.72" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="203.89" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#ffffff" pointer-events="none">GALLETAS DULCES</text></g>
+  <g>
+      <rect x="1895.00" y="209.42" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="221.61" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#ffffff" pointer-events="none">CHOCOLATES - CARAMELOS</text></g>
+  <g>
+      <rect x="1895.00" y="261.42" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="273.58" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#ffffff" pointer-events="none">CHOCOLATES Y DULCES</text></g>
+  <g>
+      <rect x="1895.00" y="279.12" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="290.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">JUGOS EN POLVO - PACK - JUGOS LIGHT</text></g>
+  <g>
+      <rect x="1895.00" y="331.12" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="342.51" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">HIDRATACIÓN - NECTAR - ENERGETICAS</text></g>
+  <g>
+      <rect x="1895.00" y="348.82" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="360.23" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">AGUAS SABORIZADAS - TÉ LIQUIDO - NECTAR</text></g>
+  <g>
+      <rect x="1895.00" y="400.81" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="412.98" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">AGUA DE COCO - AGUA PREMIUM</text></g>
+  <g>
+      <rect x="1895.00" y="418.51" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="430.71" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">AGUAS MINERALES</text></g>
+  <g>
+      <rect x="1895.00" y="470.51" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="482.68" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">AGUA BIDONES - PURIFICADAS</text></g>
+  <g>
+      <rect x="1895.00" y="488.21" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="500.40" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">BEBIDAS TONICAS</text></g>
+  <g>
+      <rect x="1895.00" y="522.78" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="534.18" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">BEBIDAS EN LATA - DESECHABLES</text></g>
+  <g>
+      <rect x="1895.00" y="540.49" width="338.00" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="552.68" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">VINOS</text></g>
+  <g transform="rotate(90, 1819.42, 795.00)">
+      <rect x="1670.42" y="794.35" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1819.42" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">CABRITAS - PAPAS FRITAS - SNACK - GRISSINES</text></g>
+  <g transform="rotate(90, 1839.16, 795.00)">
+      <rect x="1690.16" y="794.43" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1839.16" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">TIKAS - PURI - BUKA - CERVEZAS IMPORTADAS</text></g>
+  <g transform="rotate(90, 1736.95, 795.00)">
+      <rect x="1587.95" y="799.07" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1736.95" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">ACEITES - SEMOLAS - COMIDA LISTA - WASIL - PURE</text></g>
+  <g transform="rotate(90, 1756.69, 795.00)">
+      <rect x="1607.69" y="799.15" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1756.69" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">CRACKER - CHARQUI - MANI - ACEITUNAS - SNACK</text></g>
+  <g transform="rotate(90, 1651.17, 795.00)">
+      <rect x="1502.17" y="799.23" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1651.17" y="799.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">TOALLA NOVA - SERVILLETAS</text></g>
+  <g transform="rotate(90, 1670.90, 795.00)">
+      <rect x="1521.90" y="799.31" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#CC0000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1670.90" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#ffffff" pointer-events="none">FIDEOS - SALSAS DE TOMATE - QUESO RALLADO</text></g>
+  <g transform="rotate(90, 1566.58, 795.00)">
+      <rect x="1417.58" y="799.23" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1566.58" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">LAVALOZAS - LIMPIA VIDRIOS - LAVAVAJILLAS</text></g>
+  <g transform="rotate(90, 1586.32, 795.00)">
+      <rect x="1437.32" y="799.31" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1586.32" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">PAPEL CONFORT - TOALLA HUMEDA HIGIENE</text></g>
+  <g transform="rotate(90, 1494.80, 795.00)">
+      <rect x="1345.80" y="797.49" width="298.00" height="19.19" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1494.80" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">CLORO - BOLSAS DE BASURA - AMONIO - AMBIENTAL</text></g>
+  <g transform="rotate(90, 1514.38, 795.00)">
+      <rect x="1365.38" y="797.41" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1514.38" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">ESCOBILLON - BETUN - VIRUTILLA - ESPONJAS</text></g>
+  <g transform="rotate(90, 1430.79, 795.00)">
+      <rect x="1281.79" y="800.40" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1430.79" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">PAÑALES - FORMULAS INFANTIL - SET BEBÉ</text></g>
+  <g transform="rotate(90, 1450.53, 795.00)">
+      <rect x="1301.53" y="800.48" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1450.53" y="799.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">DETERGENTES - QUITAMANCHAS</text></g>
+  <g transform="rotate(90, 1363.31, 686.78)">
+      <rect x="1311.89" y="675.79" width="102.85" height="21.98" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1363.31" y="690.98" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">INSUMOS MED.</text></g>
+  <g transform="rotate(90, 1386.50, 795.00)">
+      <rect x="1237.50" y="800.48" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1386.50" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">COLADOS - TODO BEBÉ - NESTUM - COMPOTA</text></g>
+  <g transform="rotate(90, 1366.95, 904.92)">
+      <rect x="1307.25" y="893.93" width="119.40" height="21.98" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1366.95" y="909.12" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PAÑALES</text></g>
+  <g transform="rotate(90, 1366.95, 792.20)">
+      <rect x="1313.96" y="781.20" width="105.97" height="21.98" rx="2.5" ry="2.5" fill="#66FF99" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1366.95" y="796.40" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FARMACIA</text></g>
+  <g transform="rotate(90, 1269.39, 795.00)">
+      <rect x="1120.39" y="791.50" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1269.39" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">PERFUMES - DESODORANTES - DENTAL</text></g>
+  <g transform="rotate(90, 1289.13, 795.00)">
+      <rect x="1140.13" y="791.58" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1289.13" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">ALGODON - SUPLEMENTOS - CREMAS</text></g>
+  <g transform="rotate(90, 1215.31, 795.00)">
+      <rect x="1066.31" y="795.54" width="298.00" height="20.36" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1215.31" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">ACC.CABELLO - CEPILLOS - CUIDADO INTIMO</text></g>
+  <g transform="rotate(90, 1235.18, 795.00)">
+      <rect x="1086.18" y="791.61" width="298.00" height="19.71" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1235.18" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">JABÓN - COSMETIQUEROS - PAÑUELOS</text></g>
+  <g transform="rotate(90, 1142.53, 795.00)">
+      <rect x="993.53" y="802.80" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#a6a6a6" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1142.53" y="799.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PANTYS Y CALZADOS</text></g>
+  <g transform="rotate(90, 1160.36, 795.00)">
+      <rect x="1011.36" y="799.96" width="298.00" height="19.52" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1160.36" y="798.28" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="9.4px" font-weight="700" fill="#0f172a" pointer-events="none">CUIDADO CAPILAR - TINTURAS - EXFOLIANTES</text></g>
+  <g>
+      <rect x="1198.02" y="944.00" width="40.20" height="18.00" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1218.12" y="956.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1261.34" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1281.19" y="956.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1357.97" y="944.00" width="42.28" height="18.00" rx="2.5" ry="2.5" fill="#FF33CC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1379.11" y="956.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1424.84" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1444.69" y="956.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1486.56" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1506.42" y="956.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.4px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1555.27" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#84e291" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1639.40" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1718.43" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1809.51" y="944.00" width="39.71" height="18.00" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="1046.80" y="673.19" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1067.19" y="711.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VESTUARIO</text></g>
+  <g>
+      <rect x="1091.99" y="673.19" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1112.38" y="711.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VESTUARIO</text></g>
+  <g>
+      <rect x="1047.17" y="777.58" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1067.56" y="816.33" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VESTUARIO</text></g>
+  <g>
+      <rect x="1047.17" y="881.23" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1067.56" y="919.98" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VESTUARIO</text></g>
+  <g>
+      <rect x="1091.99" y="777.58" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1112.38" y="816.33" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">COCER</text></g>
+  <g>
+      <rect x="1091.99" y="881.60" width="40.78" height="69.10" rx="2.5" ry="2.5" fill="#d9d9d9" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1112.38" y="920.35" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VESTUARIO</text></g>
+  <g>
+      <rect x="1895.00" y="643.45" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="655.62" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">VINOS</text></g>
+  <g>
+      <rect x="1895.00" y="661.12" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="672.51" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">SYRAH - VINO BLANCO - VINO MERLOT</text></g>
+  <g>
+      <rect x="1895.00" y="695.62" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="707.78" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">VINO PINOT - BOTILLERIA</text></g>
+  <g>
+      <rect x="1895.00" y="713.28" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="725.45" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">MEZCLA TINTOS</text></g>
+  <g>
+      <rect x="1895.00" y="747.78" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="759.95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">ROSE - LATE HARVEST</text></g>
+  <g>
+      <rect x="1895.00" y="765.44" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="777.61" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">ESPUMANTES - SIDRAS</text></g>
+  <g>
+      <rect x="1895.00" y="799.94" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="812.11" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">VINOS</text></g>
+  <g>
+      <rect x="1895.00" y="817.61" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="829.00" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">PIÑA COLADA - MISTRAL ICE - SPIRIT - SOUR EN POLVO</text></g>
+  <g>
+      <rect x="1895.00" y="852.11" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="864.27" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">PISCOS - COCKTAIL - SOUR</text></g>
+  <g>
+      <rect x="1895.00" y="869.77" width="338.00" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="881.94" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">CERVEZAS SIN ALCOHOL</text></g>
+  <g>
+      <rect x="2057.00" y="906.12" width="167.55" height="17.31" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2140.78" y="918.29" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.0px" font-weight="700" fill="#0f172a" pointer-events="none">CER. ARTESANALES</text></g>
+  <g>
+      <rect x="2057.06" y="923.82" width="167.55" height="17.34" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2140.83" y="936.01" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.1px" font-weight="700" fill="#0f172a" pointer-events="none">CERVEZAS VARIEDADES</text></g>
+  <g>
+      <rect x="1895.00" y="968.08" width="338.00" height="17.16" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="979.37" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.8px" font-weight="700" fill="#0f172a" pointer-events="none">MURAL DE CERVEZAS - VARIEDADES</text></g>
+  <g>
+      <rect x="1895.00" y="967.76" width="338.00" height="153.58" rx="2.5" ry="2.5" fill="#CCFF99" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2064.00" y="1048.75" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PUNTO CL</text></g>
+  <g>
+      <rect x="797.28" y="1053.13" width="64.41" height="68.72" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g>
+      <rect x="708.46" y="1053.65" width="61.81" height="68.72" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(90, 2326.76, 146.00)">
+      <rect x="2266.29" y="135.24" width="120.94" height="21.53" rx="2.5" ry="2.5" fill="#C00000" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2326.76" y="150.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#ffffff" pointer-events="none">DULCES</text></g>
+  <g>
+      <rect x="2310.57" y="17.48" width="21.52" height="67.95" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2321.33" y="55.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PUERTA</text></g>
+  <g>
+      <rect x="2215.80" y="51.39" width="29.54" height="34.98" rx="2.5" ry="2.5" fill="#FFFF00" stroke="#1e293b" stroke-width="1.2" /></g>
+  <g transform="rotate(90, 2327.11, 275.55)">
+      <rect x="2258.51" y="264.44" width="137.19" height="22.22" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2327.11" y="279.75" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">ENERGETICAS</text></g>
+  <g transform="rotate(90, 2327.11, 430.19)">
+      <rect x="2242.19" y="419.09" width="169.83" height="22.22" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2327.11" y="434.39" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">BEBIDAS</text></g>
+  <g>
+      <rect x="2315.10" y="516.98" width="21.67" height="70.57" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2325.93" y="556.47" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PUERTA</text></g>
+  <g>
+      <ellipse cx="1965.87" cy="595.45" rx="67.42" ry="25.17" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1965.87" y="599.65" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VINOS</text></g>
+  <g>
+      <ellipse cx="2150.68" cy="596.19" rx="67.42" ry="25.17" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2150.68" y="600.39" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VINOS</text></g>
+  <g transform="rotate(90, 2326.76, 638.64)">
+      <rect x="2275.33" y="627.88" width="102.87" height="21.53" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2326.76" y="642.84" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">LICOR - WHISKY</text></g>
+  <g transform="rotate(90, 2326.81, 764.32)">
+      <rect x="2257.28" y="753.51" width="139.05" height="21.61" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2326.81" y="768.52" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">AMARETO - APEROL - RON</text></g>
+  <g transform="rotate(90, 2326.76, 863.59)">
+      <rect x="2292.60" y="852.82" width="68.34" height="21.53" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2326.76" y="867.79" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">VODKAS</text></g>
+  <g transform="rotate(90, 2326.76, 950.70)">
+      <rect x="2291.49" y="939.93" width="70.54" height="21.53" rx="2.5" ry="2.5" fill="#C8C1F1" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2326.76" y="954.90" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">CERVEZA</text></g>
+  <g transform="rotate(90, 986.66, 534.22)">
+      <rect x="959.96" y="526.29" width="53.40" height="15.86" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="986.66" y="538.42" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">3-B</text></g>
+  <g transform="rotate(90, 1073.20, 533.67)">
+      <rect x="1046.21" y="525.55" width="53.97" height="16.23" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1073.20" y="537.87" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">4-B</text></g>
+  <g transform="rotate(90, 1156.87, 533.87)">
+      <rect x="1129.89" y="526.23" width="53.97" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1156.87" y="538.07" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">5-B</text></g>
+  <g>
+      <rect x="1068.43" y="650.00" width="53.96" height="54.00" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1095.42" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">2-A</text></g>
+  <g transform="rotate(90, 1193.75, 677.00)">
+      <rect x="1166.75" y="663.08" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1193.75" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">6-A</text></g>
+  <g transform="rotate(90, 1257.94, 677.00)">
+      <rect x="1230.94" y="663.79" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1257.94" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">7-A</text></g>
+  <g transform="rotate(90, 1306.65, 677.00)">
+      <rect x="1279.65" y="674.84" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1306.65" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">8-A</text></g>
+  <g transform="rotate(90, 1343.13, 677.00)">
+      <rect x="1316.13" y="675.84" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1343.13" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">9-A</text></g>
+  <g transform="rotate(90, 1325.04, 716.64)">
+      <rect x="1261.84" y="708.99" width="126.41" height="15.29" rx="2.5" ry="2.5" fill="#66FF99" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1325.04" y="720.84" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FARMACIA</text></g>
+  <g transform="rotate(90, 1324.70, 891.35)">
+      <rect x="1238.60" y="883.70" width="172.21" height="15.29" rx="2.5" ry="2.5" fill="#66FF99" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1324.70" y="895.55" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">FARMACIA</text></g>
+  <g transform="rotate(90, 1407.83, 677.00)">
+      <rect x="1380.83" y="676.18" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1407.83" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">10-A</text></g>
+  <g transform="rotate(90, 1471.21, 677.00)">
+      <rect x="1444.21" y="676.38" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1471.21" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">11-A</text></g>
+  <g transform="rotate(90, 1536.60, 677.00)">
+      <rect x="1509.60" y="677.41" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1536.60" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">12-A</text></g>
+  <g transform="rotate(90, 1611.24, 677.00)">
+      <rect x="1584.24" y="677.41" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1611.24" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">13-A</text></g>
+  <g transform="rotate(90, 1696.14, 677.00)">
+      <rect x="1669.14" y="677.75" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1696.14" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">14-A</text></g>
+  <g transform="rotate(90, 1780.36, 677.00)">
+      <rect x="1753.36" y="679.12" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1780.36" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">15-A</text></g>
+  <g transform="rotate(90, 1781.39, 537.34)">
+      <rect x="1754.73" y="530.13" width="53.32" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1781.39" y="541.54" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">11-B</text></g>
+  <g transform="rotate(90, 1696.48, 536.75)">
+      <rect x="1669.38" y="529.11" width="54.20" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1696.48" y="540.95" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">10-B</text></g>
+  <g transform="rotate(90, 1611.58, 537.17)">
+      <rect x="1584.75" y="529.79" width="53.66" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1611.58" y="541.37" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">9-B</text></g>
+  <g transform="rotate(90, 1535.57, 677.00)">
+      <rect x="1508.57" y="528.76" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1535.57" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">8-A</text></g>
+  <g transform="rotate(90, 1865.86, 677.00)">
+      <rect x="1838.86" y="678.82" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1865.86" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">16-A</text></g>
+  <g transform="rotate(90, 1865.52, 538.39)">
+      <rect x="1839.91" y="532.23" width="51.22" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1865.52" y="542.59" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">12-B</text></g>
+  <g>
+      <rect x="1894.00" y="35.66" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="46.41" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">1-D</text></g>
+  <g>
+      <rect x="1894.00" y="97.10" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="107.85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">2-D</text></g>
+  <g>
+      <rect x="1894.00" y="167.23" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="177.99" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">3-D</text></g>
+  <g>
+      <rect x="1894.00" y="236.21" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="246.96" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">4-D</text></g>
+  <g>
+      <rect x="1894.00" y="306.92" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="317.67" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">5-D</text></g>
+  <g>
+      <rect x="1894.00" y="376.47" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="387.22" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">6-D</text></g>
+  <g>
+      <rect x="1894.00" y="445.45" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="456.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">7-D</text></g>
+  <g>
+      <rect x="1894.00" y="506.30" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="517.06" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">8-D</text></g>
+  <g>
+      <rect x="1894.00" y="628.02" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="638.77" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">11-D</text></g>
+  <g>
+      <rect x="1894.00" y="665.62" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="676.37" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">12-D</text></g>
+  <g>
+      <rect x="1894.00" y="717.31" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="728.06" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">13-D</text></g>
+  <g>
+      <rect x="1894.00" y="767.83" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="778.58" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">14-D</text></g>
+  <g>
+      <rect x="1894.00" y="820.10" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="830.85" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">15-D</text></g>
+  <g>
+      <rect x="1894.00" y="556.51" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="567.26" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">9-D</text></g>
+  <g>
+      <rect x="1894.00" y="869.47" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="880.22" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">16-D</text></g>
+  <g>
+      <rect x="120.00" y="72.02" width="278.00" height="18.66" rx="2.5" ry="2.5" fill="#61cbf4" stroke="#1e293b" stroke-width="1.2" />
+      <text x="259.00" y="85.14" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="700" fill="#0f172a" pointer-events="none">JUGETERÍA</text></g>
+  <g>
+      <rect x="402.00" y="620.85" width="54.00" height="12.27" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="429.00" y="629.61" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="7.5px" font-weight="700" fill="#0f172a" pointer-events="none">8-C</text></g>
+  <g>
+      <rect x="1894.00" y="926.47" width="54.00" height="15.29" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1921.00" y="937.22" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="8.9px" font-weight="700" fill="#0f172a" pointer-events="none">16-D</text></g>
+  <g>
+      <rect x="1006.10" y="104.34" width="38.64" height="18.46" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1025.42" y="117.32" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.7px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g transform="rotate(90, 1490.37, 147.03)">
+      <rect x="1446.90" y="137.53" width="86.93" height="19.02" rx="2.5" ry="2.5" fill="#92D050" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1490.37" y="151.23" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">POTES</text></g>
+  <g>
+      <rect x="1176.57" y="104.21" width="38.65" height="18.54" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1195.89" y="117.24" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1005.84" y="277.95" width="39.37" height="19.03" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1025.52" y="291.32" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.0px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g>
+      <rect x="1007.77" y="339.11" width="38.74" height="18.54" rx="2.5" ry="2.5" fill="#FBB7EC" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1027.14" y="352.14" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="10.8px" font-weight="700" fill="#0f172a" pointer-events="none">E</text></g>
+  <g transform="rotate(90, 984.81, 677.00)">
+      <rect x="957.81" y="664.60" width="54.00" height="14.56" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="984.81" y="681.20" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">1-A</text></g>
+  <g transform="rotate(90, 2355.56, 743.14)">
+      <rect x="2324.86" y="733.58" width="61.41" height="19.13" rx="2.5" ry="2.5" fill="#99FF33" stroke="#1e293b" stroke-width="1.2" />
+      <text x="2355.56" y="747.34" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">PARED</text></g>
+  <g>
+      <rect x="879.76" y="1058.07" width="1012.20" height="68.59" rx="2.5" ry="2.5" fill="#808080" stroke="#1e293b" stroke-width="1.2" />
+      <text x="1385.86" y="1096.56" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.0px" font-weight="700" fill="#0f172a" pointer-events="none">LINEAL DE CAJAS</text></g>
+</svg>
