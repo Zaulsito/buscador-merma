@@ -652,6 +652,7 @@ export default function MapaSupermercadoLeaflet({
       return {
         ...JSON.parse(JSON.stringify(elem)),
         id: nuevoId,
+        bloqueado: false, // La copia pegada inicia libre para posicionar
         x: Math.min(canvasWidth - (elem.w || 40), Math.max(0, snap(elem.x + offset))),
         y: Math.min(canvasHeight - (elem.h || 40), Math.max(0, snap(elem.y + offset)))
       };
@@ -693,6 +694,7 @@ export default function MapaSupermercadoLeaflet({
     const nuevos = seleccionados.map((elem, idx) => ({
       ...JSON.parse(JSON.stringify(elem)),
       id: `elem_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
+      bloqueado: false, // La copia duplicada inicia desbloqueada para reubicarla
       x: Math.min(canvasWidth - elem.w, Math.max(0, snap(elem.x + deltaX))),
       y: Math.min(canvasHeight - elem.h, Math.max(0, snap(elem.y + deltaY)))
     }));
@@ -708,9 +710,53 @@ export default function MapaSupermercadoLeaflet({
     );
   }, [seleccionIds, elementos, canvasWidth, canvasHeight, pushHistory, snap]);
 
+  // Alternar bloqueo/candado del elemento o elementos seleccionados (protege contra movimientos accidentales)
+  const toggleBloqueoSeleccionados = useCallback(() => {
+    if (seleccionIds.length === 0) return;
+    const seleccionados = elementos.filter(e => seleccionIds.includes(e.id));
+    const todosBloqueados = seleccionados.length > 0 && seleccionados.every(e => e.bloqueado);
+    const nuevoEstado = !todosBloqueados;
+
+    setElementos(prev => {
+      const next = prev.map(el => {
+        if (!seleccionIds.includes(el.id)) return el;
+        return { ...el, bloqueado: nuevoEstado };
+      });
+      pushHistory(next);
+      return next;
+    });
+
+    if (nuevoEstado) {
+      toast.success(
+        seleccionados.length === 1
+          ? `🔒 "${seleccionados[0].nombre || 'Módulo'}" bloqueado contra movimientos`
+          : `🔒 ${seleccionados.length} módulos bloqueados`,
+        { duration: 2000 }
+      );
+    } else {
+      toast(
+        seleccionados.length === 1
+          ? `🔓 "${seleccionados[0].nombre || 'Módulo'}" desbloqueado`
+          : `🔓 ${seleccionados.length} módulos desbloqueados`,
+        { duration: 2000 }
+      );
+    }
+  }, [seleccionIds, elementos, pushHistory]);
+
   // Eliminar elemento(s) seleccionado(s)
   const eliminarSeleccionado = useCallback(() => {
     if (seleccionIds.length === 0) return;
+    const seleccionados = elementos.filter(e => seleccionIds.includes(e.id));
+    const bloqueados = seleccionados.filter(e => e.bloqueado);
+    if (bloqueados.length > 0) {
+      toast.error(
+        bloqueados.length === 1
+          ? "El módulo está bloqueado con candado. Desbloquéalo para eliminarlo."
+          : `Hay ${bloqueados.length} módulos bloqueados. Desbloquéalos para eliminarlos.`,
+        { icon: "🔒", duration: 2500 }
+      );
+      return;
+    }
     const count = seleccionIds.length;
     const next = elementos.filter(e => !seleccionIds.includes(e.id));
     setElementos(next);
@@ -875,6 +921,7 @@ export default function MapaSupermercadoLeaflet({
         setElementos(prev => prev.map(el => {
           const init = initList.find(i => i.id === el.id);
           if (!init) return el;
+          if (el.bloqueado) return el; // Bloqueado con candado: no se mueve
           return {
             ...el,
             x: Math.min(canvasWidth - init.w, Math.max(0, snap(init.x + dx))),
@@ -888,6 +935,7 @@ export default function MapaSupermercadoLeaflet({
       const targetId = dragStartRef.current.targetElemId || seleccionIds[0];
       setElementos(prev => prev.map(el => {
         if (el.id !== targetId) return el;
+        if (el.bloqueado) return el; // Bloqueado con candado: no se redimensiona
 
         if (draggingAction === "resize-se") {
           return {
@@ -1096,6 +1144,7 @@ export default function MapaSupermercadoLeaflet({
     setElementos(prev => {
       const next = prev.map(el => {
         if (el.id !== seleccionId) return el;
+        if (el.bloqueado && ["x", "y", "w", "h"].includes(field)) return el;
         const updated = { ...el, [field]: value };
         // Si cambia la sección, sugerir su color oficial si no se ha cambiado a mano
         if (field === "seccion" && SECCION_COLORES[value]) {
@@ -1120,6 +1169,12 @@ export default function MapaSupermercadoLeaflet({
   const elementosSeleccionados = useMemo(() => {
     return elementos.filter(e => seleccionIds.includes(e.id));
   }, [elementos, seleccionIds]);
+
+  const isTodosBloqueados = useMemo(() => {
+    if (seleccionIds.length === 0) return false;
+    const sel = elementos.filter(e => seleccionIds.includes(e.id));
+    return sel.length > 0 && sel.every(e => e.bloqueado);
+  }, [seleccionIds, elementos]);
 
   // Activar cuentagotas / tintero nativo (EyeDropper API de Chrome / Edge)
   const activarCuentagotas = async (forMulti = false) => {
@@ -1229,6 +1284,30 @@ export default function MapaSupermercadoLeaflet({
   // Renderizar asideros de redimensión interactivos para elemento seleccionado (cuando solo hay 1 seleccionado)
   const renderResizeHandles = (elem) => {
     if (modo !== "editor" || seleccionIds.length !== 1 || seleccionIds[0] !== elem.id) return null;
+
+    if (elem.bloqueado) {
+      return (
+        <g pointerEvents="none">
+          {/* Marco de selección ámbar punteado para indicar elemento bloqueado */}
+          <rect
+            x={elem.x - 2}
+            y={elem.y - 2}
+            width={elem.w + 4}
+            height={elem.h + 4}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth="2.5"
+            strokeDasharray="5, 3"
+          />
+          {/* Badge de Candado en la esquina superior derecha */}
+          <g transform={`translate(${elem.x + elem.w - 18}, ${Math.max(2, elem.y - 10)})`}>
+            <rect width="18" height="18" rx="5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
+            <text x="9" y="13" textAnchor="middle" fontSize="11" fill="#000000" fontWeight="bold">🔒</text>
+          </g>
+        </g>
+      );
+    }
+
     return (
       <g pointerEvents="all">
         {/* Marco de selección punteado */}
@@ -1904,6 +1983,14 @@ export default function MapaSupermercadoLeaflet({
                         </text>
                       )}
                       {renderResizeHandles(elem)}
+
+                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
+                      {elem.bloqueado && !isSelected && (
+                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
+                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
+                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
@@ -1952,6 +2039,14 @@ export default function MapaSupermercadoLeaflet({
                         </text>
                       )}
                       {renderResizeHandles(elem)}
+
+                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
+                      {elem.bloqueado && !isSelected && (
+                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
+                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
+                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
@@ -1991,6 +2086,22 @@ export default function MapaSupermercadoLeaflet({
 
                       {/* Asideros de Redimensión en Modo Editor cuando está seleccionado */}
                       {renderResizeHandles(elem)}
+
+                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
+                      {elem.bloqueado && !isSelected && (
+                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
+                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
+                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
+                        </g>
+                      )}
+
+                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
+                      {elem.bloqueado && !isSelected && (
+                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 14}, ${elem.y + 2})`}>
+                          <rect width="12" height="12" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
+                          <text x="6" y="9.5" textAnchor="middle" fontSize="8">🔒</text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
@@ -2065,14 +2176,40 @@ export default function MapaSupermercadoLeaflet({
                     <h3 className={`font-black text-sm ${t.text}`}>Propiedades</h3>
                   </div>
                   {seleccionIds.length > 0 && (
-                    <button
-                      onClick={eliminarSeleccionado}
-                      className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 flex items-center gap-1 text-xs"
-                      title={seleccionIds.length > 1 ? `Eliminar ${seleccionIds.length} elementos (Supr)` : "Eliminar elemento (Supr)"}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
-                      {seleccionIds.length > 1 && <span className="font-bold">{seleccionIds.length}</span>}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {/* Candadito al lado derecho en Propiedades */}
+                      <button
+                        type="button"
+                        onClick={toggleBloqueoSeleccionados}
+                        className={`px-2.5 py-1 rounded-xl border flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm ${
+                          isTodosBloqueados
+                            ? "bg-amber-500/20 border-amber-500/50 text-amber-300 ring-2 ring-amber-500/30"
+                            : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+                        }`}
+                        title={
+                          isTodosBloqueados
+                            ? "Módulo bloqueado con candado (no se puede mover por error). Haz clic para desbloquear."
+                            : "Bloquear con candado para evitar que se mueva por error."
+                        }
+                      >
+                        <span className="material-symbols-outlined text-[17px]">
+                          {isTodosBloqueados ? "lock" : "lock_open"}
+                        </span>
+                        <span className="text-[11px]">
+                          {isTodosBloqueados ? "Bloqueado" : "Bloquear"}
+                        </span>
+                      </button>
+
+                      {/* Botón Eliminar */}
+                      <button
+                        onClick={eliminarSeleccionado}
+                        className="text-red-400 hover:text-red-300 p-1.5 rounded-xl hover:bg-red-500/10 flex items-center gap-1 text-xs transition-colors"
+                        title={seleccionIds.length > 1 ? `Eliminar ${seleccionIds.length} elementos (Supr)` : "Eliminar elemento (Supr)"}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>delete</span>
+                        {seleccionIds.length > 1 && <span className="font-bold">{seleccionIds.length}</span>}
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -2094,6 +2231,22 @@ export default function MapaSupermercadoLeaflet({
                         Limpiar
                       </button>
                     </div>
+
+                    {/* Botón Bloquear / Desbloquear Selección en Grupo */}
+                    <button
+                      type="button"
+                      onClick={toggleBloqueoSeleccionados}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-bold border flex items-center justify-center gap-2 transition-all shadow-sm ${
+                        isTodosBloqueados
+                          ? "bg-amber-500/20 border-amber-500/40 text-amber-300 ring-2 ring-amber-500/30"
+                          : "bg-white/5 border-white/10 text-slate-300 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[17px]">
+                        {isTodosBloqueados ? "lock" : "lock_open"}
+                      </span>
+                      <span>{isTodosBloqueados ? `Desbloquear ${seleccionIds.length} módulos (permitir mover)` : `Bloquear ${seleccionIds.length} módulos con candado`}</span>
+                    </button>
 
                     {/* Copiar y Pegar en Grupo */}
                     <div className="grid grid-cols-2 gap-1.5">
@@ -2482,42 +2635,68 @@ export default function MapaSupermercadoLeaflet({
 
                     {/* Posición & Tamaño Exactos */}
                     <div className="pt-2 border-t border-white/5 space-y-2">
-                      <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">Dimensiones Milimétricas</div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-[10px] font-extrabold text-amber-400 uppercase tracking-wider">
+                          Dimensiones Milimétricas
+                        </div>
+                        {elementoSeleccionado.bloqueado && (
+                          <span className="text-[10px] text-amber-300 font-bold bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">lock</span>
+                            <span>Posición Fijada</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-2 text-xs">
                         <div>
                           <span className={`text-[10px] ${t.textSecondary}`}>X:</span>
                           <input
                             type="number"
+                            disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.x}
                             onChange={(e) => updateElemento("x", parseInt(e.target.value) || 0)}
-                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text}`}
+                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
+                              elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
+                            }`}
+                            title={elementoSeleccionado.bloqueado ? "Desbloquea el candado arriba para modificar posición" : "Posición X"}
                           />
                         </div>
                         <div>
                           <span className={`text-[10px] ${t.textSecondary}`}>Y:</span>
                           <input
                             type="number"
+                            disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.y}
                             onChange={(e) => updateElemento("y", parseInt(e.target.value) || 0)}
-                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text}`}
+                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
+                              elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
+                            }`}
+                            title={elementoSeleccionado.bloqueado ? "Desbloquea el candado arriba para modificar posición" : "Posición Y"}
                           />
                         </div>
                         <div>
                           <span className={`text-[10px] ${t.textSecondary}`}>Ancho (W):</span>
                           <input
                             type="number"
+                            disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.w}
                             onChange={(e) => updateElemento("w", parseInt(e.target.value) || 20)}
-                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text}`}
+                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
+                              elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
+                            }`}
+                            title={elementoSeleccionado.bloqueado ? "Desbloquea el candado arriba para modificar dimensiones" : "Ancho (W)"}
                           />
                         </div>
                         <div>
                           <span className={`text-[10px] ${t.textSecondary}`}>Alto (H):</span>
                           <input
                             type="number"
+                            disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.h}
                             onChange={(e) => updateElemento("h", parseInt(e.target.value) || 20)}
-                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text}`}
+                            className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
+                              elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
+                            }`}
+                            title={elementoSeleccionado.bloqueado ? "Desbloquea el candado arriba para modificar dimensiones" : "Alto (H)"}
                           />
                         </div>
                       </div>
