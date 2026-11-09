@@ -44,6 +44,123 @@ const extraerCodigoPasillo = (texto) => {
   return null;
 };
 
+// Estimación de ancho en unidades para texto SVG en fuente negrita
+const estimateUnits = (str) => {
+  let units = 0;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i].toUpperCase();
+    if (ch === ' ' || ch === 'I' || ch === '1' || ch === 'J' || ch === 'L' || ch === '.' || ch === ',') {
+      units += 0.32;
+    } else if (ch === 'M' || ch === 'W') {
+      units += 0.85;
+    } else if (ch === '/' || ch === '-') {
+      units += 0.40;
+    } else {
+      units += 0.60;
+    }
+  }
+  return units;
+};
+
+const estimateTextWidth = (str, fontSize) => estimateUnits(str) * fontSize;
+
+// Divide un texto en varias líneas si supera el espacio disponible del módulo
+const getWrappedSvgLines = (text, availLength, availThickness, preferredFontSize = 10.5, minFontSize = 7) => {
+  if (!text || typeof text !== 'string') {
+    return { lines: [], fontSize: preferredFontSize, lineHeight: preferredFontSize * 1.2 };
+  }
+  const clean = text.trim();
+  if (!clean) {
+    return { lines: [], fontSize: preferredFontSize, lineHeight: preferredFontSize * 1.2 };
+  }
+
+  // Separar en palabras, respetando también '/' y '-' si no hay espacios
+  let words = clean.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    if (words[0].includes('/')) {
+      const parts = words[0].split('/');
+      words = parts.map((p, idx) => idx < parts.length - 1 ? p + '/' : p);
+    } else if (words[0].includes('-')) {
+      const parts = words[0].split('-');
+      words = parts.map((p, idx) => idx < parts.length - 1 ? p + '-' : p);
+    }
+  }
+
+  // 1. Probar si el texto completo cabe en una sola línea sin desbordar
+  if (estimateTextWidth(clean, preferredFontSize) <= availLength && availThickness >= preferredFontSize) {
+    return { lines: [clean], fontSize: preferredFontSize, lineHeight: preferredFontSize * 1.2 };
+  }
+
+  // 2. Probar distribución en múltiples líneas reduciendo gradualmente el tamaño de fuente si es necesario
+  for (let f = preferredFontSize; f >= minFontSize; f -= 0.5) {
+    const fRound = Math.round(f * 10) / 10;
+    const lineHeight = fRound * 1.2;
+    const maxLines = Math.max(1, Math.floor(availThickness / lineHeight));
+
+    // Si con esta fuente cabe en 1 sola línea:
+    if (estimateTextWidth(clean, fRound) <= availLength) {
+      return { lines: [clean], fontSize: fRound, lineHeight };
+    }
+
+    // Si tenemos espacio para 2 o más líneas y hay palabras separables:
+    if (maxLines >= 2 && words.length >= 2) {
+      const candidateLines = [];
+      let currentLine = words[0];
+      let fits = true;
+
+      for (let i = 1; i < words.length; i++) {
+        const nextWord = words[i];
+        const testLine = currentLine.endsWith('/') || currentLine.endsWith('-')
+          ? currentLine + nextWord
+          : currentLine + ' ' + nextWord;
+
+        if (estimateTextWidth(testLine, fRound) <= availLength) {
+          currentLine = testLine;
+        } else {
+          if (estimateTextWidth(currentLine, fRound) > availLength) {
+            fits = false;
+            break;
+          }
+          candidateLines.push(currentLine);
+          currentLine = nextWord;
+        }
+      }
+
+      if (estimateTextWidth(currentLine, fRound) > availLength) {
+        fits = false;
+      }
+      candidateLines.push(currentLine);
+
+      if (fits && candidateLines.length <= maxLines) {
+        return { lines: candidateLines, fontSize: fRound, lineHeight };
+      }
+    }
+  }
+
+  // 3. Fallback: ajustar fontSize al máximo que permita que quepa la línea más larga
+  const fallbackF = Math.max(6.5, Math.min(minFontSize, (availLength / Math.max(1, estimateUnits(clean)))));
+  const lineHeight = fallbackF * 1.2;
+  const maxLines = Math.max(1, Math.floor(availThickness / lineHeight));
+
+  if (maxLines >= 2 && words.length >= 2) {
+    const lines = [];
+    let cur = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const test = cur + ' ' + words[i];
+      if (estimateTextWidth(test, fallbackF) <= availLength) {
+        cur = test;
+      } else {
+        lines.push(cur);
+        cur = words[i];
+      }
+    }
+    lines.push(cur);
+    return { lines: lines.slice(0, maxLines), fontSize: fallbackF, lineHeight };
+  }
+
+  return { lines: [clean], fontSize: fallbackF, lineHeight };
+};
+
 export default function MapaSupermercadoLeaflet({
   productos = [],
   sectores = [],
@@ -103,6 +220,68 @@ export default function MapaSupermercadoLeaflet({
   // Portapapeles (Copiar y Pegar)
   const [portapapeles, setPortapapeles] = useState(null);
   const pasteCountRef = useRef(0);
+
+  // Colores Recientes del Tintero (máximo 3)
+  const [coloresRecientes, setColoresRecientes] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mapa_colores_recientes");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(c => typeof c === "string" && /^#[0-9a-fA-F]{3,8}$/.test(c)).slice(0, 3);
+        }
+      }
+    } catch (e) {
+      console.warn("Error leyendo colores recientes:", e);
+    }
+    return [];
+  });
+
+  const recentColorTimeoutRef = useRef(null);
+
+  const agregarColorReciente = useCallback((color) => {
+    if (!color || typeof color !== "string") return;
+    const hex = color.trim().toLowerCase();
+    if (!/^#[0-9a-f]{3,8}$/i.test(hex)) return;
+
+    if (recentColorTimeoutRef.current) {
+      clearTimeout(recentColorTimeoutRef.current);
+    }
+
+    recentColorTimeoutRef.current = setTimeout(() => {
+      setColoresRecientes(prev => {
+        const sinActual = prev.filter(c => c.toLowerCase() !== hex);
+        const actualizados = [hex, ...sinActual].slice(0, 3);
+        try {
+          localStorage.setItem("mapa_colores_recientes", JSON.stringify(actualizados));
+        } catch (e) {
+          console.warn("Error guardando colores recientes:", e);
+        }
+        return actualizados;
+      });
+    }, 250);
+  }, []);
+
+  const agregarColorRecienteInmediato = useCallback((color) => {
+    if (!color || typeof color !== "string") return;
+    const hex = color.trim().toLowerCase();
+    if (!/^#[0-9a-f]{3,8}$/i.test(hex)) return;
+
+    if (recentColorTimeoutRef.current) {
+      clearTimeout(recentColorTimeoutRef.current);
+    }
+
+    setColoresRecientes(prev => {
+      const sinActual = prev.filter(c => c.toLowerCase() !== hex);
+      const actualizados = [hex, ...sinActual].slice(0, 3);
+      try {
+        localStorage.setItem("mapa_colores_recientes", JSON.stringify(actualizados));
+      } catch (e) {
+        console.warn("Error guardando colores recientes:", e);
+      }
+      return actualizados;
+    });
+  }, []);
 
   // Historial de cambios (Undo / Redo)
   const [history, setHistory] = useState([]);
@@ -942,6 +1121,111 @@ export default function MapaSupermercadoLeaflet({
     return elementos.filter(e => seleccionIds.includes(e.id));
   }, [elementos, seleccionIds]);
 
+  // Activar cuentagotas / tintero nativo (EyeDropper API de Chrome / Edge)
+  const activarCuentagotas = async (forMulti = false) => {
+    if (typeof window !== "undefined" && "EyeDropper" in window) {
+      try {
+        const eyeDropper = new window.EyeDropper();
+        const result = await eyeDropper.open();
+        if (result && result.sRGBHex) {
+          const hex = result.sRGBHex.toLowerCase();
+          agregarColorRecienteInmediato(hex);
+          if (forMulti) {
+            setElementos(prev => {
+              const next = prev.map(el => {
+                if (!seleccionIds.includes(el.id)) return el;
+                return { ...el, color: hex };
+              });
+              pushHistory(next);
+              return next;
+            });
+            toast.success(`Color ${hex} aplicado a ${seleccionIds.length} módulos`, { icon: "🎨" });
+          } else {
+            updateElemento("color", hex);
+            toast.success(`Color tomado con tintero: ${hex}`, { icon: "🎨" });
+          }
+        }
+      } catch (err) {
+        // Cancelado por el usuario con Escape
+      }
+    } else {
+      const input = document.getElementById(forMulti ? "multi-color-picker" : "single-color-picker");
+      if (input) input.click();
+    }
+  };
+
+  // Renderizado SVG de texto multilínea para módulos (salto de línea automático cuando supera el tamaño del módulo)
+  const renderSvgElementText = (elem, customFill = null) => {
+    if (!elem.nombre) return null;
+    const isVertical = elem.h > elem.w;
+    const availLength = Math.max(10, (isVertical ? elem.h : elem.w) - 6);
+    const availThickness = Math.max(10, (isVertical ? elem.w : elem.h) - 4);
+
+    const baseFontSize = isVertical
+      ? Math.min(11, Math.max(8, elem.w * 0.58))
+      : Math.min(11, Math.max(8, elem.h * 0.52));
+
+    const { lines, fontSize, lineHeight } = getWrappedSvgLines(
+      elem.nombre,
+      availLength,
+      availThickness,
+      baseFontSize,
+      7
+    );
+
+    const cx = elem.x + elem.w / 2;
+    const cy = elem.y + elem.h / 2;
+    const fill = customFill || "#090d16";
+
+    if (isVertical) {
+      return (
+        <g transform={`rotate(-90, ${cx}, ${cy})`} pointerEvents="none">
+          {lines.map((line, idx) => {
+            const yOffset = (idx - (lines.length - 1) / 2) * lineHeight;
+            return (
+              <text
+                key={idx}
+                x={cx}
+                y={cy + yOffset}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fill={fill}
+                fontSize={fontSize}
+                fontWeight="900"
+                letterSpacing="0.3"
+              >
+                {line}
+              </text>
+            );
+          })}
+        </g>
+      );
+    }
+
+    return (
+      <g pointerEvents="none">
+        {lines.map((line, idx) => {
+          const yOffset = (idx - (lines.length - 1) / 2) * lineHeight;
+          return (
+            <text
+              key={idx}
+              x={cx}
+              y={cy + yOffset}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fill={fill}
+              fontSize={fontSize}
+              fontWeight="900"
+              letterSpacing="0.4"
+            >
+              {line}
+            </text>
+          );
+        })}
+      </g>
+    );
+  };
+
   // Renderizar asideros de redimensión interactivos para elemento seleccionado (cuando solo hay 1 seleccionado)
   const renderResizeHandles = (elem) => {
     if (modo !== "editor" || seleccionIds.length !== 1 || seleccionIds[0] !== elem.id) return null;
@@ -1652,34 +1936,8 @@ export default function MapaSupermercadoLeaflet({
                         strokeWidth={isSelected ? 3.5 : 1.2}
                         className={isSpotlight ? "elem-spotlight-pulse" : ""}
                       />
-                      {elem.h > elem.w * 1.5 ? (
-                        <text
-                          x={elem.x + elem.w / 2}
-                          y={elem.y + elem.h / 2}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          transform={`rotate(-90, ${elem.x + elem.w / 2}, ${elem.y + elem.h / 2})`}
-                          fill={isLightBg ? "#0f172a" : "#ffffff"}
-                          fontSize={Math.max(9, Math.min(12, elem.w * 0.35))}
-                          fontWeight="900"
-                          letterSpacing="1"
-                          pointerEvents="none"
-                        >
-                          {elem.nombre}
-                        </text>
-                      ) : (
-                        <text
-                          x={elem.x + elem.w / 2}
-                          y={elem.y + elem.h / 2 + 4}
-                          textAnchor="middle"
-                          fill={isLightBg ? "#0f172a" : "#ffffff"}
-                          fontSize={Math.max(9, Math.min(12, elem.h * 0.48))}
-                          fontWeight="900"
-                          pointerEvents="none"
-                        >
-                          {elem.nombre}
-                        </text>
-                      )}
+                      {/* Texto de la zona con salto de línea automático si supera el tamaño */}
+                      {renderSvgElementText(elem, isLightBg ? "#0f172a" : "#ffffff")}
                       {elem.desc && elem.h > 50 && (
                         <text
                           x={elem.x + elem.w / 2}
@@ -1728,34 +1986,8 @@ export default function MapaSupermercadoLeaflet({
                         className={isSpotlight ? "elem-spotlight-pulse" : "transition-colors"}
                       />
 
-                      {/* Texto del elemento */}
-                      {isVertical ? (
-                        <text
-                          x={elem.x + elem.w / 2}
-                          y={elem.y + elem.h / 2}
-                          transform={`rotate(-90, ${elem.x + elem.w / 2}, ${elem.y + elem.h / 2})`}
-                          textAnchor="middle"
-                          fill="#090d16"
-                          fontSize={Math.min(11, Math.max(7.5, elem.w * 0.65))}
-                          fontWeight="900"
-                          pointerEvents="none"
-                        >
-                          {elem.nombre}
-                        </text>
-                      ) : (
-                        <text
-                          x={elem.x + elem.w / 2}
-                          y={elem.y + elem.h / 2 + 4}
-                          textAnchor="middle"
-                          fill="#090d16"
-                          fontSize={Math.min(11, Math.max(8.5, elem.h * 0.52))}
-                          fontWeight="900"
-                          letterSpacing="0.4"
-                          pointerEvents="none"
-                        >
-                          {elem.nombre}
-                        </text>
-                      )}
+                      {/* Texto del elemento con salto de línea automático si supera el tamaño del módulo */}
+                      {renderSvgElementText(elem, "#090d16")}
 
                       {/* Asideros de Redimensión en Modo Editor cuando está seleccionado */}
                       {renderResizeHandles(elem)}
@@ -1962,6 +2194,115 @@ export default function MapaSupermercadoLeaflet({
                       </select>
                     </div>
 
+                    {/* Cambiar Color en Lote */}
+                    <div className="p-3 rounded-2xl border border-white/10 bg-white/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className={`text-[10px] font-bold ${t.textSecondary} uppercase tracking-wider block`}>
+                          Color en lote ({seleccionIds.length} módulos):
+                        </label>
+                        {coloresRecientes.length > 0 && (
+                          <span className="text-[10px] text-pink-400 font-semibold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">colorize</span>
+                            Recientes ({coloresRecientes.length}/3)
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="multi-color-picker"
+                          type="color"
+                          defaultValue="#3b82f6"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            agregarColorReciente(val);
+                            setElementos(prev => {
+                              const next = prev.map(el => seleccionIds.includes(el.id) ? { ...el, color: val } : el);
+                              pushHistory(next);
+                              return next;
+                            });
+                          }}
+                          onBlur={(e) => agregarColorRecienteInmediato(e.target.value)}
+                          className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0 transition-transform hover:scale-105"
+                          title="Abrir selector de color o tintero"
+                        />
+
+                        {typeof window !== "undefined" && "EyeDropper" in window && (
+                          <button
+                            type="button"
+                            onClick={() => activarCuentagotas(true)}
+                            className="w-8 h-8 rounded-lg border border-pink-500/40 bg-pink-500/10 hover:bg-pink-500/25 text-pink-300 flex items-center justify-center transition-all hover:scale-105 shadow-sm"
+                            title="Tomar color con tintero y aplicar al grupo"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">colorize</span>
+                          </button>
+                        )}
+
+                        <div className="flex flex-wrap gap-1 items-center">
+                          {["#3b82f6", "#a855f7", "#ef4444", "#eab308", "#22c55e", "#f97316", "#06b6d4"].map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              onClick={() => {
+                                setElementos(prev => {
+                                  const next = prev.map(el => seleccionIds.includes(el.id) ? { ...el, color: c } : el);
+                                  pushHistory(next);
+                                  return next;
+                                });
+                                toast.success(`Color aplicado a ${seleccionIds.length} módulos`);
+                              }}
+                              style={{ backgroundColor: c }}
+                              className="w-5 h-5 rounded-full border border-white/20 hover:scale-110 transition-transform"
+                              title={`Aplicar ${c}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Fila de hasta 3 Colores Recientes del Tintero */}
+                      <div className="pt-2 border-t border-white/10">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px] text-pink-400">colorize</span>
+                            <span>Recientes del Tintero (máx 3):</span>
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {[0, 1, 2].map((slotIdx) => {
+                            const recColor = coloresRecientes[slotIdx];
+                            if (recColor) {
+                              return (
+                                <button
+                                  key={`multi_rec_${recColor}_${slotIdx}`}
+                                  type="button"
+                                  onClick={() => {
+                                    setElementos(prev => {
+                                      const next = prev.map(el => seleccionIds.includes(el.id) ? { ...el, color: recColor } : el);
+                                      pushHistory(next);
+                                      return next;
+                                    });
+                                    toast.success(`Color ${recColor} aplicado a ${seleccionIds.length} módulos`);
+                                  }}
+                                  style={{ backgroundColor: recColor }}
+                                  className="w-7 h-7 rounded-lg border border-white/30 hover:scale-110 flex items-center justify-center transition-all shadow-sm"
+                                  title={`Aplicar color reciente: ${recColor}`}
+                                />
+                              );
+                            }
+                            return (
+                              <div
+                                key={`multi_slot_${slotIdx}`}
+                                className="w-7 h-7 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center text-[10px] text-slate-500 font-mono"
+                                title="Espacio disponible para color del tintero"
+                              >
+                                {slotIdx + 1}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Eliminar Grupo */}
                     <button
                       onClick={eliminarSeleccionado}
@@ -2026,23 +2367,115 @@ export default function MapaSupermercadoLeaflet({
 
                     {/* Color */}
                     <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1.5`}>Color de la góndola:</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className={`text-[11px] font-bold ${t.textSecondary}`}>Color de la góndola:</label>
+                        {coloresRecientes.length > 0 && (
+                          <span className="text-[10px] text-pink-400 font-semibold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">colorize</span>
+                            Recientes ({coloresRecientes.length}/3)
+                          </span>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-2">
                         <input
+                          id="single-color-picker"
                           type="color"
                           value={elementoSeleccionado.color || "#3b82f6"}
-                          onChange={(e) => updateElemento("color", e.target.value)}
-                          className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0"
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            updateElemento("color", val);
+                            agregarColorReciente(val);
+                          }}
+                          onBlur={(e) => agregarColorRecienteInmediato(e.target.value)}
+                          className="w-8 h-8 rounded-lg cursor-pointer border border-white/20 bg-transparent p-0 transition-transform hover:scale-105"
+                          title="Abrir selector de color o tintero"
                         />
-                        <div className="flex flex-wrap gap-1">
+
+                        {typeof window !== "undefined" && "EyeDropper" in window && (
+                          <button
+                            type="button"
+                            onClick={() => activarCuentagotas(false)}
+                            className="w-8 h-8 rounded-lg border border-pink-500/40 bg-pink-500/10 hover:bg-pink-500/25 text-pink-300 flex items-center justify-center transition-all hover:scale-105 shadow-sm"
+                            title="Tomar color con tintero de la pantalla"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">colorize</span>
+                          </button>
+                        )}
+
+                        <div className="flex flex-wrap gap-1 items-center">
                           {["#3b82f6", "#a855f7", "#ef4444", "#eab308", "#22c55e", "#f97316", "#06b6d4"].map(c => (
                             <button
                               key={c}
+                              type="button"
                               onClick={() => updateElemento("color", c)}
                               style={{ backgroundColor: c }}
-                              className="w-5 h-5 rounded-full border border-white/20 hover:scale-110 transition-transform"
+                              className={`w-5 h-5 rounded-full border transition-transform ${
+                                (elementoSeleccionado.color || "").toLowerCase() === c.toLowerCase()
+                                  ? "border-white scale-125 ring-2 ring-blue-500"
+                                  : "border-white/20 hover:scale-110"
+                              }`}
+                              title={`Color: ${c}`}
                             />
                           ))}
+                        </div>
+                      </div>
+
+                      {/* Fila de Colores Recientes del Tintero (máx 3) */}
+                      <div className="mt-2.5 pt-2 border-t border-white/10">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px] text-pink-400">colorize</span>
+                            <span>Recientes del Tintero (máx 3):</span>
+                          </span>
+                          {coloresRecientes.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setColoresRecientes([]);
+                                localStorage.removeItem("mapa_colores_recientes");
+                              }}
+                              className="text-[9px] text-slate-500 hover:text-red-400 transition-colors"
+                              title="Limpiar historial de tintero"
+                            >
+                              Limpiar
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {[0, 1, 2].map((slotIdx) => {
+                            const recColor = coloresRecientes[slotIdx];
+                            if (recColor) {
+                              const isSelected = (elementoSeleccionado.color || "").toLowerCase() === recColor.toLowerCase();
+                              return (
+                                <button
+                                  key={`rec_${recColor}_${slotIdx}`}
+                                  type="button"
+                                  onClick={() => updateElemento("color", recColor)}
+                                  style={{ backgroundColor: recColor }}
+                                  className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all shadow-sm ${
+                                    isSelected
+                                      ? "border-white ring-2 ring-pink-500 scale-110"
+                                      : "border-white/30 hover:scale-105"
+                                  }`}
+                                  title={`Usar color reciente: ${recColor}`}
+                                >
+                                  {isSelected && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+                                  )}
+                                </button>
+                              );
+                            }
+                            return (
+                              <div
+                                key={`slot_${slotIdx}`}
+                                className="w-7 h-7 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center text-[10px] text-slate-500 font-mono"
+                                title="Espacio disponible para color del tintero"
+                              >
+                                {slotIdx + 1}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
