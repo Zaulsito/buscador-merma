@@ -1230,7 +1230,7 @@ export default function MapaSupermercadoLeaflet({
 
     const cx = elem.x + elem.w / 2;
     const cy = elem.y + elem.h / 2;
-    const fill = customFill || "#090d16";
+    const fill = elem.textColor || customFill || "#090d16";
 
     if (isVertical) {
       return (
@@ -1960,7 +1960,7 @@ export default function MapaSupermercadoLeaflet({
                           textAnchor="middle"
                           dominantBaseline="middle"
                           transform={`rotate(-90, ${elem.x + elem.w / 2}, ${elem.y + elem.h / 2})`}
-                          fill="#065f46"
+                          fill={elem.textColor || "#065f46"}
                           fontSize="15"
                           fontWeight="900"
                           letterSpacing="4"
@@ -1973,7 +1973,7 @@ export default function MapaSupermercadoLeaflet({
                           x={elem.x + elem.w / 2}
                           y={elem.y + elem.h / 2 + 4}
                           textAnchor="middle"
-                          fill="#065f46"
+                          fill={elem.textColor || "#065f46"}
                           fontSize={Math.max(10, Math.min(13, elem.h * 0.45))}
                           fontWeight="800"
                           letterSpacing="1"
@@ -1983,14 +1983,6 @@ export default function MapaSupermercadoLeaflet({
                         </text>
                       )}
                       {renderResizeHandles(elem)}
-
-                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
-                      {elem.bloqueado && !isSelected && (
-                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
-                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
-                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
-                        </g>
-                      )}
                     </g>
                   );
                 })}
@@ -2039,14 +2031,6 @@ export default function MapaSupermercadoLeaflet({
                         </text>
                       )}
                       {renderResizeHandles(elem)}
-
-                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
-                      {elem.bloqueado && !isSelected && (
-                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
-                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
-                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
-                        </g>
-                      )}
                     </g>
                   );
                 })}
@@ -2086,22 +2070,6 @@ export default function MapaSupermercadoLeaflet({
 
                       {/* Asideros de Redimensión en Modo Editor cuando está seleccionado */}
                       {renderResizeHandles(elem)}
-
-                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
-                      {elem.bloqueado && !isSelected && (
-                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 16}, ${elem.y + 3})`}>
-                          <rect width="13" height="13" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
-                          <text x="6.5" y="10" textAnchor="middle" fontSize="9">🔒</text>
-                        </g>
-                      )}
-
-                      {/* Candadito sutil cuando está bloqueado y no seleccionado */}
-                      {elem.bloqueado && !isSelected && (
-                        <g pointerEvents="none" opacity="0.7" transform={`translate(${elem.x + elem.w - 14}, ${elem.y + 2})`}>
-                          <rect width="12" height="12" rx="3" fill="#0f172a" fillOpacity="0.85" stroke="#f59e0b" strokeWidth="0.8" />
-                          <text x="6" y="9.5" textAnchor="middle" fontSize="8">🔒</text>
-                        </g>
-                      )}
                     </g>
                   );
                 })}
@@ -2456,6 +2424,45 @@ export default function MapaSupermercadoLeaflet({
                       </div>
                     </div>
 
+                    {/* Cambiar Color de Texto en Lote */}
+                    <div className="p-3 rounded-2xl border border-white/10 bg-white/5 space-y-1.5">
+                      <label className={`text-[10px] font-bold ${t.textSecondary} uppercase tracking-wider block`}>
+                        Color del texto en lote ({seleccionIds.length} módulos):
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setElementos(prev => {
+                              const next = prev.map(el => seleccionIds.includes(el.id) ? { ...el, textColor: "#090d16" } : el);
+                              pushHistory(next);
+                              return next;
+                            });
+                            toast.success(`Letra negra aplicada a ${seleccionIds.length} módulos`);
+                          }}
+                          className="py-1.5 px-2 rounded-xl border border-white/10 bg-black/50 hover:bg-black/80 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full bg-black border border-white/40 shadow-inner"></span>
+                          <span>Letra Negra</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setElementos(prev => {
+                              const next = prev.map(el => seleccionIds.includes(el.id) ? { ...el, textColor: "#ffffff" } : el);
+                              pushHistory(next);
+                              return next;
+                            });
+                            toast.success(`Letra blanca aplicada a ${seleccionIds.length} módulos`);
+                          }}
+                          className="py-1.5 px-2 rounded-xl border border-white/10 bg-white/10 hover:bg-white/20 text-white flex items-center justify-center gap-1.5 text-xs font-bold transition-all shadow-sm"
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-black/30 shadow-sm"></span>
+                          <span>Letra Blanca</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* Eliminar Grupo */}
                     <button
                       onClick={eliminarSeleccionado}
@@ -2630,6 +2637,37 @@ export default function MapaSupermercadoLeaflet({
                             );
                           })}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Color del Texto (Negro o Blanco) */}
+                    <div>
+                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1.5`}>Color del texto:</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updateElemento("textColor", "#090d16")}
+                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
+                            (elementoSeleccionado.textColor || "#090d16") === "#090d16"
+                              ? "bg-slate-900 border-amber-400 text-white ring-2 ring-amber-400/30"
+                              : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
+                          }`}
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full bg-black border border-white/40 shadow-inner"></span>
+                          <span>Letra Negra</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateElemento("textColor", "#ffffff")}
+                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
+                            elementoSeleccionado.textColor === "#ffffff"
+                              ? "bg-slate-800 border-amber-400 text-white ring-2 ring-amber-400/30"
+                              : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
+                          }`}
+                        >
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-black/20 shadow-sm"></span>
+                          <span>Letra Blanca</span>
+                        </button>
                       </div>
                     </div>
 
