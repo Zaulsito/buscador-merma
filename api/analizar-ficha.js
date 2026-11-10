@@ -243,15 +243,19 @@ Analiza la imagen proporcionada y extrae los siguientes datos:
 - Textil
 - Verdulería
 Si no estás seguro o no encaja, pon "Todas".
+5. Precio: Si aparece un precio unitario, precio por kilo ($/kg), o precio total a pagar (ej: $9.390, $5.859, $1.290), extrae el valor como número entero en pesos chilenos sin puntos (ej: 9390). Si no aparece, deja null.
+6. Marca: Marca o fabricante del producto si aparece en la etiqueta (ej: "ZenOrganics", "Colun", "Soprole", etc.). Si no aparece, deja "".
 
 Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente estructura:
 {
   "nombre": "Nombre Exacto del Producto",
   "ean": "codigo_ean",
   "sku": "codigo_sku",
-  "categoria": "Nombre Categoria"
+  "categoria": "Nombre Categoria",
+  "precio": 9390,
+  "marca": "Nombre de la Marca"
 }
-Si un dato no aparece, déjalo como string vacío "". Responde ÚNICAMENTE con el JSON.`;
+Si un dato no aparece, déjalo como string vacío "" o null. Responde ÚNICAMENTE con el JSON.`;
     } else if (tipo === "sectores_pasillos") {
       prompt = `Eres un asistente experto en organizar inventarios y distribuciones de pasillos en supermercados y retail chileno.
 Analiza la imagen proporcionada (que puede ser una lista impresa, un letrero de pasillo, una foto de una hoja de papel, pizarra, planilla o nota).

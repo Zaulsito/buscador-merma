@@ -11,18 +11,50 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 
-    <!-- Material Symbols con display=swap para evitar bloqueo de render -->
+    <!-- Material Symbols con display=block para evitar FOUC de texto -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
       rel="stylesheet"
     />
 
-
     <style>
       .material-symbols-outlined {
+        font-family: 'Material Symbols Outlined';
+        font-weight: normal;
+        font-style: normal;
+        font-size: 24px;
+        line-height: 1;
+        letter-spacing: normal;
+        text-transform: none;
+        display: inline-block;
+        white-space: nowrap;
+        word-wrap: normal;
+        direction: ltr;
+        -webkit-font-feature-settings: 'liga';
+        -webkit-font-smoothing: antialiased;
         font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
       }
+      /* Evitar FOUC: oculta el texto crudo de la ligadura hasta que la fuente esté lista */
+      html:not(.fonts-loaded) .material-symbols-outlined {
+        visibility: hidden !important;
+      }
     </style>
+    <script>
+      (function() {
+        if ('fonts' in document) {
+          document.fonts.load('24px "Material Symbols Outlined"').then(function() {
+            document.documentElement.classList.add('fonts-loaded');
+          }).catch(function() {
+            document.documentElement.classList.add('fonts-loaded');
+          });
+          setTimeout(function() {
+            document.documentElement.classList.add('fonts-loaded');
+          }, 1200);
+        } else {
+          document.documentElement.classList.add('fonts-loaded');
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

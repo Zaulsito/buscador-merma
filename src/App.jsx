@@ -49,8 +49,12 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <p className="text-white text-xl">Cargando...</p>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center select-none font-sans">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-purple-500/20 mb-4 animate-pulse">
+          <img src="/icon-192.png" alt="Cetelio" className="w-10 h-10 object-contain rounded-xl" />
+        </div>
+        <p className="text-white font-bold text-base tracking-wide">Cetelio</p>
+        <p className="text-slate-400 text-xs mt-1">Cargando entorno...</p>
       </div>
     );
   }

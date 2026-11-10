@@ -131,9 +131,16 @@ export default function ManageSectoresAuditoria({
 
   // Sección activa
   const [seccionActiva, setSeccionActiva] = useState(() => {
-    if (categorias.some(c => c.nombre === seccionInicial)) return seccionInicial;
-    return categorias[0]?.nombre || "Botillería";
+    if (seccionInicial === "Todas") return "Todas";
+    if (categorias.some(c => (c.nombre || c) === seccionInicial)) return seccionInicial;
+    return "Todas";
   });
+
+  useEffect(() => {
+    if (seccionInicial) {
+      setSeccionActiva(seccionInicial);
+    }
+  }, [seccionInicial]);
 
   // Scroll horizontal de categorías
   const categoriesRef = useRef(null);
@@ -151,6 +158,7 @@ export default function ManageSectoresAuditoria({
   const [mostrarNuevoSector, setMostrarNuevoSector] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoTipo, setNuevoTipo] = useState("Pasillo");
+  const [nuevoSeccion, setNuevoSeccion] = useState("");
   const [nuevoItemsTexto, setNuevoItemsTexto] = useState("");
 
   // Estados de IA y Archivos
@@ -175,7 +183,10 @@ export default function ManageSectoresAuditoria({
 
   // Filtrar sectores de la sección activa
   const sectoresDeSeccion = useMemo(() => {
-    return sectores.filter(s => (s.seccion || "").toLowerCase() === seccionActiva.toLowerCase());
+    if (seccionActiva === "Todas") {
+      return sectores || [];
+    }
+    return (sectores || []).filter(s => (s?.seccion || "").toLowerCase() === (seccionActiva || "").toLowerCase());
   }, [sectores, seccionActiva]);
 
   // Búsqueda global o local
@@ -197,7 +208,7 @@ export default function ManageSectoresAuditoria({
 
       if (pNorm.includes(q)) {
         yaVistos.add(pNorm);
-        const isMismaSeccion = normalizeText(p.categoria) === normalizeText(seccionActiva);
+        const isMismaSeccion = seccionActiva === "Todas" || normalizeText(p.categoria) === normalizeText(seccionActiva);
         if (isMismaSeccion) {
           matchSeccion.push({ nombre: pNom, categoria: p.categoria });
         } else {
@@ -389,22 +400,27 @@ export default function ManageSectoresAuditoria({
       return;
     }
 
+    const targetSeccion = seccionActiva === "Todas"
+      ? (nuevoSeccion || categoriasUnicas[0]?.nombre || "General")
+      : seccionActiva;
+
     const items = nuevoItemsTexto
       ? nuevoItemsTexto.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean)
       : [];
 
     try {
       await addDoc(collection(db, "auditoria_sectores"), {
-        seccion: seccionActiva,
+        seccion: targetSeccion,
         nombre: nuevoNombre.trim(),
         tipo: nuevoTipo || "Pasillo",
         items,
-        orden: sectoresDeSeccion.length + 1,
+        orden: sectores.filter(s => (s.seccion || "").toLowerCase() === targetSeccion.toLowerCase()).length + 1,
         creadoEn: new Date()
       });
       toast.success("Sector creado con éxito");
       setNuevoNombre("");
       setNuevoTipo("Pasillo");
+      setNuevoSeccion("");
       setNuevoItemsTexto("");
       setMostrarNuevoSector(false);
       onUpdate();
@@ -627,9 +643,27 @@ export default function ManageSectoresAuditoria({
               }}
               className="flex-1 flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth no-scrollbar"
             >
+              {/* Opción Ver Todas */}
+              <button
+                type="button"
+                onClick={() => setSeccionActiva("Todas")}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex items-center gap-2 ${
+                  seccionActiva === "Todas"
+                    ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-500/20 scale-105"
+                    : `${t.bgCard} ${t.textSecondary} ${t.border} hover:text-purple-400 hover:border-purple-500/40`
+                }`}
+              >
+                <span>Todas</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  seccionActiva === "Todas" ? "bg-black/30 text-white" : "bg-white/10 text-slate-300"
+                }`}>
+                  {sectores.length}
+                </span>
+              </button>
+
               {categoriasUnicas.map(cat => {
-                const count = sectores.filter(s => normalizeText(s.seccion) === normalizeText(cat.nombre)).length;
-                const isSelected = normalizeText(seccionActiva) === normalizeText(cat.nombre);
+                const count = (sectores || []).filter(s => normalizeText(s?.seccion) === normalizeText(cat?.nombre)).length;
+                const isSelected = normalizeText(seccionActiva) === normalizeText(cat?.nombre);
                 return (
                   <button
                     key={cat.id || cat.nombre}
@@ -671,9 +705,9 @@ export default function ManageSectoresAuditoria({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
             <div>
               <h3 className={`text-base font-black ${t.text} flex items-center gap-2`}>
-                <span>Pasillos de {seccionActiva}</span>
+                <span>{seccionActiva === "Todas" ? "Todos los Sectores y Pasillos" : `Pasillos de ${seccionActiva}`}</span>
                 <span className="text-xs font-normal text-purple-400">
-                  ({sectoresDeSeccion.length} sectores registrados)
+                  ({sectoresDeSeccion.length} {sectoresDeSeccion.length === 1 ? "sector registrado" : "sectores registrados"})
                 </span>
               </h3>
               {term && (
@@ -700,7 +734,7 @@ export default function ManageSectoresAuditoria({
               <div className="flex items-center justify-between">
                 <h4 className={`text-sm font-bold ${t.text} flex items-center gap-1.5 text-purple-400`}>
                   <span className="material-symbols-outlined" style={{ fontSize: 18 }}>playlist_add</span>
-                  Crear Sector en {seccionActiva}
+                  {seccionActiva === "Todas" ? "Crear Nuevo Sector" : `Crear Sector en ${seccionActiva}`}
                 </h4>
 
                 {/* Botón de Rellenar con Foto / Ctrl+V */}
@@ -720,6 +754,23 @@ export default function ManageSectoresAuditoria({
                   </span>
                 </button>
               </div>
+
+              {seccionActiva === "Todas" && (
+                <div>
+                  <label className={`block text-xs font-semibold ${t.textSecondary} mb-1`}>
+                    Sección / Categoría a la que pertenece *
+                  </label>
+                  <select
+                    value={nuevoSeccion || (categoriasUnicas[0]?.nombre || "")}
+                    onChange={(e) => setNuevoSeccion(e.target.value)}
+                    className={`w-full px-3 py-2 rounded-xl ${t.bgCard} border ${t.border} ${t.text} text-sm focus:outline-none focus:border-purple-500`}
+                  >
+                    {categoriasUnicas.map(cat => (
+                      <option key={cat.id || cat.nombre} value={cat.nombre}>{cat.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
@@ -789,7 +840,9 @@ export default function ManageSectoresAuditoria({
                 shelves
               </span>
               <p className={`${t.text} font-bold text-sm`}>
-                No hay sectores definidos para {seccionActiva}
+                {seccionActiva === "Todas"
+                  ? "No hay sectores registrados en el sistema"
+                  : `No hay sectores definidos para ${seccionActiva}`}
               </p>
               <p className={`${t.textSecondary} text-xs max-w-sm mx-auto`}>
                 Puedes crear pasillos manualmente o presionar <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px]">Ctrl + V</kbd> con una imagen copiada.
@@ -818,8 +871,9 @@ export default function ManageSectoresAuditoria({
                 const items = Array.isArray(sector.items) ? sector.items : [];
                 
                 // Verificar si coincide con la búsqueda
-                const matchesSectorName = sector.nombre.toLowerCase().includes(term);
-                const matchingItems = term ? items.filter(it => it.toLowerCase().includes(term)) : [];
+                const nombreSec = sector?.nombre || "";
+                const matchesSectorName = nombreSec.toLowerCase().includes(term);
+                const matchingItems = term ? items.filter(it => (typeof it === "string" ? it : String(it || "")).toLowerCase().includes(term)) : [];
                 const isMatch = !term || matchesSectorName || matchingItems.length > 0;
 
                 if (!isMatch) return null;
@@ -888,6 +942,11 @@ export default function ManageSectoresAuditoria({
                                 }`}>
                                   {sector.tipo || "Pasillo"}
                                 </span>
+                                {seccionActiva === "Todas" && sector.seccion && (
+                                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide uppercase bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                    {sector.seccion}
+                                  </span>
+                                )}
                               </div>
                               <p className={`text-[11px] ${t.textSecondary} mt-0.5`}>
                                 {items.length} {items.length === 1 ? "producto / categoría" : "productos / categorías"}

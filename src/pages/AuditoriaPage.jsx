@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
 import ManageSectoresAuditoria from "../components/ManageSectoresAuditoria";
 import MapaSupermercadoLeaflet from "../components/MapaSupermercadoLeaflet";
+import GeneradorEan13View from "../components/GeneradorEan13View";
 
 const DEFAULT_SECTORES_BOTILLERIA = [
   {
@@ -218,15 +219,31 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [productos, setProductos] = useState([]);
   const [categoriasList, setCategoriasList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fontsReady, setFontsReady] = useState(false);
+
+  useEffect(() => {
+    if ('fonts' in document) {
+      document.fonts.load('24px "Material Symbols Outlined"').then(() => {
+        setFontsReady(true);
+      }).catch(() => {
+        setFontsReady(true);
+      });
+      const t = setTimeout(() => setFontsReady(true), 1200);
+      return () => clearTimeout(t);
+    } else {
+      setFontsReady(true);
+    }
+  }, []);
   
   // Filtros
   const [searchQuery, setSearchQuery] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("Todas");
 
   // Navigation Tabs & Quick Filters
-  const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores" | "mapa"
+  const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores" | "mapa" | "ean13"
   const [filtroUbicacion, setFiltroUbicacion] = useState("todos"); // "todos" | "ubicados" | "sin_ubicacion"
   const [productoEnfocadoMapa, setProductoEnfocadoMapa] = useState(null);
+  const [productoSeleccionadoEan, setProductoSeleccionadoEan] = useState(null);
 
   const enfocarEnMapa = (producto) => {
     setProductoEnfocadoMapa(producto);
@@ -246,6 +263,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [nombre, setNombre] = useState("");
   const [ean, setEan] = useState("");
   const [sku, setSku] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [marca, setMarca] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [ubicacionInputFocused, setUbicacionInputFocused] = useState(false);
   const [categoria, setCategoria] = useState("");
@@ -467,6 +486,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setNombre("");
     setEan("");
     setSku("");
+    setPrecio("");
+    setMarca("");
     setUbicacion("");
     setUbicacionInputFocused(false);
     setCategoria(categoriasList.length > 0 ? categoriasList[0].nombre : "");
@@ -486,6 +507,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setNombre(prod.nombre || "");
     setEan(prod.ean || "");
     setSku(prod.sku || "");
+    setPrecio(prod.precio !== undefined && prod.precio !== null && prod.precio !== "" ? String(prod.precio) : "");
+    setMarca(prod.marca || "");
     setUbicacion(prod.ubicacion || "");
     setCategoria(prod.categoria || (categoriasList.length > 0 ? categoriasList[0].nombre : ""));
     setImagenUrl(prod.imagen || "");
@@ -587,39 +610,67 @@ export default function AuditoriaPage({ onBackToSelector }) {
       const skuExtraido = String(parsed.sku || parsed.SKU || parsed.codigo_sku || parsed.codigo || "").trim();
       const categoriaExtraida = (parsed.categoria || parsed.Categoria || parsed.CATEGORIA || "").trim();
 
-      if (!nombreExtraido && !eanExtraido && !skuExtraido) {
-        toast.error("La IA no detectó nombre, EAN ni SKU en esta foto. Asegúrate de enfocar la etiqueta.", { id: toastId, duration: 6000 });
+      // Extraer precio y marca desde la etiqueta
+      let precioExtraido = "";
+      if (parsed.precio !== undefined && parsed.precio !== null && parsed.precio !== "") {
+        precioExtraido = String(parsed.precio).replace(/[^\d]/g, "");
+      } else if (parsed.valor !== undefined && parsed.valor !== null) {
+        precioExtraido = String(parsed.valor).replace(/[^\d]/g, "");
+      } else {
+        const matchPrecio = resultStr.match(/\$\s*(\d{1,3}(?:\.\d{3})+|\d{3,6})/);
+        if (matchPrecio) {
+          precioExtraido = matchPrecio[1].replace(/\./g, "");
+        }
+      }
+
+      const marcaExtraida = (parsed.marca || parsed.Marca || parsed.MARCA || "").trim();
+
+      if (!nombreExtraido && !eanExtraido && !skuExtraido && !precioExtraido) {
+        toast.error("La IA no detectó datos en esta foto. Asegúrate de enfocar la etiqueta.", { id: toastId, duration: 6000 });
         return;
       }
       
-      // Validación inmediata: Verificar si EAN o SKU ya existen
+      // Validación: Verificar si EAN o SKU ya existen
       const pId = editando?.id;
       const eanExiste = eanExtraido ? productos.find(p => p.ean === eanExtraido && p.id !== pId) : null;
       const skuExiste = skuExtraido ? productos.find(p => p.sku === skuExtraido && p.id !== pId) : null;
       const productoExistente = eanExiste || skuExiste;
       
       if (productoExistente) {
-        const leFaltaEan = !productoExistente.ean && eanExtraido;
-        const leFaltaSku = !productoExistente.sku && skuExtraido;
-        
-        if (leFaltaEan || leFaltaSku) {
-          const mensaje = `El producto "${productoExistente.nombre}" ya existe en la base de datos, pero le falta ${leFaltaEan ? 'el EAN' : ''}${leFaltaEan && leFaltaSku ? ' y ' : ''}${leFaltaSku ? 'el SKU' : ''}.\n\n¿Deseas editar el producto existente y rellenar estos datos faltantes automáticamente?`;
-          if (window.confirm(mensaje)) {
-            abrirEditar(productoExistente);
-            if (leFaltaEan) setEan(eanExtraido);
-            if (leFaltaSku) setSku(skuExtraido);
-            toast.success("¡Datos rellenados! Revisa y haz clic en Guardar.", { id: toastId });
-            return;
-          }
+        const datosDetectados = [];
+        if (precioExtraido) datosDetectados.push(`Precio: $${Number(precioExtraido).toLocaleString("es-CL")}`);
+        if (marcaExtraida) datosDetectados.push(`Marca: ${marcaExtraida}`);
+        if (eanExtraido && !productoExistente.ean) datosDetectados.push(`EAN: ${eanExtraido}`);
+        if (skuExtraido && !productoExistente.sku) datosDetectados.push(`SKU: ${skuExtraido}`);
+        if (nombreExtraido && !productoExistente.nombre) datosDetectados.push(`Nombre: ${nombreExtraido}`);
+
+        const resumenDatos = datosDetectados.length > 0 ? `\n\nDatos detectados en la imagen:\n• ${datosDetectados.join("\n• ")}` : "";
+
+        const mensaje = `El producto "${productoExistente.nombre}" ya existe en el sistema (SKU: ${productoExistente.sku || "S/N"}, EAN: ${productoExistente.ean || "S/N"}).${resumenDatos}\n\n¿Deseas abrir la edición de este producto y rellenar/actualizar sus datos automáticamente?`;
+
+        if (window.confirm(mensaje)) {
+          abrirEditar(productoExistente);
+          if (precioExtraido) setPrecio(precioExtraido);
+          if (marcaExtraida) setMarca(marcaExtraida);
+          if (eanExtraido && !productoExistente.ean) setEan(eanExtraido);
+          if (skuExtraido && !productoExistente.sku) setSku(skuExtraido);
+          if (nombreExtraido && !productoExistente.nombre) setNombre(nombreExtraido);
+          toast.success("¡Datos rellenados en el producto existente! Revisa y haz clic en Guardar.", { id: toastId, duration: 5000 });
+          return;
+        } else {
+          // Si el usuario decide continuar con el formulario actual
+          if (precioExtraido) setPrecio(precioExtraido);
+          if (marcaExtraida) setMarca(marcaExtraida);
+          toast("Se aplicaron los datos detectados al formulario actual.", { id: toastId, icon: "ℹ️" });
+          return;
         }
-        
-        toast.error(`⚠️ Etiqueta descartada. El producto ya existe: ${productoExistente.nombre}`, { duration: 5000, id: toastId });
-        return;
       }
       
       if (nombreExtraido) setNombre(nombreExtraido);
       if (eanExtraido) setEan(eanExtraido);
       if (skuExtraido) setSku(skuExtraido);
+      if (precioExtraido) setPrecio(precioExtraido);
+      if (marcaExtraida) setMarca(marcaExtraida);
       // Detección automática para Perfumería (higiene, cuidado personal y belleza)
       const terminosPerfumeria = [
         "shampoo", "champu", "jabon", "balsamo", "acondicionador", 
@@ -732,10 +783,14 @@ export default function AuditoriaPage({ onBackToSelector }) {
         finalImageUrl = await getDownloadURL(fileRef);
       }
 
+      const numPrecio = (precio !== "" && precio !== null && !isNaN(Number(precio))) ? Number(precio) : null;
+
       const datos = {
         nombre: nombre.trim(),
         ean: ean.trim(),
         sku: sku.trim(),
+        precio: numPrecio,
+        marca: (marca || "").trim(),
         ubicacion: ubicacion.trim(),
         categoria,
         imagen: finalImageUrl,
@@ -903,6 +958,44 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const uniqueCategorias = sortCategorias(Array.from(new Map(categoriasList.map(c => [c.nombre, c])).values()));
 
+  if (loading || !fontsReady) {
+    return (
+      <div className={`min-h-screen ${t.bg} flex flex-col items-center justify-center relative overflow-hidden font-sans p-6`}>
+        <DecorativeBackground color1="purple-600" color2="indigo-600" />
+        
+        <div className="relative z-10 flex flex-col items-center max-w-sm text-center space-y-5 animate-fadeIn">
+          {/* Logo animado */}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center shadow-2xl shadow-purple-500/40">
+              <span className="material-symbols-outlined text-white" style={{ fontSize: 38, fontVariationSettings: "'FILL' 1" }}>
+                location_on
+              </span>
+            </div>
+            <div className="absolute -inset-2 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-3xl blur-xl opacity-30 animate-pulse pointer-events-none" />
+          </div>
+
+          <div className="space-y-1.5">
+            <h2 className={`text-xl font-black ${t.text} tracking-tight`}>
+              Ubicación de Productos
+            </h2>
+            <p className={`text-xs ${t.textSecondary} max-w-xs leading-relaxed`}>
+              Cargando catálogo, pasillos y herramientas...
+            </p>
+          </div>
+
+          {/* Barra de progreso */}
+          <div className="w-48 h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+            <div className="h-full bg-gradient-to-r from-purple-500 via-indigo-400 to-purple-500 rounded-full w-2/3 animate-pulse" />
+          </div>
+
+          <p className="text-[11px] font-mono text-purple-400/80">
+            Jumbo &bull; Cetelio
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-hidden font-sans`}>
       <DecorativeBackground color1="purple-600" color2="indigo-600" />
@@ -946,13 +1039,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
       <main className="relative z-10 flex-1 flex flex-col p-3 sm:p-6 overflow-y-auto overflow-x-hidden">
         <div className="max-w-6xl w-full mx-auto space-y-4 sm:space-y-6">
           
-          {/* Menú Superior: Productos, Sectores y Mapa */}
+          {/* Menú Superior: Productos, Sectores, Mapa y EAN-13 */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-b border-white/10 pb-3 sm:pb-4">
-            <div className={`grid grid-cols-3 sm:flex items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl ${t.bgCard} border ${t.border} shadow-sm w-full sm:w-auto gap-1`}>
+            <div className={`grid grid-cols-2 sm:flex flex-wrap sm:flex-nowrap items-center p-1 sm:p-1.5 rounded-xl sm:rounded-2xl ${t.bgCard} border ${t.border} shadow-sm w-full sm:w-auto gap-1`}>
               <button
                 type="button"
                 onClick={() => setActiveTab("productos")}
-                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
                   activeTab === "productos"
                     ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : `${t.textSecondary} hover:text-white hover:bg-white/5`
@@ -970,7 +1063,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
               <button
                 type="button"
                 onClick={() => setActiveTab("sectores")}
-                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
+                className={`flex items-center justify-center gap-1.5 sm:gap-2.5 px-2 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
                   activeTab === "sectores"
                     ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
                     : `${t.textSecondary} hover:text-white hover:bg-white/5`
@@ -1002,6 +1095,23 @@ export default function AuditoriaPage({ onBackToSelector }) {
                 <span className="sm:hidden">Mapa</span>
                 <span className="hidden sm:inline px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-pink-500/20 text-pink-300 border border-pink-500/30">
                   En vivo
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("ean13")}
+                className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-2 sm:px-4 sm:py-2.5 rounded-lg sm:rounded-xl font-black text-xs sm:text-sm transition-all ${
+                  activeTab === "ean13"
+                    ? "bg-purple-600 text-white shadow-md sm:shadow-lg shadow-purple-500/30 scale-[1.01]"
+                    : `${t.textSecondary} hover:text-white hover:bg-white/5`
+                }`}
+              >
+                <span className="material-symbols-outlined text-[17px] sm:text-[20px]">barcode_scanner</span>
+                <span className="hidden sm:inline">EAN-13 Balanza</span>
+                <span className="sm:hidden">EAN-13</span>
+                <span className="hidden sm:inline px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Balanza
                 </span>
               </button>
             </div>
@@ -1365,10 +1475,21 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     <div className="flex justify-between items-start gap-2 mb-1">
                       <h3 className={`font-bold ${t.text} line-clamp-2 leading-tight`}>{prod.nombre}</h3>
                     </div>
+
+                    {prod.marca && (
+                      <p className="text-[11px] font-bold text-purple-400 uppercase tracking-wider mb-1 truncate">
+                        {prod.marca}
+                      </p>
+                    )}
                     
-                    <div className="flex flex-col gap-1 mb-3 self-start">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3 self-start">
                       <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>EAN: {prod.ean}</p>
                       <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>SKU: {prod.sku}</p>
+                      {prod.precio !== undefined && prod.precio !== null && prod.precio !== "" && (
+                        <p className="text-[11px] font-mono font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shadow-sm">
+                          ${Number(prod.precio).toLocaleString("es-CL")}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="mt-auto flex flex-col gap-2">
@@ -1377,20 +1498,35 @@ export default function AuditoriaPage({ onBackToSelector }) {
                           <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
                           <span className="truncate text-xs font-semibold">{prod.ubicacion || "Sin ubicación"}</span>
                         </div>
-                        {prod.ubicacion && (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {prod.ubicacion && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                enfocarEnMapa(prod);
+                              }}
+                              className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                              title="Ver en mapa interactivo"
+                            >
+                              <span>📍</span>
+                              <span className="hidden sm:inline">Mapa</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              enfocarEnMapa(prod);
+                              setProductoSeleccionadoEan(prod);
+                              setActiveTab("ean13");
                             }}
-                            className="shrink-0 px-2 py-0.5 rounded-lg text-[10px] font-black bg-purple-600/20 text-purple-300 border border-purple-500/30 hover:bg-purple-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
-                            title="Ver en mapa interactivo"
+                            className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600 hover:text-white transition-all flex items-center gap-1 shadow-sm"
+                            title="Generar código de balanza EAN-13"
                           >
-                            <span>📍</span>
-                            <span>Ver en mapa</span>
+                            <span className="material-symbols-outlined" style={{ fontSize: 13 }}>barcode_scanner</span>
+                            <span>EAN</span>
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1443,11 +1579,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
             sectores={sectores}
             categorias={uniqueCategorias}
             productos={productos}
-            seccionInicial={categoriaFiltro === "Todas" ? (uniqueCategorias[0]?.nombre || "Botillería") : categoriaFiltro}
+            seccionInicial={categoriaFiltro === "Todas" ? "Todas" : categoriaFiltro}
             onUpdate={recargarSectores}
           />
         </div>
-      ) : (
+      ) : activeTab === "mapa" ? (
         <div className="space-y-6 animate-fadeIn">
           <MapaSupermercadoLeaflet
             productos={productos}
@@ -1455,15 +1591,16 @@ export default function AuditoriaPage({ onBackToSelector }) {
             categorias={uniqueCategorias}
             productoEnfocado={productoEnfocadoMapa}
             onVerProducto={(prod) => {
-              setEditando(prod);
-              setNombre(prod.nombre || "");
-              setEan(prod.ean || "");
-              setSku(prod.sku || "");
-              setUbicacion(prod.ubicacion || "");
-              setCategoria(prod.categoria || "");
-              setImagenUrl(prod.imagenUrl || "");
-              setModalOpen(true);
+              abrirEditar(prod);
             }}
+          />
+        </div>
+      ) : (
+        <div className="space-y-6 animate-fadeIn">
+          <GeneradorEan13View
+            productos={productos}
+            productoInicial={productoSeleccionadoEan}
+            onLimpiarProductoInicial={() => setProductoSeleccionadoEan(null)}
           />
         </div>
       )}
@@ -1591,6 +1728,46 @@ export default function AuditoriaPage({ onBackToSelector }) {
                         ⚠️ Ya existe: {productos.find(p => p.sku === sku.trim() && p.id !== editando?.id).nombre}
                       </p>
                     )}
+                  </div>
+                </div>
+
+                {/* Precio y Marca */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1 flex items-center justify-between`}>
+                      <span>Precio ($)</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                      <input 
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={precio}
+                        onChange={(e) => setPrecio(e.target.value)}
+                        className={`w-full pl-8 pr-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors font-mono`}
+                        placeholder="Ej: 9390"
+                      />
+                    </div>
+                    {precio && !isNaN(Number(precio)) && Number(precio) > 0 && (
+                      <p className="text-[11px] text-emerald-400 font-bold mt-1">
+                        Formato: ${Number(precio).toLocaleString("es-CL")}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1 flex items-center justify-between`}>
+                      <span>Marca</span>
+                      <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
+                    </label>
+                    <input 
+                      type="text"
+                      value={marca}
+                      onChange={(e) => setMarca(e.target.value)}
+                      className={`w-full px-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors`}
+                      placeholder="Ej: ZenOrganics, Colun..."
+                    />
                   </div>
                 </div>
 
