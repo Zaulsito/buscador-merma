@@ -8,7 +8,7 @@ export default function AppSelector({ onSelectApp }) {
   const { t } = useTheme();
 
   return (
-    <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-hidden font-sans`}>
+    <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-x-clip font-sans`}>
       <DecorativeBackground color1="blue-600" color2="purple-600" />
       
       {/* Header */}

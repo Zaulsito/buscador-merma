@@ -997,7 +997,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
   }
 
   return (
-    <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-hidden font-sans`}>
+    <div className={`min-h-screen ${t.bg} flex flex-col relative overflow-x-clip font-sans`}>
       <DecorativeBackground color1="purple-600" color2="indigo-600" />
       
       {/* Header */}
@@ -1036,7 +1036,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
       </header>
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col p-3 sm:p-6 overflow-y-auto overflow-x-hidden">
+      <main className="relative z-10 flex-1 flex flex-col p-3 sm:p-6">
         <div className="max-w-6xl w-full mx-auto space-y-4 sm:space-y-6">
           
           {/* Menú Superior: Productos, Sectores, Mapa y EAN-13 */}

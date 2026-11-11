@@ -699,7 +699,7 @@ export default function ManageSectoresAuditoria({
         </div>
 
         {/* Contenido Principal con Scroll */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+        <div className={embedded ? "flex-1 p-4 md:p-6 space-y-6" : "flex-1 overflow-y-auto p-4 md:p-6 space-y-6"}>
           
           {/* Header de la Sección Activa y Botón Agregar Sector */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-white/5">
