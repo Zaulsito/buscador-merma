@@ -243,7 +243,10 @@ Analiza la imagen proporcionada y extrae los siguientes datos:
 - Textil
 - Verdulería
 Si no estás seguro o no encaja, pon "Todas".
-5. Precio: Si aparece un precio unitario, precio por kilo ($/kg), o precio total a pagar (ej: $9.390, $5.859, $1.290), extrae el valor como número entero en pesos chilenos sin puntos (ej: 9390). Si no aparece, deja null.
+5. Precio y Oferta (números enteros en pesos chilenos sin puntos):
+   - Si hay UN SOLO precio (precio normal o por kilo $/kg, ej: $9.390, $1.290), ponlo en "precio" (ej: 9390), deja "precioOferta": null y "enOferta": false.
+   - Si hay DOS precios juntos en "Precio" donde uno está tachado y otro vigente (ej: "$10.360 $14.260" con $14.260 tachado, o "$750 $1.090" con $1.090 tachado), pon SIEMPRE el precio original/tachado (mayor) en "precio" (ej: 14260 o 1090), el precio con descuento/vigente (menor) en "precioOferta" (ej: 10360 o 750) y "enOferta": true.
+   - IMPORTANTE: Si aparece un "Precio total solicitado" calculado según cantidad/peso (ej: 0,800 kg -> $8.288), NO lo uses como precio ni precioOferta; usa el valor del campo "Precio". Si no aparece precio, deja null y enOferta: false.
 6. Marca: Marca o fabricante del producto si aparece en la etiqueta (ej: "ZenOrganics", "Colun", "Soprole", etc.). Si no aparece, deja "".
 
 Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente estructura:
@@ -252,7 +255,9 @@ Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente es
   "ean": "codigo_ean",
   "sku": "codigo_sku",
   "categoria": "Nombre Categoria",
-  "precio": 9390,
+  "precio": 14260,
+  "precioOferta": 10360,
+  "enOferta": true,
   "marca": "Nombre de la Marca"
 }
 Si un dato no aparece, déjalo como string vacío "" o null. Responde ÚNICAMENTE con el JSON.`;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "../context/ThemeContext";
 import toast from "react-hot-toast";
 import { calcEan13CheckDigit, buildEan13Modules } from "../utils/ean13Utils";
+import { getPrecioProducto } from "../utils/precioUtils";
 
 /**
  * Componente SVG para renderizar el código de barras EAN-13 con calidad vectorial.
@@ -190,9 +191,16 @@ export default function GeneradorEan13View({ productos = [], productoInicial = n
       setBasePlu("2495190");
     }
 
-    if (prod.precio !== undefined && prod.precio !== null && !isNaN(Number(prod.precio)) && Number(prod.precio) > 0) {
-      setPrecioUnitario(Number(prod.precio));
-      toast.success(`Producto cargado: ${prod.nombre} ($${Number(prod.precio).toLocaleString("es-CL")})`);
+    const { tieneOferta, precioNormal, precioOferta, precioActivo } = getPrecioProducto(prod);
+    if (precioActivo !== null && precioActivo > 0) {
+      setPrecioUnitario(precioActivo);
+      if (tieneOferta && precioNormal) {
+        toast.success(
+          `Producto cargado: ${prod.nombre} (Oferta: $${precioOferta.toLocaleString("es-CL")} · Normal: $${precioNormal.toLocaleString("es-CL")})`
+        );
+      } else {
+        toast.success(`Producto cargado: ${prod.nombre} ($${precioActivo.toLocaleString("es-CL")})`);
+      }
     } else {
       toast.success(`Producto cargado: ${prod.nombre}`);
     }
@@ -548,14 +556,35 @@ export default function GeneradorEan13View({ productos = [], productoInicial = n
                           <span>EAN: {prod.ean || "S/N"}</span>
                           <span>&bull;</span>
                           <span>SKU: {prod.sku || "S/N"}</span>
-                          {prod.precio ? (
-                            <>
-                              <span>&bull;</span>
-                              <span className="text-emerald-400 font-bold font-mono">
-                                ${Number(prod.precio).toLocaleString("es-CL")}
-                              </span>
-                            </>
-                          ) : null}
+                          {(() => {
+                            const pInfo = getPrecioProducto(prod);
+                            if (pInfo.tieneOferta) {
+                              return (
+                                <>
+                                  <span>&bull;</span>
+                                  <span className="text-emerald-400 font-bold font-mono">
+                                    Oferta ${pInfo.precioOferta.toLocaleString("es-CL")}
+                                  </span>
+                                  {pInfo.precioNormal !== null && (
+                                    <span className="line-through text-slate-500 font-mono">
+                                      ${pInfo.precioNormal.toLocaleString("es-CL")}
+                                    </span>
+                                  )}
+                                </>
+                              );
+                            }
+                            if (pInfo.precioNormal !== null) {
+                              return (
+                                <>
+                                  <span>&bull;</span>
+                                  <span className="text-emerald-400 font-bold font-mono">
+                                    ${pInfo.precioNormal.toLocaleString("es-CL")}
+                                  </span>
+                                </>
+                              );
+                            }
+                            return null;
+                          })()}
                         </p>
                       </div>
                     </div>
@@ -570,15 +599,33 @@ export default function GeneradorEan13View({ productos = [], productoInicial = n
             {/* Producto actualmente activo */}
             <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-0.5">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400">
                     Producto Seleccionado
                   </span>
-                  {productoSeleccionado?.precio ? (
-                    <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                      Base: ${Number(productoSeleccionado.precio).toLocaleString("es-CL")}
-                    </span>
-                  ) : null}
+                  {(() => {
+                    const selInfo = getPrecioProducto(productoSeleccionado);
+                    if (selInfo.tieneOferta) {
+                      return (
+                        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30 flex items-center gap-1">
+                          <span>Oferta: ${selInfo.precioOferta.toLocaleString("es-CL")}</span>
+                          {selInfo.precioNormal !== null && (
+                            <span className="line-through opacity-65">
+                              ${selInfo.precioNormal.toLocaleString("es-CL")}
+                            </span>
+                          )}
+                        </span>
+                      );
+                    }
+                    if (selInfo.precioNormal !== null) {
+                      return (
+                        <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded border border-emerald-500/30">
+                          Base: ${selInfo.precioNormal.toLocaleString("es-CL")}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
                 <input
                   type="text"
@@ -760,6 +807,42 @@ export default function GeneradorEan13View({ productos = [], productoInicial = n
                       className={`w-full pl-8 pr-3 py-2.5 rounded-xl font-mono text-base font-bold bg-black/20 border ${t.border} ${t.text} focus:outline-none focus:border-purple-500`}
                     />
                   </div>
+                  {/* Botones rápidos de precio del producto seleccionado (Oferta vs Normal) */}
+                  {(() => {
+                    const selInfo = getPrecioProducto(productoSeleccionado);
+                    if (!selInfo.tieneOferta) return null;
+                    return (
+                      <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setPrecioUnitario(selInfo.precioOferta)}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
+                            precioUnitario === selInfo.precioOferta
+                              ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                          }`}
+                        >
+                          <span>🏷️ Oferta:</span>
+                          <span className="font-mono">${selInfo.precioOferta.toLocaleString("es-CL")}</span>
+                        </button>
+                        {selInfo.precioNormal !== null && (
+                          <button
+                            type="button"
+                            onClick={() => setPrecioUnitario(selInfo.precioNormal)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
+                              precioUnitario === selInfo.precioNormal
+                                ? "bg-purple-600 text-white border-purple-400 shadow-sm"
+                                : "bg-white/5 text-slate-300 border-white/10 hover:border-purple-400/50"
+                            }`}
+                          >
+                            <span>Normal:</span>
+                            <span className="font-mono">${selInfo.precioNormal.toLocaleString("es-CL")}</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* Presets de precios comunes */}
                   <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                     {[5990, 8990, 9390, 12990, 15990].map((pr) => (

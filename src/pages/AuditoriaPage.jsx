@@ -10,6 +10,7 @@ import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
 import ManageSectoresAuditoria from "../components/ManageSectoresAuditoria";
 import MapaSupermercadoLeaflet from "../components/MapaSupermercadoLeaflet";
 import GeneradorEan13View from "../components/GeneradorEan13View";
+import { getPrecioProducto, parsePrecioNumero } from "../utils/precioUtils";
 
 const DEFAULT_SECTORES_BOTILLERIA = [
   {
@@ -242,6 +243,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
   // Navigation Tabs & Quick Filters
   const [activeTab, setActiveTab] = useState("productos"); // "productos" | "sectores" | "mapa" | "ean13"
   const [filtroUbicacion, setFiltroUbicacion] = useState("todos"); // "todos" | "ubicados" | "sin_ubicacion"
+  const [filtroOferta, setFiltroOferta] = useState(false);
   const [productoEnfocadoMapa, setProductoEnfocadoMapa] = useState(null);
   const [productoSeleccionadoEan, setProductoSeleccionadoEan] = useState(null);
 
@@ -264,6 +266,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
   const [ean, setEan] = useState("");
   const [sku, setSku] = useState("");
   const [precio, setPrecio] = useState("");
+  const [enOferta, setEnOferta] = useState(false);
+  const [precioOferta, setPrecioOferta] = useState("");
   const [marca, setMarca] = useState("");
   const [ubicacion, setUbicacion] = useState("");
   const [ubicacionInputFocused, setUbicacionInputFocused] = useState(false);
@@ -487,6 +491,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
     setEan("");
     setSku("");
     setPrecio("");
+    setEnOferta(false);
+    setPrecioOferta("");
     setMarca("");
     setUbicacion("");
     setUbicacionInputFocused(false);
@@ -498,16 +504,24 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   const abrirNuevo = () => {
     resetForm();
+    setScanFeedback(null);
     setModalOpen(true);
   };
 
   const abrirEditar = (prod) => {
     resetForm();
+    setScanFeedback(null);
     setEditando(prod);
     setNombre(prod.nombre || "");
     setEan(prod.ean || "");
     setSku(prod.sku || "");
     setPrecio(prod.precio !== undefined && prod.precio !== null && prod.precio !== "" ? String(prod.precio) : "");
+    setEnOferta(Boolean(prod.enOferta && parsePrecioNumero(prod.precioOferta) > 0));
+    setPrecioOferta(
+      prod.precioOferta !== undefined && prod.precioOferta !== null && prod.precioOferta !== ""
+        ? String(prod.precioOferta)
+        : ""
+    );
     setMarca(prod.marca || "");
     setUbicacion(prod.ubicacion || "");
     setCategoria(prod.categoria || (categoriasList.length > 0 ? categoriasList[0].nombre : ""));
@@ -542,6 +556,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
     e.preventDefault();
   };
 
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState(null);
+  const aiFileInputRef = useRef(null);
+  const ejecutarAnalisisIARef = useRef(null);
+
   useEffect(() => {
     const handlePaste = (e) => {
       if (!modalOpen) return;
@@ -557,7 +576,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
             const reader = new FileReader();
             reader.onload = (ev) => {
               const base64Data = ev.target.result.split(",")[1];
-              ejecutarAnalisisIA(base64Data, file.type);
+              ejecutarAnalisisIARef.current?.(base64Data, file.type);
             };
             reader.readAsDataURL(file);
           }
@@ -568,13 +587,67 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [modalOpen, categoriasList]);
+  }, [modalOpen]);
 
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const aiFileInputRef = useRef(null);
+  const resolverCategoriaDetectada = (nombreProd, catExtraida) => {
+    const terminosPerfumeria = [
+      "shampoo", "champu", "jabon", "balsamo", "acondicionador",
+      "tintura", "toalla higienica", "toallas higienicas", "toallitas higienicas",
+      "desodorante", "antitranspirante", "crema corporal", "crema facial",
+      "pasta dental", "dentifrico", "cepillo dental", "enjuague bucal",
+      "bloqueador", "protector solar", "tampon", "protectores diarios"
+    ];
+
+    const terminosMasivo = [
+      "gato", "gatos", "felino", "gatito", "gatitos", "whiskas", "churu", "felix", "cat chow", "catchow",
+      "perro", "perros", "dog chow", "dogchow", "pedigree", "mascota", "mascotas", "arena para gato", "arena sanitaria",
+      "alimento gato", "comida gato", "snack gato", "snack perro",
+      "juego de ninos", "juegos de ninos", "juego ninos", "juego infantil", "juegos infantiles",
+      "juguete", "juguetes", "peluche", "peluches",
+      "libro", "libros", "cuento", "cuentos", "novela", "novelas", "revista", "revistas",
+      "juego de mesa", "juegos de mesa", "puzzle", "rompecabezas"
+    ];
+
+    const terminosBotilleria = [
+      "cerveza", "vino", "pisco", "whisky", "whiskey", "ron", "vodka", "gin", "licor", "espumante", "tequila",
+      "oregano", "ajo en polvo", "comino", "pimienta", "alino", "curry", "pimenton molido",
+      "aji de color", "nuez moscada", "laurel", "clavo de olor", "canela en polvo", "canela entera",
+      "papas fritas", "papa frita", "doritos", "ramitas", "cheetos", "nachos", "sufles", "sufle",
+      "lays", "kryzpo", "cheezels", "tortillas queso", "mani salado"
+    ];
+
+    const nombreNorm = normalizeText(nombreProd);
+    let catFinal = catExtraida;
+
+    if (terminosPerfumeria.some(t => nombreNorm.includes(normalizeText(t)))) {
+      catFinal = "Perfumería";
+    } else if (terminosMasivo.some(t => {
+      const tNorm = normalizeText(t);
+      if (["gato", "gatos", "perro", "perros", "libro", "libros"].includes(tNorm)) {
+        const regex = new RegExp(`(^|\\s)${tNorm}(\\s|$)`, 'i');
+        return regex.test(nombreNorm);
+      }
+      return nombreNorm.includes(tNorm);
+    })) {
+      catFinal = "Masivo";
+    } else if (
+      !nombreNorm.includes("galleta") &&
+      !nombreNorm.includes("galletas") &&
+      terminosBotilleria.some(t => nombreNorm.includes(normalizeText(t)))
+    ) {
+      catFinal = "Botillería";
+    }
+
+    const catMatch = (catFinal && catFinal !== "Todas")
+      ? categoriasList.find(c => c.nombre.toLowerCase() === catFinal.toLowerCase()) || null
+      : null;
+
+    return { catFinal, catMatch };
+  };
 
   const ejecutarAnalisisIA = async (base64Data, mimeType) => {
     setIsAnalyzing(true);
+    setScanFeedback(null);
     const toastId = toast.loading("Analizando etiqueta con IA...");
     
     try {
@@ -610,125 +683,161 @@ export default function AuditoriaPage({ onBackToSelector }) {
       const skuExtraido = String(parsed.sku || parsed.SKU || parsed.codigo_sku || parsed.codigo || "").trim();
       const categoriaExtraida = (parsed.categoria || parsed.Categoria || parsed.CATEGORIA || "").trim();
 
-      // Extraer precio y marca desde la etiqueta
-      let precioExtraido = "";
-      if (parsed.precio !== undefined && parsed.precio !== null && parsed.precio !== "") {
-        precioExtraido = String(parsed.precio).replace(/[^\d]/g, "");
-      } else if (parsed.valor !== undefined && parsed.valor !== null) {
-        precioExtraido = String(parsed.valor).replace(/[^\d]/g, "");
-      } else {
+      // Extraer precio normal, precio oferta y marca desde la etiqueta
+      let numPrecioExtraido = parsePrecioNumero(parsed.precio ?? parsed.valor);
+      if (numPrecioExtraido === null) {
         const matchPrecio = resultStr.match(/\$\s*(\d{1,3}(?:\.\d{3})+|\d{3,6})/);
         if (matchPrecio) {
-          precioExtraido = matchPrecio[1].replace(/\./g, "");
+          numPrecioExtraido = parsePrecioNumero(matchPrecio[1]);
         }
       }
+      let numPrecioOfertaExtraido = parsePrecioNumero(
+        parsed.precioOferta ?? parsed.precio_oferta ?? parsed.precioDescuento
+      );
+      const numPrecioAnterior = parsePrecioNumero(parsed.precioAnterior ?? parsed.precioOriginal);
+      if (
+        numPrecioAnterior !== null &&
+        numPrecioExtraido !== null &&
+        numPrecioAnterior > numPrecioExtraido &&
+        numPrecioOfertaExtraido === null
+      ) {
+        numPrecioOfertaExtraido = numPrecioExtraido;
+        numPrecioExtraido = numPrecioAnterior;
+      }
+      if (
+        numPrecioExtraido !== null &&
+        numPrecioOfertaExtraido !== null &&
+        numPrecioOfertaExtraido > numPrecioExtraido
+      ) {
+        [numPrecioExtraido, numPrecioOfertaExtraido] = [numPrecioOfertaExtraido, numPrecioExtraido];
+      }
+      if (
+        numPrecioExtraido !== null &&
+        numPrecioOfertaExtraido !== null &&
+        numPrecioOfertaExtraido === numPrecioExtraido
+      ) {
+        numPrecioOfertaExtraido = null;
+      }
+      const tieneOfertaExtraida = Boolean(
+        parsed.enOferta !== false && numPrecioOfertaExtraido !== null && numPrecioOfertaExtraido > 0
+      );
 
       const marcaExtraida = (parsed.marca || parsed.Marca || parsed.MARCA || "").trim();
 
-      if (!nombreExtraido && !eanExtraido && !skuExtraido && !precioExtraido) {
+      if (!nombreExtraido && !eanExtraido && !skuExtraido && numPrecioExtraido === null && numPrecioOfertaExtraido === null) {
         toast.error("La IA no detectó datos en esta foto. Asegúrate de enfocar la etiqueta.", { id: toastId, duration: 6000 });
         return;
       }
+
+      const { catFinal, catMatch } = resolverCategoriaDetectada(nombreExtraido, categoriaExtraida);
       
-      // Validación: Verificar si EAN o SKU ya existen
+      // Validación: Verificar si EAN o SKU ya existen en el catálogo
       const pId = editando?.id;
-      const eanExiste = eanExtraido ? productos.find(p => p.ean === eanExtraido && p.id !== pId) : null;
-      const skuExiste = skuExtraido ? productos.find(p => p.sku === skuExtraido && p.id !== pId) : null;
+      const eanExiste = eanExtraido ? productos.find(p => (p.ean || "").trim() === eanExtraido && p.id !== pId) : null;
+      const skuExiste = skuExtraido ? productos.find(p => (p.sku || "").trim() === skuExtraido && p.id !== pId) : null;
       const productoExistente = eanExiste || skuExiste;
       
       if (productoExistente) {
-        const datosDetectados = [];
-        if (precioExtraido) datosDetectados.push(`Precio: $${Number(precioExtraido).toLocaleString("es-CL")}`);
-        if (marcaExtraida) datosDetectados.push(`Marca: ${marcaExtraida}`);
-        if (eanExtraido && !productoExistente.ean) datosDetectados.push(`EAN: ${eanExtraido}`);
-        if (skuExtraido && !productoExistente.sku) datosDetectados.push(`SKU: ${skuExtraido}`);
-        if (nombreExtraido && !productoExistente.nombre) datosDetectados.push(`Nombre: ${nombreExtraido}`);
+        const infoActual = getPrecioProducto(productoExistente);
+        const marcaActual = (productoExistente.marca || "").trim();
+        const eanActual = (productoExistente.ean || "").trim();
+        const skuActual = (productoExistente.sku || "").trim();
+        const nombreActual = (productoExistente.nombre || "").trim();
+        const categoriaActual = (productoExistente.categoria || "").trim();
 
-        const resumenDatos = datosDetectados.length > 0 ? `\n\nDatos detectados en la imagen:\n• ${datosDetectados.join("\n• ")}` : "";
+        const cambios = {};
+        const resumenCambios = [];
 
-        const mensaje = `El producto "${productoExistente.nombre}" ya existe en el sistema (SKU: ${productoExistente.sku || "S/N"}, EAN: ${productoExistente.ean || "S/N"}).${resumenDatos}\n\n¿Deseas abrir la edición de este producto y rellenar/actualizar sus datos automáticamente?`;
+        if (numPrecioExtraido !== null && numPrecioExtraido > 0 && infoActual.precioNormal !== numPrecioExtraido) {
+          cambios.precio = numPrecioExtraido;
+          resumenCambios.push(`Normal: $${numPrecioExtraido.toLocaleString("es-CL")}`);
+        }
+        if (
+          tieneOfertaExtraida &&
+          (!infoActual.tieneOferta || infoActual.precioOferta !== numPrecioOfertaExtraido)
+        ) {
+          cambios.enOferta = true;
+          cambios.precioOferta = numPrecioOfertaExtraido;
+          resumenCambios.push(`Oferta: $${numPrecioOfertaExtraido.toLocaleString("es-CL")}`);
+        }
+        if (marcaExtraida && normalizeText(marcaActual) !== normalizeText(marcaExtraida)) {
+          cambios.marca = marcaExtraida;
+          resumenCambios.push(`Marca: ${marcaExtraida}`);
+        }
+        if (eanExtraido && !eanActual && !productos.some(p => (p.ean || "").trim() === eanExtraido && p.id !== productoExistente.id)) {
+          cambios.ean = eanExtraido;
+          resumenCambios.push(`EAN: ${eanExtraido}`);
+        }
+        if (skuExtraido && !skuActual && !productos.some(p => (p.sku || "").trim() === skuExtraido && p.id !== productoExistente.id)) {
+          cambios.sku = skuExtraido;
+          resumenCambios.push(`SKU: ${skuExtraido}`);
+        }
+        if (nombreExtraido && !nombreActual) {
+          cambios.nombre = nombreExtraido;
+          resumenCambios.push(`Nombre: ${nombreExtraido}`);
+        }
+        if (catMatch && (!categoriaActual || categoriaActual === "Todas")) {
+          cambios.categoria = catMatch.nombre;
+          resumenCambios.push(`Categoría: ${catMatch.nombre}`);
+        }
 
-        if (window.confirm(mensaje)) {
-          abrirEditar(productoExistente);
-          if (precioExtraido) setPrecio(precioExtraido);
-          if (marcaExtraida) setMarca(marcaExtraida);
-          if (eanExtraido && !productoExistente.ean) setEan(eanExtraido);
-          if (skuExtraido && !productoExistente.sku) setSku(skuExtraido);
-          if (nombreExtraido && !productoExistente.nombre) setNombre(nombreExtraido);
-          toast.success("¡Datos rellenados en el producto existente! Revisa y haz clic en Guardar.", { id: toastId, duration: 5000 });
-          return;
-        } else {
-          // Si el usuario decide continuar con el formulario actual
-          if (precioExtraido) setPrecio(precioExtraido);
-          if (marcaExtraida) setMarca(marcaExtraida);
-          toast("Se aplicaron los datos detectados al formulario actual.", { id: toastId, icon: "ℹ️" });
+        if (Object.keys(cambios).length > 0) {
+          await updateDoc(doc(db, "auditoria_productos", productoExistente.id), {
+            ...cambios,
+            updatedAt: serverTimestamp()
+          });
+          setProductos(prev => prev.map(p => (
+            p.id === productoExistente.id ? { ...p, ...cambios } : p
+          )));
+          if (!editando) resetForm();
+          const detalle = resumenCambios.join(" · ");
+          setScanFeedback({
+            tipo: "actualizado",
+            titulo: `"${productoExistente.nombre}" ya existía: datos rellenados y guardados`,
+            detalle
+          });
+          toast.success(`⚡ Actualizado y guardado: ${productoExistente.nombre} (${detalle})`, { id: toastId, duration: 5000 });
           return;
         }
+
+        // Todos los datos detectados ya existen en el producto
+        if (!editando) resetForm();
+        setScanFeedback({
+          tipo: "completo",
+          titulo: `"${productoExistente.nombre}" ya existe con todos sus datos`,
+          detalle: "No faltaba ningún dato por guardar. Puedes seguir agregando productos."
+        });
+        toast(`"${productoExistente.nombre}" ya existe con todos sus datos. Sigue agregando productos.`, {
+          id: toastId,
+          icon: "⚠️",
+          duration: 4500,
+          style: {
+            borderRadius: "12px",
+            background: "#78350f",
+            color: "#fef3c7",
+            border: "1px solid #f59e0b"
+          }
+        });
+        return;
       }
       
       if (nombreExtraido) setNombre(nombreExtraido);
       if (eanExtraido) setEan(eanExtraido);
       if (skuExtraido) setSku(skuExtraido);
-      if (precioExtraido) setPrecio(precioExtraido);
-      if (marcaExtraida) setMarca(marcaExtraida);
-      // Detección automática para Perfumería (higiene, cuidado personal y belleza)
-      const terminosPerfumeria = [
-        "shampoo", "champu", "jabon", "balsamo", "acondicionador", 
-        "tintura", "toalla higienica", "toallas higienicas", "toallitas higienicas", 
-        "desodorante", "antitranspirante", "crema corporal", "crema facial", 
-        "pasta dental", "dentifrico", "cepillo dental", "enjuague bucal",
-        "bloqueador", "protector solar", "tampon", "protectores diarios"
-      ];
-
-      // Detección automática para Masivo (alimentos para gatos/mascotas, juguetes/juegos de niños, peluches, libros)
-      const terminosMasivo = [
-        "gato", "gatos", "felino", "gatito", "gatitos", "whiskas", "churu", "felix", "cat chow", "catchow",
-        "perro", "perros", "dog chow", "dogchow", "pedigree", "mascota", "mascotas", "arena para gato", "arena sanitaria",
-        "alimento gato", "comida gato", "snack gato", "snack perro",
-        "juego de ninos", "juegos de ninos", "juego ninos", "juego infantil", "juegos infantiles",
-        "juguete", "juguetes", "peluche", "peluches",
-        "libro", "libros", "cuento", "cuentos", "novela", "novelas", "revista", "revistas",
-        "juego de mesa", "juegos de mesa", "puzzle", "rompecabezas"
-      ];
-
-      // Detección automática para Botillería (especias/condimentos y snacks salados tipo papas fritas, doritos, ramitas)
-      const terminosBotilleria = [
-        "cerveza", "vino", "pisco", "whisky", "whiskey", "ron", "vodka", "gin", "licor", "espumante", "tequila",
-        "oregano", "ajo en polvo", "comino", "pimienta", "alino", "curry", "pimenton molido", 
-        "aji de color", "nuez moscada", "laurel", "clavo de olor", "canela en polvo", "canela entera",
-        "papas fritas", "papa frita", "doritos", "ramitas", "cheetos", "nachos", "sufles", "sufle",
-        "lays", "kryzpo", "cheezels", "tortillas queso", "mani salado"
-      ];
-
-      const nombreNorm = normalizeText(nombreExtraido);
-      let catFinal = categoriaExtraida;
-
-      if (terminosPerfumeria.some(t => nombreNorm.includes(normalizeText(t)))) {
-        catFinal = "Perfumería";
-      } else if (terminosMasivo.some(t => {
-        const tNorm = normalizeText(t);
-        if (["gato", "gatos", "perro", "perros", "libro", "libros"].includes(tNorm)) {
-          const regex = new RegExp(`(^|\\s)${tNorm}(\\s|$)`, 'i');
-          return regex.test(nombreNorm);
-        }
-        return nombreNorm.includes(tNorm);
-      })) {
-        catFinal = "Masivo";
-      } else if (
-        !nombreNorm.includes("galleta") && 
-        !nombreNorm.includes("galletas") && 
-        terminosBotilleria.some(t => nombreNorm.includes(normalizeText(t)))
-      ) {
-        catFinal = "Botillería";
+      if (numPrecioExtraido !== null && numPrecioExtraido > 0) setPrecio(String(numPrecioExtraido));
+      if (tieneOfertaExtraida) {
+        setEnOferta(true);
+        setPrecioOferta(String(numPrecioOfertaExtraido));
+      } else if (parsed.enOferta === false) {
+        setEnOferta(false);
+        setPrecioOferta("");
       }
+      if (marcaExtraida) setMarca(marcaExtraida);
 
-      if (catFinal && catFinal !== "Todas") {
-        const catExists = categoriasList.find(c => c.nombre.toLowerCase() === catFinal.toLowerCase());
-        if (catExists) {
-          setCategoria(catExists.nombre);
-        } else {
-          toast.success(`Sugerencia IA: "${catFinal}" (no existe)`, { duration: 4000 });
-        }
+      if (catMatch) {
+        setCategoria(catMatch.nombre);
+      } else if (catFinal && catFinal !== "Todas") {
+        toast.success(`Sugerencia IA: "${catFinal}" (no existe)`, { duration: 4000 });
       }
       
       toast.success("¡Datos extraídos con éxito!", { id: toastId });
@@ -741,6 +850,8 @@ export default function AuditoriaPage({ onBackToSelector }) {
       if (aiFileInputRef.current) aiFileInputRef.current.value = "";
     }
   };
+
+  ejecutarAnalisisIARef.current = ejecutarAnalisisIA;
 
   const handleAiFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -773,6 +884,14 @@ export default function AuditoriaPage({ onBackToSelector }) {
       return;
     }
 
+    const numPrecio = parsePrecioNumero(precio);
+    const numPrecioOferta = parsePrecioNumero(precioOferta);
+    if (enOferta && (!numPrecioOferta || numPrecioOferta <= 0)) {
+      toast.error("Ingresa un Precio Oferta válido o desmarca la casilla de oferta");
+      return;
+    }
+    const ofertaActiva = Boolean(enOferta && numPrecioOferta && numPrecioOferta > 0);
+
     setIsSubmitting(true);
     let finalImageUrl = imagenUrl;
 
@@ -783,13 +902,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
         finalImageUrl = await getDownloadURL(fileRef);
       }
 
-      const numPrecio = (precio !== "" && precio !== null && !isNaN(Number(precio))) ? Number(precio) : null;
-
       const datos = {
         nombre: nombre.trim(),
         ean: ean.trim(),
         sku: sku.trim(),
         precio: numPrecio,
+        enOferta: ofertaActiva,
+        precioOferta: numPrecioOferta,
         marca: (marca || "").trim(),
         ubicacion: ubicacion.trim(),
         categoria,
@@ -801,11 +920,13 @@ export default function AuditoriaPage({ onBackToSelector }) {
         await updateDoc(doc(db, "auditoria_productos", editando.id), datos);
         toast.success("Producto actualizado");
         setModalOpen(false);
+        setScanFeedback(null);
         resetForm();
       } else {
         datos.createdAt = serverTimestamp();
         await addDoc(collection(db, "auditoria_productos"), datos);
         toast.success("¡Producto agregado! Puedes continuar agregando.");
+        setScanFeedback(null);
         resetForm();
       }
 
@@ -905,7 +1026,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoriaFiltro, filtroUbicacion]);
+  }, [searchQuery, categoriaFiltro, filtroUbicacion, filtroOferta]);
 
   const totalPorCategoria = useMemo(() => {
     const counts = {};
@@ -917,6 +1038,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
     }
     return counts;
   }, [productos]);
+
+  const totalConOferta = useMemo(
+    () => productos.filter(p => getPrecioProducto(p).tieneOferta).length,
+    [productos]
+  );
 
   const productosFiltrados = productos.filter(p => {
     const nNombre = normalizeText(p.nombre);
@@ -936,7 +1062,9 @@ export default function AuditoriaPage({ onBackToSelector }) {
       matchUbicacion = !tieneUbicacion;
     }
 
-    return matchSearch && matchCat && matchUbicacion;
+    const matchOferta = !filtroOferta || getPrecioProducto(p).tieneOferta;
+
+    return matchSearch && matchCat && matchUbicacion && matchOferta;
   });
 
   const totalPages = Math.ceil(productosFiltrados.length / ITEMS_PER_PAGE);
@@ -1391,11 +1519,30 @@ export default function AuditoriaPage({ onBackToSelector }) {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+              <button
+                type="button"
+                onClick={() => setFiltroOferta(prev => !prev)}
+                className={`px-3.5 py-2.5 rounded-xl border font-bold text-sm transition-all flex items-center justify-center gap-1.5 shadow-sm whitespace-nowrap ${
+                  filtroOferta
+                    ? "bg-amber-500/20 border-amber-400 text-amber-300 shadow-amber-500/20"
+                    : `${t.border} ${t.bgCard} ${t.text} hover:border-amber-500/60 hover:text-amber-400`
+                }`}
+                title="Filtrar productos con precio oferta"
+              >
+                <span>🏷️</span>
+                <span>Ofertas</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-xs font-black ${
+                  filtroOferta ? "bg-amber-400/25 text-amber-200" : "bg-black/20 text-slate-400"
+                }`}>
+                  {totalConOferta}
+                </span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setActiveTab("sectores")}
-                className={`w-full sm:w-auto px-4 py-2.5 rounded-xl border ${t.border} ${t.bgCard} ${t.text} hover:border-purple-500 hover:text-purple-400 font-bold transition-all flex items-center justify-center gap-2 shadow-sm`}
+                className={`flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border ${t.border} ${t.bgCard} ${t.text} hover:border-purple-500 hover:text-purple-400 font-bold transition-all flex items-center justify-center gap-2 shadow-sm`}
                 title="Mapa y distribución de sectores y pasillos"
               >
                 <span className="material-symbols-outlined text-purple-400" style={{ fontSize: 20 }}>map</span>
@@ -1413,12 +1560,18 @@ export default function AuditoriaPage({ onBackToSelector }) {
           </div>
 
           {/* Active Filter Indicator */}
-          {filtroUbicacion !== "todos" && (
+          {(filtroUbicacion !== "todos" || filtroOferta) && (
             <div className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs animate-fadeIn">
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${filtroUbicacion === "sin_ubicacion" ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`w-2.5 h-2.5 rounded-full ${filtroOferta || filtroUbicacion === "sin_ubicacion" ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
                 <span className={`${t.text} font-bold`}>
-                  Filtrando: {filtroUbicacion === "sin_ubicacion" ? "Solo productos Sin Ubicación" : "Solo productos Ubicados"}
+                  Filtrando:{" "}
+                  {[
+                    filtroUbicacion === "sin_ubicacion"
+                      ? "Solo productos Sin Ubicación"
+                      : (filtroUbicacion === "ubicados" ? "Solo productos Ubicados" : null),
+                    filtroOferta ? "Solo En Oferta" : null
+                  ].filter(Boolean).join(" + ")}
                 </span>
                 <span className={`${t.textSecondary}`}>
                   ({productosFiltrados.length} {productosFiltrados.length === 1 ? "resultado" : "resultados"})
@@ -1426,8 +1579,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
               </div>
               <button
                 type="button"
-                onClick={() => setFiltroUbicacion("todos")}
-                className="text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors hover:underline"
+                onClick={() => {
+                  setFiltroUbicacion("todos");
+                  setFiltroOferta(false);
+                }}
+                className="text-purple-400 hover:text-purple-300 font-bold flex items-center gap-1 transition-colors hover:underline shrink-0"
               >
                 <span>Mostrar todos</span>
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
@@ -1485,11 +1641,37 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     <div className="flex flex-wrap items-center gap-1.5 mb-3 self-start">
                       <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>EAN: {prod.ean}</p>
                       <p className={`text-[11px] ${t.textSecondary} font-mono bg-black/10 px-2 py-0.5 rounded border ${t.border}`}>SKU: {prod.sku}</p>
-                      {prod.precio !== undefined && prod.precio !== null && prod.precio !== "" && (
-                        <p className="text-[11px] font-mono font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shadow-sm">
-                          ${Number(prod.precio).toLocaleString("es-CL")}
-                        </p>
-                      )}
+                      {(() => {
+                        const pInfo = getPrecioProducto(prod);
+                        if (pInfo.tieneOferta) {
+                          return (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[11px] font-mono font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shadow-sm flex items-center gap-1">
+                                <span>🏷️</span>
+                                <span>${pInfo.precioOferta.toLocaleString("es-CL")}</span>
+                                {pInfo.precioNormal !== null && pInfo.precioNormal > pInfo.precioOferta && (
+                                  <span className="line-through text-[10px] opacity-65 font-normal">
+                                    ${pInfo.precioNormal.toLocaleString("es-CL")}
+                                  </span>
+                                )}
+                              </span>
+                              {pInfo.descuentoPct > 0 && (
+                                <span className="text-[10px] font-black text-amber-300 bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/35">
+                                  -{pInfo.descuentoPct}%
+                                </span>
+                              )}
+                            </div>
+                          );
+                        }
+                        if (pInfo.precioNormal !== null) {
+                          return (
+                            <p className="text-[11px] font-mono font-black text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded border border-emerald-500/30 shadow-sm">
+                              ${pInfo.precioNormal.toLocaleString("es-CL")}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                     
                     <div className="mt-auto flex flex-col gap-2">
@@ -1617,7 +1799,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
                 {editando ? "Editar Producto" : "Nuevo Producto"}
               </h2>
               <button 
-                onClick={() => setModalOpen(false)}
+                onClick={() => { setModalOpen(false); setScanFeedback(null); }}
                 className={`w-8 h-8 flex items-center justify-center rounded-full ${t.bgInput} ${t.textSecondary} hover:text-white transition-colors`}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>close</span>
@@ -1669,6 +1851,43 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     </span>
                     {isAnalyzing ? "Analizando..." : "Extraer Datos con IA (Ctrl+V)"}
                   </button>
+
+                  {scanFeedback && (
+                    <div
+                      className={`w-full rounded-xl px-3.5 py-2.5 border text-left flex items-start justify-between gap-2 animate-fadeIn ${
+                        scanFeedback.tipo === "actualizado"
+                          ? "bg-emerald-500/15 border-emerald-500/40"
+                          : "bg-amber-500/15 border-amber-500/40"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2 min-w-0">
+                        <span
+                          className={`material-symbols-outlined shrink-0 mt-0.5 ${
+                            scanFeedback.tipo === "actualizado" ? "text-emerald-500" : "text-amber-500"
+                          }`}
+                          style={{ fontSize: 18 }}
+                        >
+                          {scanFeedback.tipo === "actualizado" ? "bolt" : "info"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className={`text-xs font-bold leading-snug ${
+                            scanFeedback.tipo === "actualizado" ? "text-emerald-400" : "text-amber-400"
+                          }`}>
+                            {scanFeedback.titulo}
+                          </p>
+                          <p className={`text-[11px] ${t.textSecondary} mt-0.5 leading-snug`}>{scanFeedback.detalle}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setScanFeedback(null)}
+                        className={`${t.textSecondary} hover:opacity-100 opacity-75 shrink-0`}
+                        aria-label="Cerrar aviso"
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Campos */}
@@ -1731,11 +1950,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
                   </div>
                 </div>
 
-                {/* Precio y Marca */}
+                {/* Precio Normal, Marca y Precio Oferta */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className={`block text-xs font-bold uppercase tracking-wider ${t.textSecondary} mb-1 flex items-center justify-between`}>
-                      <span>Precio ($)</span>
+                      <span>Precio Normal ($)</span>
                       <span className="text-[10px] text-slate-400 font-normal">Opcional</span>
                     </label>
                     <div className="relative">
@@ -1747,12 +1966,12 @@ export default function AuditoriaPage({ onBackToSelector }) {
                         value={precio}
                         onChange={(e) => setPrecio(e.target.value)}
                         className={`w-full pl-8 pr-4 py-2.5 rounded-xl ${t.bgInput} border ${t.border} ${t.text} focus:outline-none focus:border-purple-500 transition-colors font-mono`}
-                        placeholder="Ej: 9390"
+                        placeholder="Ej: 14260"
                       />
                     </div>
                     {precio && !isNaN(Number(precio)) && Number(precio) > 0 && (
-                      <p className="text-[11px] text-emerald-400 font-bold mt-1">
-                        Formato: ${Number(precio).toLocaleString("es-CL")}
+                      <p className={`text-[11px] font-bold mt-1 ${enOferta ? "line-through opacity-60 text-slate-400" : "text-emerald-400"}`}>
+                        Normal: ${Number(precio).toLocaleString("es-CL")}
                       </p>
                     )}
                   </div>
@@ -1770,6 +1989,75 @@ export default function AuditoriaPage({ onBackToSelector }) {
                     />
                   </div>
                 </div>
+
+                {/* Toggle Check de Oferta / Descuento */}
+                {(() => {
+                  const numNormal = parsePrecioNumero(precio);
+                  const numOferta = parsePrecioNumero(precioOferta);
+                  const ahorro = numNormal && numOferta && numNormal > numOferta ? numNormal - numOferta : 0;
+                  const pctDesc = ahorro > 0 ? Math.round((ahorro / numNormal) * 100) : 0;
+                  return (
+                    <div className={`rounded-2xl border p-3 transition-colors ${enOferta ? "bg-amber-500/10 border-amber-500/40" : `${t.bgInput} ${t.border}`}`}>
+                      <label className="flex items-center justify-between gap-3 cursor-pointer select-none">
+                        <span className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={enOferta}
+                            onChange={(e) => setEnOferta(e.target.checked)}
+                            className="w-4 h-4 rounded accent-amber-500 cursor-pointer"
+                          />
+                          <span className={`text-xs font-bold uppercase tracking-wider ${t.text}`}>
+                            🏷️ Tiene precio con descuento / oferta
+                          </span>
+                        </span>
+                        {enOferta && pctDesc > 0 && (
+                          <span className="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/40">
+                            -{pctDesc}%
+                          </span>
+                        )}
+                      </label>
+
+                      {enOferta && (
+                        <div className="mt-3 pt-3 border-t border-amber-500/20 space-y-2 animate-fadeIn">
+                          <div className="flex items-center justify-between gap-2">
+                            <label className={`text-xs font-bold uppercase tracking-wider ${t.textSecondary}`}>
+                              Precio Oferta ($) *
+                            </label>
+                            {ahorro > 0 && (
+                              <span className="text-[11px] font-bold text-emerald-400">
+                                Ahorro: ${ahorro.toLocaleString("es-CL")}
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-bold">$</span>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              value={precioOferta}
+                              onChange={(e) => setPrecioOferta(e.target.value)}
+                              className={`w-full pl-8 pr-4 py-2.5 rounded-xl ${t.bgInput} border border-amber-500/40 ${t.text} focus:outline-none focus:border-amber-400 transition-colors font-mono font-bold`}
+                              placeholder="Ej: 10360"
+                            />
+                          </div>
+                          {numOferta !== null && numOferta > 0 && (
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="text-emerald-400 font-bold">
+                                Oferta: ${numOferta.toLocaleString("es-CL")}
+                              </span>
+                              {numNormal !== null && numOferta >= numNormal && (
+                                <span className="text-amber-400 font-semibold">
+                                  ⚠️ La oferta es mayor o igual al precio normal
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1940,7 +2228,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
               <div className="flex gap-3">
                 <button 
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); setScanFeedback(null); }}
                   className={`px-5 py-2.5 rounded-xl font-semibold ${t.textSecondary} hover:text-white transition-colors`}
                 >
                   Cancelar
