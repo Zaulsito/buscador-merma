@@ -244,9 +244,10 @@ Analiza la imagen proporcionada y extrae los siguientes datos:
 - Verdulería
 Si no estás seguro o no encaja, pon "Todas".
 5. Precio y Oferta (números enteros en pesos chilenos sin puntos):
-   - Si hay UN SOLO precio (precio normal o por kilo $/kg, ej: $9.390, $1.290), ponlo en "precio" (ej: 9390), deja "precioOferta": null y "enOferta": false.
-   - Si hay DOS precios juntos en "Precio" donde uno está tachado y otro vigente (ej: "$10.360 $14.260" con $14.260 tachado, o "$750 $1.090" con $1.090 tachado), pon SIEMPRE el precio original/tachado (mayor) en "precio" (ej: 14260 o 1090), el precio con descuento/vigente (menor) en "precioOferta" (ej: 10360 o 750) y "enOferta": true.
-   - IMPORTANTE: Si aparece un "Precio total solicitado" calculado según cantidad/peso (ej: 0,800 kg -> $8.288), NO lo uses como precio ni precioOferta; usa el valor del campo "Precio". Si no aparece precio, deja null y enOferta: false.
+   - Examina cuidadosamente toda la fila de "Precio" de izquierda a derecha: el precio original suele aparecer en gris claro o más tenue y tachado con una línea horizontal al lado del precio vigente (ej: "$7.273 $10.390" con $10.390 tachado, "$10.360 $14.260" con $14.260 tachado, "$750 $1.090" con $1.090 tachado).
+   - Si hay DOS precios juntos en "Precio" (uno vigente y otro tachado), NO ignores ni descartes el precio tachado: pon SIEMPRE el precio tachado/original (el MAYOR, ej: 10390, 14260 o 1090) en "precio", el precio vigente/con descuento (el MENOR, ej: 7273, 10360 o 750) en "precioOferta" y "enOferta": true.
+   - SOLO si realmente existe UN ÚNICO precio en la fila "Precio" (ej: $9.390, $1.290, sin ningún número tachado al costado), ponlo en "precio" (ej: 9390), deja "precioOferta": null y "enOferta": false.
+   - IMPORTANTE: Si aparece un "Precio total solicitado" calculado según cantidad/peso (ej: 0,800 kg -> $8.288 o 2 uni -> $14.546), NO lo uses como precio ni precioOferta; usa únicamente el valor o par de valores de la fila "Precio". Si no aparece precio, deja null y enOferta: false.
 6. Marca: Marca o fabricante del producto si aparece en la etiqueta (ej: "ZenOrganics", "Colun", "Soprole", etc.). Si no aparece, deja "".
 
 Devuelve SOLO un JSON válido sin markdown ni explicaciones, con la siguiente estructura:
@@ -312,7 +313,10 @@ Responde únicamente con el texto transcrito, sin explicaciones adicionales.`;
               { inline_data: { mime_type: mimeType, data: image } },
               { text: prompt }
             ]
-          }]
+          }],
+          generationConfig: {
+            temperature: 0
+          }
         })
       }
     );

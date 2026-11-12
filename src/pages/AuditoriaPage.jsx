@@ -10,7 +10,7 @@ import ManageCategoriasAuditoria from "../components/ManageCategoriasAuditoria";
 import ManageSectoresAuditoria from "../components/ManageSectoresAuditoria";
 import MapaSupermercadoLeaflet from "../components/MapaSupermercadoLeaflet";
 import GeneradorEan13View from "../components/GeneradorEan13View";
-import { getPrecioProducto, parsePrecioNumero } from "../utils/precioUtils";
+import { getPrecioProducto, parsePrecioNumero, resolverPreciosIA } from "../utils/precioUtils";
 
 const DEFAULT_SECTORES_BOTILLERIA = [
   {
@@ -672,7 +672,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
       if (jsonMatch) {
         resultStr = jsonMatch[0];
       } else {
-        resultStr = resultStr.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+        resultStr = resultStr.replace(/```json/g, "").replace(/```/g, "").trim();
       }
       
       const parsed = JSON.parse(resultStr);
@@ -684,43 +684,11 @@ export default function AuditoriaPage({ onBackToSelector }) {
       const categoriaExtraida = (parsed.categoria || parsed.Categoria || parsed.CATEGORIA || "").trim();
 
       // Extraer precio normal, precio oferta y marca desde la etiqueta
-      let numPrecioExtraido = parsePrecioNumero(parsed.precio ?? parsed.valor);
-      if (numPrecioExtraido === null) {
-        const matchPrecio = resultStr.match(/\$\s*(\d{1,3}(?:\.\d{3})+|\d{3,6})/);
-        if (matchPrecio) {
-          numPrecioExtraido = parsePrecioNumero(matchPrecio[1]);
-        }
-      }
-      let numPrecioOfertaExtraido = parsePrecioNumero(
-        parsed.precioOferta ?? parsed.precio_oferta ?? parsed.precioDescuento
-      );
-      const numPrecioAnterior = parsePrecioNumero(parsed.precioAnterior ?? parsed.precioOriginal);
-      if (
-        numPrecioAnterior !== null &&
-        numPrecioExtraido !== null &&
-        numPrecioAnterior > numPrecioExtraido &&
-        numPrecioOfertaExtraido === null
-      ) {
-        numPrecioOfertaExtraido = numPrecioExtraido;
-        numPrecioExtraido = numPrecioAnterior;
-      }
-      if (
-        numPrecioExtraido !== null &&
-        numPrecioOfertaExtraido !== null &&
-        numPrecioOfertaExtraido > numPrecioExtraido
-      ) {
-        [numPrecioExtraido, numPrecioOfertaExtraido] = [numPrecioOfertaExtraido, numPrecioExtraido];
-      }
-      if (
-        numPrecioExtraido !== null &&
-        numPrecioOfertaExtraido !== null &&
-        numPrecioOfertaExtraido === numPrecioExtraido
-      ) {
-        numPrecioOfertaExtraido = null;
-      }
-      const tieneOfertaExtraida = Boolean(
-        parsed.enOferta !== false && numPrecioOfertaExtraido !== null && numPrecioOfertaExtraido > 0
-      );
+      const {
+        numPrecioExtraido,
+        numPrecioOfertaExtraido,
+        tieneOfertaExtraida,
+      } = resolverPreciosIA(parsed, resultStr);
 
       const marcaExtraida = (parsed.marca || parsed.Marca || parsed.MARCA || "").trim();
 
@@ -828,7 +796,7 @@ export default function AuditoriaPage({ onBackToSelector }) {
       if (tieneOfertaExtraida) {
         setEnOferta(true);
         setPrecioOferta(String(numPrecioOfertaExtraido));
-      } else if (parsed.enOferta === false) {
+      } else if (!editando || parsed.enOferta === false) {
         setEnOferta(false);
         setPrecioOferta("");
       }
