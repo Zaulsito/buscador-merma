@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { db } from "../firebase/config";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import toast from "react-hot-toast";
 import defaultLayoutData from "../data/supermercado_exact_layout.json";
 
@@ -219,8 +219,20 @@ export default function MapaSupermercadoLeaflet({
     setSeleccionIds(id ? [id] : []);
   }, []);
   const [draggingAction, setDraggingAction] = useState(null); // 'move' | 'resize-se' | 'resize-nw' | 'resize-e' | 'resize-s' | etc.
+  const draggingActionRef = useRef(null);
   const dragStartRef = useRef({ mouseX: 0, mouseY: 0, targetElemId: null, elemX: 0, elemY: 0, elemW: 0, elemH: 0, initialElements: [] });
   const [marqueeBox, setMarqueeBox] = useState(null); // { startX, startY, currentX, currentY }
+
+  // Identificador de sesión y control de sincronización en tiempo real
+  const clientIdRef = useRef(`cli_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+  const lastAppliedTokenRef = useRef(null);
+  const hasLoadedInitialRef = useRef(false);
+  const hasMigratedRef = useRef(false);
+  const pendingRemoteDocRef = useRef(null);
+
+  useEffect(() => {
+    draggingActionRef.current = draggingAction;
+  }, [draggingAction]);
 
   // Portapapeles (Copiar y Pegar)
   const [portapapeles, setPortapapeles] = useState(null);
@@ -380,7 +392,7 @@ export default function MapaSupermercadoLeaflet({
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
 
   // Guardar respaldo local consistente en localStorage
-  const guardarBackupLocal = useCallback((elems, w = canvasWidth, h = canvasHeight) => {
+  const guardarBackupLocal = useCallback((elems, w = DEFAULT_CANVAS_WIDTH, h = DEFAULT_CANVAS_HEIGHT) => {
     try {
       localStorage.setItem(
         "mapa_supermercado_diseno_local",
@@ -394,85 +406,175 @@ export default function MapaSupermercadoLeaflet({
     } catch (e) {
       console.warn("Error guardando respaldo local:", e);
     }
-  }, [canvasHeight, canvasWidth]);
+  }, []);
 
-  // Cargar plano guardado de Firebase Firestore (Nube primero; nunca sobrescribir diseños del usuario)
+  // Aplicar estado sincronizado desde Firestore en el lienzo
+  const aplicarPlanoRemoto = useCallback((nextElems, nextWidth, nextHeight, { isRemoteUpdate = false, token = null } = {}) => {
+    if (token) {
+      lastAppliedTokenRef.current = token;
+    }
+    setElementos(nextElems);
+    setCanvasWidth(nextWidth);
+    setCanvasHeight(nextHeight);
+    pushHistory(nextElems);
+    guardarBackupLocal(nextElems, nextWidth, nextHeight);
+
+    const byId = new Map(nextElems.map((el) => [el.id, el]));
+    setSeleccionIds((prev) => prev.filter((id) => byId.has(id)));
+    setSpotlightActivo((prev) => (prev ? byId.get(prev.id) || null : null));
+    setPasilloDetalle((prev) => (prev ? byId.get(prev.id) || null : null));
+
+    if (isRemoteUpdate) {
+      toast("Mapa actualizado en tiempo real", { icon: "🔄", duration: 2200 });
+    }
+  }, [guardarBackupLocal, pushHistory]);
+
+  // Flush si llegó actualización remota mientras el usuario arrastraba un módulo
   useEffect(() => {
-    const cargarPlano = async () => {
-      setCargandoPlano(true);
-      const targetList = defaultLayoutData.elementos || [];
-      const targetWidth = DEFAULT_CANVAS_WIDTH;
-      const targetHeight = DEFAULT_CANVAS_HEIGHT;
+    if (!draggingAction && pendingRemoteDocRef.current) {
+      const pending = pendingRemoteDocRef.current;
+      pendingRemoteDocRef.current = null;
+      aplicarPlanoRemoto(pending.elementos, pending.width, pending.height, {
+        isRemoteUpdate: true,
+        token: pending.token
+      });
+    }
+  }, [draggingAction, aplicarPlanoRemoto]);
 
-      try {
-        // 1. Cargar siempre desde Firestore primero
-        const snap = await getDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"));
-        if (snap.exists()) {
-          const data = snap.data() || {};
-          if (data.templateVersion === TARGET_TEMPLATE_VERSION && Array.isArray(data.elementos)) {
-            const loadedWidth = data.width || targetWidth;
-            const loadedHeight = data.height || targetHeight;
-            setElementos(data.elementos);
-            setCanvasWidth(loadedWidth);
-            setCanvasHeight(loadedHeight);
-            pushHistory(data.elementos);
-            guardarBackupLocal(data.elementos, loadedWidth, loadedHeight);
-            return;
-          }
-        }
+  // Publicar plano en Firestore con identificador de sesión para evitar ecos y actualizar al instante otros dispositivos
+  const syncPlanoNube = useCallback(async (nextElems, nextWidth = canvasWidth, nextHeight = canvasHeight) => {
+    const saveToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    lastAppliedTokenRef.current = saveToken;
+    guardarBackupLocal(nextElems, nextWidth, nextHeight);
+    await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+      templateVersion: TARGET_TEMPLATE_VERSION,
+      width: nextWidth,
+      height: nextHeight,
+      elementos: nextElems,
+      lastClientId: clientIdRef.current,
+      lastSaveToken: saveToken,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    return saveToken;
+  }, [canvasHeight, canvasWidth, guardarBackupLocal]);
 
-        // 2. Migrar una sola vez desde la plantilla base si Firestore aún no tiene esta templateVersion
-        setElementos(targetList);
-        setCanvasWidth(targetWidth);
-        setCanvasHeight(targetHeight);
-        pushHistory(targetList);
-        guardarBackupLocal(targetList, targetWidth, targetHeight);
+  // Suscripción en tiempo real a Firestore (PC <-> Celular <-> otras pestañas/apps)
+  useEffect(() => {
+    setCargandoPlano(true);
+    const targetList = defaultLayoutData.elementos || [];
+    const targetWidth = DEFAULT_CANVAS_WIDTH;
+    const targetHeight = DEFAULT_CANVAS_HEIGHT;
+    const mapaRef = doc(db, "auditoria_sectores", "_diseno_mapa_");
 
+    const unsubscribe = onSnapshot(
+      mapaRef,
+      async (snap) => {
         try {
-          await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-            templateVersion: TARGET_TEMPLATE_VERSION,
-            elementos: targetList,
-            width: targetWidth,
-            height: targetHeight,
-            updatedAt: serverTimestamp()
-          }, { merge: true });
-        } catch (e) {
-          console.warn("Error sincronizando plantilla base inicial en Firestore:", e);
-        }
-      } catch (err) {
-        console.warn("No se pudo leer Firestore, usando respaldo local/base:", err);
-        try {
-          const local = localStorage.getItem("mapa_supermercado_diseno_local");
-          if (local) {
-            const parsed = JSON.parse(local);
-            const localElems = Array.isArray(parsed)
-              ? parsed
-              : (Array.isArray(parsed?.elementos) ? parsed.elementos : null);
-            if (Array.isArray(localElems) && localElems.length > 0) {
-              const localW = !Array.isArray(parsed) && parsed?.width ? parsed.width : targetWidth;
-              const localH = !Array.isArray(parsed) && parsed?.height ? parsed.height : targetHeight;
-              setElementos(localElems);
-              setCanvasWidth(localW);
-              setCanvasHeight(localH);
-              pushHistory(localElems);
+          if (snap.exists()) {
+            const data = snap.data() || {};
+            if (data.templateVersion === TARGET_TEMPLATE_VERSION && Array.isArray(data.elementos)) {
+              const token = data.lastSaveToken || null;
+              const isSelfEcho = Boolean(token && token === lastAppliedTokenRef.current);
+
+              if (!hasLoadedInitialRef.current) {
+                hasLoadedInitialRef.current = true;
+                aplicarPlanoRemoto(
+                  data.elementos,
+                  data.width || targetWidth,
+                  data.height || targetHeight,
+                  { isRemoteUpdate: false, token }
+                );
+                setCargandoPlano(false);
+                return;
+              }
+
+              if (isSelfEcho) {
+                return;
+              }
+
+              if (draggingActionRef.current) {
+                pendingRemoteDocRef.current = {
+                  elementos: data.elementos,
+                  width: data.width || targetWidth,
+                  height: data.height || targetHeight,
+                  token
+                };
+                return;
+              }
+
+              aplicarPlanoRemoto(
+                data.elementos,
+                data.width || targetWidth,
+                data.height || targetHeight,
+                {
+                  isRemoteUpdate: data.lastClientId !== clientIdRef.current,
+                  token
+                }
+              );
               return;
             }
           }
-        } catch (e) {
-          console.warn("Error leyendo localStorage:", e);
-        }
 
-        setElementos(targetList);
-        setCanvasWidth(targetWidth);
-        setCanvasHeight(targetHeight);
-        pushHistory(targetList);
-      } finally {
+          // Migrar una sola vez desde la plantilla base si Firestore aún no tiene esta templateVersion
+          if (!hasLoadedInitialRef.current) {
+            hasLoadedInitialRef.current = true;
+            aplicarPlanoRemoto(targetList, targetWidth, targetHeight, { isRemoteUpdate: false });
+          }
+
+          if (!hasMigratedRef.current) {
+            hasMigratedRef.current = true;
+            try {
+              const saveToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+              lastAppliedTokenRef.current = saveToken;
+              guardarBackupLocal(targetList, targetWidth, targetHeight);
+              await setDoc(mapaRef, {
+                templateVersion: TARGET_TEMPLATE_VERSION,
+                elementos: targetList,
+                width: targetWidth,
+                height: targetHeight,
+                lastClientId: clientIdRef.current,
+                lastSaveToken: saveToken,
+                updatedAt: serverTimestamp()
+              }, { merge: true });
+            } catch (e) {
+              console.warn("Error sincronizando plantilla base inicial en Firestore:", e);
+            }
+          }
+        } finally {
+          setCargandoPlano(false);
+        }
+      },
+      (err) => {
+        console.warn("No se pudo escuchar Firestore en tiempo real, usando respaldo local/base:", err);
+        if (!hasLoadedInitialRef.current) {
+          hasLoadedInitialRef.current = true;
+          try {
+            const local = localStorage.getItem("mapa_supermercado_diseno_local");
+            if (local) {
+              const parsed = JSON.parse(local);
+              const localElems = Array.isArray(parsed)
+                ? parsed
+                : (Array.isArray(parsed?.elementos) ? parsed.elementos : null);
+              if (Array.isArray(localElems) && localElems.length > 0) {
+                const localW = !Array.isArray(parsed) && parsed?.width ? parsed.width : targetWidth;
+                const localH = !Array.isArray(parsed) && parsed?.height ? parsed.height : targetHeight;
+                aplicarPlanoRemoto(localElems, localW, localH, { isRemoteUpdate: false });
+                setCargandoPlano(false);
+                return;
+              }
+            }
+          } catch (e) {
+            console.warn("Error leyendo localStorage:", e);
+          }
+
+          aplicarPlanoRemoto(targetList, targetWidth, targetHeight, { isRemoteUpdate: false });
+        }
         setCargandoPlano(false);
       }
-    };
+    );
 
-    cargarPlano();
-  }, [guardarBackupLocal, pushHistory]);
+    return () => unsubscribe();
+  }, [aplicarPlanoRemoto, guardarBackupLocal]);
 
   // Convertir layout por defecto a elementos editables
   const cargarPlantillaInicial = async () => {
@@ -487,15 +589,8 @@ export default function MapaSupermercadoLeaflet({
     setCanvasHeight(h);
     setSeleccionIds([]);
     pushHistory(list);
-    guardarBackupLocal(list, w, h);
     try {
-      await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-        templateVersion: TARGET_TEMPLATE_VERSION,
-        elementos: list,
-        width: w,
-        height: h,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      await syncPlanoNube(list, w, h);
     } catch (e) {
       console.warn("Error sync plantilla:", e);
     }
@@ -507,16 +602,8 @@ export default function MapaSupermercadoLeaflet({
     setGuardandoPlano(true);
     const toastId = toast.loading("Guardando plano del supermercado...");
     try {
-      await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-        templateVersion: TARGET_TEMPLATE_VERSION,
-        width: canvasWidth,
-        height: canvasHeight,
-        elementos,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-
-      guardarBackupLocal(elementos, canvasWidth, canvasHeight);
-      toast.success("¡Plano guardado exitosamente en el servidor!", { id: toastId });
+      await syncPlanoNube(elementos, canvasWidth, canvasHeight);
+      toast.success("¡Plano guardado y sincronizado en todos los dispositivos!", { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar el plano en la nube", { id: toastId });
@@ -593,21 +680,14 @@ export default function MapaSupermercadoLeaflet({
       setCanvasHeight(nextH);
       setSeleccionIds([]);
       pushHistory(validElems);
-      guardarBackupLocal(validElems, nextW, nextH);
 
       try {
-        await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-          templateVersion: TARGET_TEMPLATE_VERSION,
-          elementos: validElems,
-          width: nextW,
-          height: nextH,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+        await syncPlanoNube(validElems, nextW, nextH);
       } catch (err) {
         console.warn("Error guardando JSON importado en Firestore:", err);
       }
 
-      toast.success(`Plano importado y guardado (${validElems.length} elementos)`);
+      toast.success(`Plano importado y sincronizado (${validElems.length} elementos)`);
     } catch (err) {
       console.error(err);
       toast.error("Archivo JSON inválido o dañado");
@@ -622,15 +702,8 @@ export default function MapaSupermercadoLeaflet({
     setPasilloDetalle(null);
     setSpotlightActivo(null);
     pushHistory([]);
-    guardarBackupLocal([], canvasWidth, canvasHeight);
     try {
-      await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-        templateVersion: TARGET_TEMPLATE_VERSION,
-        elementos: [],
-        width: canvasWidth,
-        height: canvasHeight,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      await syncPlanoNube([], canvasWidth, canvasHeight);
     } catch (e) {
       console.warn(e);
     }
@@ -710,6 +783,27 @@ export default function MapaSupermercadoLeaflet({
         h: snap(60),
         color: "#dcfce7",
         borde: "#22c55e"
+      };
+    } else if (tipo === "linea_h" || tipo === "linea_v" || tipo === "linea_cruz") {
+      const orientacion = tipo === "linea_v" ? "v" : (tipo === "linea_cruz" ? "diag1" : "h");
+      const label = tipo === "linea_v" ? "Línea Vertical" : (tipo === "linea_cruz" ? "Línea Cruzada" : "Línea Horizontal");
+      nuevo = {
+        id: nuevoId,
+        tipo: "linea",
+        orientacion,
+        estiloLinea: "solid",
+        grosor: 3,
+        rotacion: 0,
+        nombre: label,
+        codigo: "",
+        seccion: "Decoración",
+        desc: "Línea estética del plano",
+        x: centerViewX,
+        y: centerViewY,
+        w: orientacion === "v" ? 20 : Math.max(60, snap(200)),
+        h: orientacion === "h" ? 20 : (orientacion === "v" ? Math.max(60, snap(200)) : Math.max(40, snap(100))),
+        color: "#94a3b8",
+        borde: "#94a3b8"
       };
     }
 
@@ -1031,51 +1125,75 @@ export default function MapaSupermercadoLeaflet({
         return;
       }
 
-      // Redimensionamiento individual
+      // Rotación interactiva alrededor del centro del módulo
+      if (draggingAction === "rotate") {
+        const targetId = dragStartRef.current.targetElemId || seleccionIds[0];
+        const rect = containerRef.current?.getBoundingClientRect();
+        const mouseCanvasX = (e.clientX - (rect?.left || 0) - pan.x) / zoom;
+        const mouseCanvasY = (e.clientY - (rect?.top || 0) - pan.y) / zoom;
+        const cx = dragStartRef.current.elemX + dragStartRef.current.elemW / 2;
+        const cy = dragStartRef.current.elemY + dragStartRef.current.elemH / 2;
+        let deg = Math.round((Math.atan2(mouseCanvasY - cy, mouseCanvasX - cx) * 180) / Math.PI + 90);
+        deg = ((deg % 360) + 360) % 360;
+        if (e.shiftKey) {
+          deg = (Math.round(deg / 15) * 15) % 360;
+        }
+        setElementos(prev => prev.map(el => (el.id === targetId && !el.bloqueado ? { ...el, rotacion: deg } : el)));
+        return;
+      }
+
+      // Redimensionamiento individual (proyectando el delta en el eje rotado del módulo)
       const targetId = dragStartRef.current.targetElemId || seleccionIds[0];
       setElementos(prev => prev.map(el => {
         if (el.id !== targetId) return el;
         if (el.bloqueado) return el; // Bloqueado con candado: no se redimensiona
 
+        const rad = ((el.rotacion || 0) * Math.PI) / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        const ldx = dx * cos + dy * sin;
+        const ldy = -dx * sin + dy * cos;
+        const minSize = el.tipo === "linea" ? 8 : (snapGrid || 10);
+
         if (draggingAction === "resize-se") {
           return {
             ...el,
-            w: Math.max(snapGrid || 10, snap(dragStartRef.current.elemW + dx)),
-            h: Math.max(snapGrid || 10, snap(dragStartRef.current.elemH + dy))
+            w: Math.max(minSize, snap(dragStartRef.current.elemW + ldx)),
+            h: Math.max(minSize, snap(dragStartRef.current.elemH + ldy))
           };
         } else if (draggingAction === "resize-e") {
           return {
             ...el,
-            w: Math.max(snapGrid || 10, snap(dragStartRef.current.elemW + dx))
+            w: Math.max(minSize, snap(dragStartRef.current.elemW + ldx))
           };
         } else if (draggingAction === "resize-s") {
           return {
             ...el,
-            h: Math.max(snapGrid || 10, snap(dragStartRef.current.elemH + dy))
+            h: Math.max(minSize, snap(dragStartRef.current.elemH + ldy))
           };
         } else if (draggingAction === "resize-w") {
-          const newW = Math.max(snapGrid || 10, snap(dragStartRef.current.elemW - dx));
+          const newW = Math.max(minSize, snap(dragStartRef.current.elemW - ldx));
           const newX = snap(dragStartRef.current.elemX + (dragStartRef.current.elemW - newW));
           return { ...el, x: newX, w: newW };
         } else if (draggingAction === "resize-n") {
-          const newH = Math.max(snapGrid || 10, snap(dragStartRef.current.elemH - dy));
+          const newH = Math.max(minSize, snap(dragStartRef.current.elemH - ldy));
           const newY = snap(dragStartRef.current.elemY + (dragStartRef.current.elemH - newH));
           return { ...el, y: newY, h: newH };
         } else if (draggingAction === "resize-nw") {
-          const newW = Math.max(snapGrid || 10, snap(dragStartRef.current.elemW - dx));
+          const newW = Math.max(minSize, snap(dragStartRef.current.elemW - ldx));
           const newX = snap(dragStartRef.current.elemX + (dragStartRef.current.elemW - newW));
-          const newH = Math.max(snapGrid || 10, snap(dragStartRef.current.elemH - dy));
+          const newH = Math.max(minSize, snap(dragStartRef.current.elemH - ldy));
           const newY = snap(dragStartRef.current.elemY + (dragStartRef.current.elemH - newH));
           return { ...el, x: newX, y: newY, w: newW, h: newH };
         } else if (draggingAction === "resize-ne") {
-          const newW = Math.max(snapGrid || 10, snap(dragStartRef.current.elemW + dx));
-          const newH = Math.max(snapGrid || 10, snap(dragStartRef.current.elemH - dy));
+          const newW = Math.max(minSize, snap(dragStartRef.current.elemW + ldx));
+          const newH = Math.max(minSize, snap(dragStartRef.current.elemH - ldy));
           const newY = snap(dragStartRef.current.elemY + (dragStartRef.current.elemH - newH));
           return { ...el, y: newY, w: newW, h: newH };
         } else if (draggingAction === "resize-sw") {
-          const newW = Math.max(snapGrid || 10, snap(dragStartRef.current.elemW - dx));
+          const newW = Math.max(minSize, snap(dragStartRef.current.elemW - ldx));
           const newX = snap(dragStartRef.current.elemX + (dragStartRef.current.elemW - newW));
-          const newH = Math.max(snapGrid || 10, snap(dragStartRef.current.elemH + dy));
+          const newH = Math.max(minSize, snap(dragStartRef.current.elemH + ldy));
           return { ...el, x: newX, w: newW, h: newH };
         }
         return el;
@@ -1309,6 +1427,63 @@ export default function MapaSupermercadoLeaflet({
     }
   };
 
+  // Transformación de rotación centrada en el módulo
+  const getModuleTransform = (elem) => {
+    if (!elem.rotacion) return undefined;
+    const cx = elem.x + elem.w / 2;
+    const cy = elem.y + elem.h / 2;
+    return `rotate(${elem.rotacion} ${cx} ${cy})`;
+  };
+
+  // Segmentos geométricos para líneas estéticas según su orientación
+  const getLineaSegmentos = (elem) => {
+    const x1 = elem.x;
+    const y1 = elem.y;
+    const x2 = elem.x + elem.w;
+    const y2 = elem.y + elem.h;
+    const cx = elem.x + elem.w / 2;
+    const cy = elem.y + elem.h / 2;
+    const orient = elem.orientacion || "h";
+    if (orient === "v") return [{ x1: cx, y1, x2: cx, y2 }];
+    if (orient === "diag1") return [{ x1, y1, x2, y2 }];
+    if (orient === "diag2") return [{ x1, y1: y2, x2, y2: y1 }];
+    if (orient === "cruz") return [{ x1, y1, x2, y2 }, { x1, y1: y2, x2, y2: y1 }];
+    return [{ x1, y1: cy, x2, y2: cy }];
+  };
+
+  // Renderiza la figura base del módulo (óvalo/círculo cuando viene marcado como ellipse, o rectángulo redondeado)
+  const renderModuleShape = (elem, { fill, stroke, strokeWidth, className, rx = 3 }) => {
+    const isEllipse = elem.forma === "ellipse" || ((elem.id === "xl_209" || elem.id === "xl_210" || elem.id === "xl_309") && elem.forma !== "rect");
+    if (isEllipse) {
+      return (
+        <ellipse
+          cx={elem.x + elem.w / 2}
+          cy={elem.y + elem.h / 2}
+          rx={elem.w / 2}
+          ry={elem.h / 2}
+          fill={fill}
+          stroke={stroke}
+          strokeWidth={strokeWidth}
+          className={className}
+        />
+      );
+    }
+    return (
+      <rect
+        x={elem.x}
+        y={elem.y}
+        width={elem.w}
+        height={elem.h}
+        rx={rx}
+        ry={rx}
+        fill={fill}
+        stroke={stroke}
+        strokeWidth={strokeWidth}
+        className={className}
+      />
+    );
+  };
+
   // Renderizado SVG de texto multilínea para módulos (salto de línea automático cuando supera el tamaño del módulo)
   const renderSvgElementText = (elem, customFill = null) => {
     if (!elem.nombre) return null;
@@ -1514,6 +1689,54 @@ export default function MapaSupermercadoLeaflet({
           className="cursor-e-resize"
           onMouseDown={(e) => handleMouseDownElement(e, elem.id, "resize-e")}
         />
+
+        {/* Asidero circular superior para girar el módulo libremente (Shift = saltos de 15°) */}
+        <line
+          x1={elem.x + elem.w / 2}
+          y1={elem.y - 3}
+          x2={elem.x + elem.w / 2}
+          y2={elem.y - 22}
+          stroke="#a855f7"
+          strokeWidth="1.5"
+          strokeDasharray="3, 2"
+          pointerEvents="none"
+        />
+        <circle
+          cx={elem.x + elem.w / 2}
+          cy={elem.y - 26}
+          r="6.5"
+          fill="#a855f7"
+          stroke="#ffffff"
+          strokeWidth="1.5"
+          className="cursor-grab active:cursor-grabbing"
+          onMouseDown={(e) => handleMouseDownElement(e, elem.id, "rotate")}
+        >
+          <title>Arrastra para girar (mantén Shift para pasos de 15°)</title>
+        </circle>
+        {draggingAction === "rotate" && (
+          <g pointerEvents="none">
+            <rect
+              x={elem.x + elem.w / 2 + 11}
+              y={elem.y - 35}
+              width="38"
+              height="18"
+              rx="4"
+              fill="#0f172a"
+              stroke="#a855f7"
+              strokeWidth="1"
+            />
+            <text
+              x={elem.x + elem.w / 2 + 30}
+              y={elem.y - 22.5}
+              textAnchor="middle"
+              fill="#e9d5ff"
+              fontSize="10"
+              fontWeight="800"
+            >
+              {elem.rotacion || 0}°
+            </text>
+          </g>
+        )}
       </g>
     );
   };
@@ -1525,10 +1748,10 @@ export default function MapaSupermercadoLeaflet({
     
     let target = null;
     if (cod) {
-      target = elementos.find(e => (e.codigo && e.codigo === cod) || e.nombre?.toUpperCase().includes(cod));
+      target = elementos.find(e => e.tipo !== "linea" && ((e.codigo && e.codigo === cod) || e.nombre?.toUpperCase().includes(cod)));
     }
     if (!target && productoEnfocado.seccion) {
-      target = elementos.find(e => e.seccion?.toLowerCase() === productoEnfocado.seccion?.toLowerCase());
+      target = elementos.find(e => e.tipo !== "linea" && e.seccion?.toLowerCase() === productoEnfocado.seccion?.toLowerCase());
     }
 
     if (target) {
@@ -1556,11 +1779,13 @@ export default function MapaSupermercadoLeaflet({
     if (!busqueda.trim()) return [];
     const q = busqueda.toLowerCase().trim();
 
-    const matchPasillos = elementos.filter(e => 
-      e.nombre?.toLowerCase().includes(q) ||
-      e.codigo?.toLowerCase().includes(q) ||
-      e.seccion?.toLowerCase().includes(q) ||
-      e.desc?.toLowerCase().includes(q)
+    const matchPasillos = elementos.filter(e =>
+      e.tipo !== "linea" && (
+        e.nombre?.toLowerCase().includes(q) ||
+        e.codigo?.toLowerCase().includes(q) ||
+        e.seccion?.toLowerCase().includes(q) ||
+        e.desc?.toLowerCase().includes(q)
+      )
     ).slice(0, 5).map(e => ({
       tipo: "pasillo",
       titulo: `${e.nombre} &bull; ${e.seccion}`,
@@ -1574,7 +1799,7 @@ export default function MapaSupermercadoLeaflet({
       p.ubicacion?.toLowerCase().includes(q)
     ).slice(0, 8).map(p => {
       const cod = extraerCodigoPasillo(p.ubicacion);
-      const target = elementos.find(e => e.codigo === cod || e.nombre?.includes(p.ubicacion));
+      const target = elementos.find(e => e.tipo !== "linea" && (e.codigo === cod || e.nombre?.includes(p.ubicacion)));
       return {
         tipo: "producto",
         titulo: p.nombre,
@@ -1787,8 +2012,8 @@ export default function MapaSupermercadoLeaflet({
 
         {/* Barra de Herramientas de Creación (Solo en Modo Editor) */}
         {modo === "editor" ? (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 sm:pt-3 border-t border-white/5">
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 sm:pt-3 border-t border-white/5">
+            <div className="flex flex-wrap items-center gap-1.5 min-w-0 py-0.5">
               <span className={`text-[10px] sm:text-xs font-bold ${t.textSecondary} shrink-0 mr-0.5`}>+ Agregar:</span>
               <button
                 onClick={() => agregarElemento("gondola_h")}
@@ -1818,9 +2043,35 @@ export default function MapaSupermercadoLeaflet({
                 <span className="material-symbols-outlined text-[15px]">directions_walk</span>
                 <span>Pasillo</span>
               </button>
+              <div className="shrink-0 flex items-center rounded-lg sm:rounded-xl border border-slate-500/40 bg-slate-700/25 overflow-hidden shadow-sm">
+                <span className="px-2 py-1 sm:py-1.5 text-[11px] font-bold text-slate-300 border-r border-slate-500/30">
+                  Línea:
+                </span>
+                <button
+                  onClick={() => agregarElemento("linea_h")}
+                  className="px-2 py-1 sm:py-1.5 text-xs font-black text-slate-200 hover:bg-slate-600 hover:text-white transition-colors border-r border-slate-500/30"
+                  title="Agregar línea horizontal (—)"
+                >
+                  —
+                </button>
+                <button
+                  onClick={() => agregarElemento("linea_v")}
+                  className="px-2 py-1 sm:py-1.5 text-xs font-black text-slate-200 hover:bg-slate-600 hover:text-white transition-colors border-r border-slate-500/30"
+                  title="Agregar línea vertical (|)"
+                >
+                  |
+                </button>
+                <button
+                  onClick={() => agregarElemento("linea_cruz")}
+                  className="px-2 py-1 sm:py-1.5 text-xs font-black text-slate-200 hover:bg-slate-600 hover:text-white transition-colors"
+                  title="Agregar línea cruzada / diagonal (╲)"
+                >
+                  ╲
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between sm:justify-end gap-2 overflow-x-auto no-scrollbar py-0.5">
+            <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 py-0.5">
               {/* Selector de Imán (Snap to Grid) */}
               <div className="flex items-center gap-1 text-xs shrink-0">
                 <span className={`text-[10px] sm:text-[11px] font-bold ${t.textSecondary}`}>Imán:</span>
@@ -2053,6 +2304,7 @@ export default function MapaSupermercadoLeaflet({
                   return (
                     <g
                       key={elem.id}
+                      transform={getModuleTransform(elem)}
                       onMouseDown={(e) => handleMouseDownElement(e, elem.id, "move")}
                       onClick={() => {
                         if (modo === "interactivo") {
@@ -2116,6 +2368,7 @@ export default function MapaSupermercadoLeaflet({
                   return (
                     <g
                       key={elem.id}
+                      transform={getModuleTransform(elem)}
                       onMouseDown={(e) => handleMouseDownElement(e, elem.id, "move")}
                       onClick={() => {
                         if (modo === "interactivo") {
@@ -2124,18 +2377,13 @@ export default function MapaSupermercadoLeaflet({
                       }}
                       className="cursor-pointer"
                     >
-                      <rect
-                        x={elem.x}
-                        y={elem.y}
-                        width={elem.w}
-                        height={elem.h}
-                        rx="1.5"
-                        ry="1.5"
-                        fill={elem.color || "#1e293b"}
-                        stroke={isSelected ? "#ec4899" : (elem.borde || "#3b82f6")}
-                        strokeWidth={isSelected ? 3.5 : 1.2}
-                        className={isSpotlight ? "elem-spotlight-pulse" : ""}
-                      />
+                      {renderModuleShape(elem, {
+                        fill: elem.color || "#1e293b",
+                        stroke: isSelected ? "#ec4899" : (elem.borde || "#3b82f6"),
+                        strokeWidth: isSelected ? 3.5 : 1.2,
+                        className: isSpotlight ? "elem-spotlight-pulse" : "",
+                        rx: 4
+                      })}
                       {/* Texto de la zona con salto de línea automático si supera el tamaño */}
                       {renderSvgElementText(elem, isLightBg ? "#0f172a" : "#ffffff")}
                       {elem.desc && elem.h > 50 && (
@@ -2165,6 +2413,7 @@ export default function MapaSupermercadoLeaflet({
                   return (
                     <g
                       key={elem.id}
+                      transform={getModuleTransform(elem)}
                       onMouseDown={(e) => handleMouseDownElement(e, elem.id, "move")}
                       onClick={() => {
                         if (modo === "interactivo") {
@@ -2173,23 +2422,66 @@ export default function MapaSupermercadoLeaflet({
                       }}
                       className="cursor-pointer group"
                     >
-                      <rect
-                        x={elem.x}
-                        y={elem.y}
-                        width={elem.w}
-                        height={elem.h}
-                        rx="1.5"
-                        ry="1.5"
-                        fill={elem.color || "#38bdf8"}
-                        stroke={isSelected ? "#ec4899" : (elem.borde || "#1e293b")}
-                        strokeWidth={isSelected ? 3.5 : 1.2}
-                        className={isSpotlight ? "elem-spotlight-pulse" : "transition-colors"}
-                      />
+                      {renderModuleShape(elem, {
+                        fill: elem.color || "#38bdf8",
+                        stroke: isSelected ? "#ec4899" : (elem.borde || "#1e293b"),
+                        strokeWidth: isSelected ? 3.5 : 1.2,
+                        className: isSpotlight ? "elem-spotlight-pulse" : "transition-colors",
+                        rx: 3
+                      })}
 
                       {/* Texto del elemento con salto de línea automático si supera el tamaño del módulo */}
                       {renderSvgElementText(elem, "#090d16")}
 
                       {/* Asideros de Redimensión en Modo Editor cuando está seleccionado */}
+                      {renderResizeHandles(elem)}
+                    </g>
+                  );
+                })}
+
+                {/* 4. Capa de Líneas Estéticas (Solo decoración: horizontal, vertical, diagonal/cruzada) */}
+                {elementos.filter(e => e.tipo === "linea").map(elem => {
+                  const isSelected = seleccionIds.includes(elem.id);
+                  const strokeWidth = elem.grosor || 3;
+                  const segmentos = getLineaSegmentos(elem);
+                  const dashArray = elem.estiloLinea === "dashed"
+                    ? `${strokeWidth * 3}, ${strokeWidth * 2}`
+                    : undefined;
+
+                  return (
+                    <g
+                      key={elem.id}
+                      transform={getModuleTransform(elem)}
+                      pointerEvents={modo === "editor" ? "all" : "none"}
+                      onMouseDown={(e) => handleMouseDownElement(e, elem.id, "move")}
+                      className={modo === "editor" ? "cursor-move" : ""}
+                    >
+                      {modo === "editor" && segmentos.map((seg, idx) => (
+                        <line
+                          key={`hit_${idx}`}
+                          x1={seg.x1}
+                          y1={seg.y1}
+                          x2={seg.x2}
+                          y2={seg.y2}
+                          stroke="transparent"
+                          strokeWidth={Math.max(18, strokeWidth + 12)}
+                          strokeLinecap="round"
+                        />
+                      ))}
+                      {segmentos.map((seg, idx) => (
+                        <line
+                          key={`vis_${idx}`}
+                          x1={seg.x1}
+                          y1={seg.y1}
+                          x2={seg.x2}
+                          y2={seg.y2}
+                          stroke={isSelected ? "#ec4899" : (elem.color || "#94a3b8")}
+                          strokeWidth={isSelected ? Math.max(strokeWidth + 1, 3.5) : strokeWidth}
+                          strokeLinecap="round"
+                          strokeDasharray={dashArray}
+                          pointerEvents="none"
+                        />
+                      ))}
                       {renderResizeHandles(elem)}
                     </g>
                   );
@@ -2403,6 +2695,44 @@ export default function MapaSupermercadoLeaflet({
                       </div>
                     </div>
 
+                    {/* Girar Módulos Seleccionados en Lote */}
+                    <div className="p-3 rounded-2xl border border-purple-500/20 bg-purple-500/5 space-y-2">
+                      <label className="text-[10px] font-bold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">rotate_right</span>
+                        <span>Girar selección ({seleccionIds.length}):</span>
+                      </label>
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: "-90°", delta: -90 },
+                          { label: "-45°", delta: -45 },
+                          { label: "-15°", delta: -15 },
+                          { label: "0°", reset: true },
+                          { label: "+15°", delta: 15 },
+                          { label: "+45°", delta: 45 },
+                          { label: "+90°", delta: 90 }
+                        ].map((btn) => (
+                          <button
+                            key={btn.label}
+                            type="button"
+                            onClick={() => {
+                              setElementos(prev => {
+                                const next = prev.map(el => {
+                                  if (!seleccionIds.includes(el.id) || el.bloqueado) return el;
+                                  const nextDeg = btn.reset ? 0 : (((el.rotacion || 0) + btn.delta) % 360 + 360) % 360;
+                                  return { ...el, rotacion: nextDeg };
+                                });
+                                pushHistory(next);
+                                return next;
+                              });
+                            }}
+                            className="py-1 rounded-lg text-[11px] font-bold border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/25 text-purple-200 transition-all"
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Asignar Sección a Todo el Grupo */}
                     <div className="p-3 rounded-2xl border border-white/10 bg-white/5 space-y-1.5">
                       <label className={`text-[10px] font-bold ${t.textSecondary} uppercase tracking-wider block`}>
@@ -2595,61 +2925,145 @@ export default function MapaSupermercadoLeaflet({
                   </div>
                 ) : elementoSeleccionado ? (
                   <div className="space-y-3.5 animate-fadeIn">
-                    
-                    {/* Nombre */}
-                    <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Nombre / Etiqueta:</label>
-                      <input
-                        type="text"
-                        value={elementoSeleccionado.nombre || ""}
-                        onChange={(e) => updateElemento("nombre", e.target.value)}
-                        placeholder="Ej: Pasillo 14-A"
-                        className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs font-bold ${t.text} focus:border-amber-400 focus:outline-none`}
-                      />
-                    </div>
+                    {elementoSeleccionado.tipo === "linea" ? (
+                      <div className="p-3 rounded-2xl border border-slate-500/30 bg-slate-800/40 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] font-black text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[15px] text-purple-300">pen_size_2</span>
+                            <span>Línea Estética</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400">Solo visual</span>
+                        </div>
 
-                    {/* Código normalizado */}
-                    <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Código de Pasillo (opcional):</label>
-                      <input
-                        type="text"
-                        value={elementoSeleccionado.codigo || ""}
-                        onChange={(e) => updateElemento("codigo", e.target.value.toUpperCase())}
-                        placeholder="Ej: 14A, 15D, 1C"
-                        className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} focus:border-amber-400 focus:outline-none`}
-                      />
-                    </div>
+                        <div>
+                          <label className={`text-[10px] font-bold ${t.textSecondary} block mb-1`}>Dirección / Forma:</label>
+                          <div className="grid grid-cols-5 gap-1">
+                            {[
+                              { id: "h", label: "—", title: "Horizontal" },
+                              { id: "v", label: "|", title: "Vertical" },
+                              { id: "diag1", label: "╲", title: "Diagonal bajando" },
+                              { id: "diag2", label: "╱", title: "Diagonal subiendo" },
+                              { id: "cruz", label: "✕", title: "Cruzada (X)" }
+                            ].map(op => (
+                              <button
+                                key={op.id}
+                                type="button"
+                                onClick={() => {
+                                  const prevOrient = elementoSeleccionado.orientacion || "h";
+                                  setElementos(prev => {
+                                    const next = prev.map(el => {
+                                      if (el.id !== elementoSeleccionado.id || el.bloqueado) return el;
+                                      let nextW = el.w;
+                                      let nextH = el.h;
+                                      if (op.id === "h" && prevOrient === "v") {
+                                        nextW = Math.max(40, el.h);
+                                        nextH = 20;
+                                      } else if (op.id === "v" && prevOrient === "h") {
+                                        nextW = 20;
+                                        nextH = Math.max(40, el.w);
+                                      } else if ((op.id === "diag1" || op.id === "diag2" || op.id === "cruz") && (el.w < 30 || el.h < 30)) {
+                                        nextW = Math.max(60, el.w);
+                                        nextH = Math.max(60, el.h);
+                                      }
+                                      return { ...el, orientacion: op.id, w: nextW, h: nextH };
+                                    });
+                                    pushHistory(next);
+                                    return next;
+                                  });
+                                }}
+                                title={op.title}
+                                className={`py-1.5 rounded-lg text-xs font-black border transition-all ${
+                                  (elementoSeleccionado.orientacion || "h") === op.id
+                                    ? "bg-purple-600 text-white border-purple-400"
+                                    : `${t.bgInput} ${t.textSecondary} ${t.border} hover:text-white`
+                                }`}
+                              >
+                                {op.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                    {/* Sección */}
-                    <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Sección / Categoría:</label>
-                      <select
-                        value={elementoSeleccionado.seccion || "Abarrotes"}
-                        onChange={(e) => updateElemento("seccion", e.target.value)}
-                        className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs font-bold ${t.text} focus:border-amber-400 focus:outline-none`}
-                      >
-                        {SECCIONES_LISTA.map(sec => (
-                          <option key={sec} value={sec}>{sec}</option>
-                        ))}
-                      </select>
-                    </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className={`text-[10px] font-bold ${t.textSecondary} block mb-1`}>Grosor:</label>
+                            <div className="flex gap-1">
+                              {[2, 3, 5, 8].map(g => (
+                                <button
+                                  key={g}
+                                  type="button"
+                                  onClick={() => updateElemento("grosor", g)}
+                                  className={`flex-1 py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                    (elementoSeleccionado.grosor || 3) === g
+                                      ? "bg-amber-500 text-black border-amber-300"
+                                      : `${t.bgInput} ${t.textSecondary} ${t.border} hover:text-white`
+                                  }`}
+                                >
+                                  {g}px
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className={`text-[10px] font-bold ${t.textSecondary} block mb-1`}>Trazo:</label>
+                            <div className="grid grid-cols-2 gap-1">
+                              {[
+                                { id: "solid", label: "Sólida" },
+                                { id: "dashed", label: "Punteada" }
+                              ].map(st => (
+                                <button
+                                  key={st.id}
+                                  type="button"
+                                  onClick={() => updateElemento("estiloLinea", st.id)}
+                                  className={`py-1 rounded-lg text-[10px] font-bold border transition-all ${
+                                    (elementoSeleccionado.estiloLinea || "solid") === st.id
+                                      ? "bg-amber-500 text-black border-amber-300"
+                                      : `${t.bgInput} ${t.textSecondary} ${t.border} hover:text-white`
+                                  }`}
+                                >
+                                  {st.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Nombre */}
+                        <div>
+                          <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Nombre / Etiqueta:</label>
+                          <input
+                            type="text"
+                            value={elementoSeleccionado.nombre || ""}
+                            onChange={(e) => updateElemento("nombre", e.target.value)}
+                            placeholder="Ej: Pasillo 14-A"
+                            className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs font-bold ${t.text} focus:border-amber-400 focus:outline-none`}
+                          />
+                        </div>
 
-                    {/* Descripción / Contenido */}
-                    <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Artículos / Contenido:</label>
-                      <input
-                        type="text"
-                        value={elementoSeleccionado.desc || ""}
-                        onChange={(e) => updateElemento("desc", e.target.value)}
-                        placeholder="Ej: Arroz, Fideos, Salsas"
-                        className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs ${t.text} focus:border-amber-400 focus:outline-none`}
-                      />
-                    </div>
+                        {/* Sección */}
+                        <div>
+                          <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1`}>Sección / Categoría:</label>
+                          <select
+                            value={elementoSeleccionado.seccion || "Abarrotes"}
+                            onChange={(e) => updateElemento("seccion", e.target.value)}
+                            className={`w-full p-2.5 rounded-xl ${t.bgInput} border ${t.border} text-xs font-bold ${t.text} focus:border-amber-400 focus:outline-none`}
+                          >
+                            {SECCIONES_LISTA.map(sec => (
+                              <option key={sec} value={sec}>{sec}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
                     {/* Color */}
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className={`text-[11px] font-bold ${t.textSecondary}`}>Color de la góndola:</label>
+                        <label className={`text-[11px] font-bold ${t.textSecondary}`}>
+                          {elementoSeleccionado.tipo === "linea" ? "Color de la línea:" : "Color de la góndola:"}
+                        </label>
                         {coloresRecientes.length > 0 && (
                           <span className="text-[10px] text-pink-400 font-semibold flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px]">colorize</span>
@@ -2761,34 +3175,98 @@ export default function MapaSupermercadoLeaflet({
                       </div>
                     </div>
 
-                    {/* Color del Texto (Negro o Blanco) */}
-                    <div>
-                      <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1.5`}>Color del texto:</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => updateElemento("textColor", "#090d16")}
-                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
-                            (elementoSeleccionado.textColor || "#090d16") === "#090d16"
-                              ? "bg-slate-900 border-amber-400 text-white ring-2 ring-amber-400/30"
-                              : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
-                          }`}
-                        >
-                          <span className="w-3.5 h-3.5 rounded-full bg-black border border-white/40 shadow-inner"></span>
-                          <span>Letra Negra</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateElemento("textColor", "#ffffff")}
-                          className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
-                            elementoSeleccionado.textColor === "#ffffff"
-                              ? "bg-slate-800 border-amber-400 text-white ring-2 ring-amber-400/30"
-                              : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
-                          }`}
-                        >
-                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-black/20 shadow-sm"></span>
-                          <span>Letra Blanca</span>
-                        </button>
+                    {/* Color del Texto (Negro o Blanco, oculto en líneas estéticas) */}
+                    {elementoSeleccionado.tipo !== "linea" && (
+                      <div>
+                        <label className={`text-[11px] font-bold ${t.textSecondary} block mb-1.5`}>Color del texto:</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => updateElemento("textColor", "#090d16")}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
+                              (elementoSeleccionado.textColor || "#090d16") === "#090d16"
+                                ? "bg-slate-900 border-amber-400 text-white ring-2 ring-amber-400/30"
+                                : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
+                            }`}
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full bg-black border border-white/40 shadow-inner"></span>
+                            <span>Letra Negra</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateElemento("textColor", "#ffffff")}
+                            className={`py-2 px-3 rounded-xl border flex items-center justify-center gap-2 text-xs font-black transition-all shadow-sm ${
+                              elementoSeleccionado.textColor === "#ffffff"
+                                ? "bg-slate-800 border-amber-400 text-white ring-2 ring-amber-400/30"
+                                : "bg-slate-950/60 border-white/10 text-slate-400 hover:text-white hover:bg-slate-900"
+                            }`}
+                          >
+                            <span className="w-3.5 h-3.5 rounded-full bg-white border border-black/20 shadow-sm"></span>
+                            <span>Letra Blanca</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Rotación Libre (para cuadros y líneas) */}
+                    <div className="pt-2 border-t border-white/5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-extrabold text-purple-300 uppercase tracking-wider flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[13px]">rotate_right</span>
+                          <span>Girar / Ángulo</span>
+                        </label>
+                        <span className="text-[11px] font-mono font-bold text-purple-200">
+                          {elementoSeleccionado.rotacion || 0}°
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="range"
+                          min="0"
+                          max="359"
+                          disabled={elementoSeleccionado.bloqueado}
+                          value={elementoSeleccionado.rotacion || 0}
+                          onChange={(e) => updateElemento("rotacion", parseInt(e.target.value, 10) || 0)}
+                          className="flex-1 accent-purple-500 cursor-pointer"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="359"
+                          disabled={elementoSeleccionado.bloqueado}
+                          value={elementoSeleccionado.rotacion || 0}
+                          onChange={(e) => {
+                            const raw = parseInt(e.target.value, 10) || 0;
+                            updateElemento("rotacion", ((raw % 360) + 360) % 360);
+                          }}
+                          className={`w-14 p-1 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold text-center ${t.text}`}
+                        />
+                      </div>
+                      <div className="grid grid-cols-7 gap-1">
+                        {[
+                          { label: "-90°", delta: -90 },
+                          { label: "-45°", delta: -45 },
+                          { label: "-15°", delta: -15 },
+                          { label: "0°", reset: true },
+                          { label: "+15°", delta: 15 },
+                          { label: "+45°", delta: 45 },
+                          { label: "+90°", delta: 90 }
+                        ].map((btn) => (
+                          <button
+                            key={btn.label}
+                            type="button"
+                            disabled={elementoSeleccionado.bloqueado}
+                            onClick={() => {
+                              const nextDeg = btn.reset
+                                ? 0
+                                : (((elementoSeleccionado.rotacion || 0) + btn.delta) % 360 + 360) % 360;
+                              updateElemento("rotacion", nextDeg);
+                            }}
+                            className="py-1 rounded-lg text-[10px] font-bold border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/25 text-purple-200 disabled:opacity-40 transition-all"
+                          >
+                            {btn.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -2838,7 +3316,7 @@ export default function MapaSupermercadoLeaflet({
                             type="number"
                             disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.w}
-                            onChange={(e) => updateElemento("w", parseInt(e.target.value) || 20)}
+                            onChange={(e) => updateElemento("w", Math.max(elementoSeleccionado.tipo === "linea" ? 4 : 10, parseInt(e.target.value, 10) || 20))}
                             className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
                               elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
                             }`}
@@ -2851,7 +3329,7 @@ export default function MapaSupermercadoLeaflet({
                             type="number"
                             disabled={elementoSeleccionado.bloqueado}
                             value={elementoSeleccionado.h}
-                            onChange={(e) => updateElemento("h", parseInt(e.target.value) || 20)}
+                            onChange={(e) => updateElemento("h", Math.max(elementoSeleccionado.tipo === "linea" ? 4 : 10, parseInt(e.target.value, 10) || 20))}
                             className={`w-full p-1.5 rounded-lg ${t.bgInput} border ${t.border} text-xs font-mono font-bold ${t.text} ${
                               elementoSeleccionado.bloqueado ? "opacity-60 cursor-not-allowed bg-amber-500/5 border-amber-500/20" : ""
                             }`}

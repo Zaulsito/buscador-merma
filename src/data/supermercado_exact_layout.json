@@ -2706,6 +2706,7 @@
     {
       "id": "xl_209",
       "tipo": "gondola",
+      "forma": "ellipse",
       "nombre": "VINOS",
       "codigo": "",
       "seccion": "Botillería",
@@ -2721,6 +2722,7 @@
     {
       "id": "xl_210",
       "tipo": "gondola",
+      "forma": "ellipse",
       "nombre": "VINOS",
       "codigo": "",
       "seccion": "Botillería",
@@ -4371,6 +4373,7 @@
     {
       "id": "xl_309",
       "tipo": "gondola",
+      "forma": "ellipse",
       "nombre": "AJO",
       "codigo": "",
       "seccion": "Verdulería",
