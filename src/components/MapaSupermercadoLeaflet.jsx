@@ -161,6 +161,10 @@ const getWrappedSvgLines = (text, availLength, availThickness, preferredFontSize
   return { lines: [clean], fontSize: fallbackF, lineHeight };
 };
 
+const TARGET_TEMPLATE_VERSION = defaultLayoutData.templateVersion || "excel_392_v1";
+const DEFAULT_CANVAS_WIDTH = defaultLayoutData.width || 2492;
+const DEFAULT_CANVAS_HEIGHT = defaultLayoutData.height || 1284;
+
 export default function MapaSupermercadoLeaflet({
   productos = [],
   sectores = [],
@@ -170,6 +174,7 @@ export default function MapaSupermercadoLeaflet({
 }) {
   const { t } = useTheme();
   const containerRef = useRef(null);
+  const importInputRef = useRef(null);
 
   // Modos: "interactivo" (vista cliente/personal con búsqueda y radar) o "editor" (constructor visual)
   const [modo, setModo] = useState("editor");
@@ -180,8 +185,8 @@ export default function MapaSupermercadoLeaflet({
   const [guardandoPlano, setGuardandoPlano] = useState(false);
 
   // Configuración del Lienzo (Canvas)
-  const [canvasWidth, setCanvasWidth] = useState(2400);
-  const [canvasHeight, setCanvasHeight] = useState(1200);
+  const [canvasWidth, setCanvasWidth] = useState(DEFAULT_CANVAS_WIDTH);
+  const [canvasHeight, setCanvasHeight] = useState(DEFAULT_CANVAS_HEIGHT);
   const [snapGrid, setSnapGrid] = useState(20); // 10, 20, 40 o 0 (desactivado)
   const [mostrarGrid, setMostrarGrid] = useState(true);
 
@@ -374,123 +379,127 @@ export default function MapaSupermercadoLeaflet({
   // Modo Pantalla Completa
   const [pantallaCompleta, setPantallaCompleta] = useState(false);
 
-  // Cargar plano guardado de Firebase Firestore (o LocalStorage / inicial)
+  // Guardar respaldo local consistente en localStorage
+  const guardarBackupLocal = useCallback((elems, w = canvasWidth, h = canvasHeight) => {
+    try {
+      localStorage.setItem(
+        "mapa_supermercado_diseno_local",
+        JSON.stringify({
+          templateVersion: TARGET_TEMPLATE_VERSION,
+          width: w,
+          height: h,
+          elementos: elems
+        })
+      );
+    } catch (e) {
+      console.warn("Error guardando respaldo local:", e);
+    }
+  }, [canvasHeight, canvasWidth]);
+
+  // Cargar plano guardado de Firebase Firestore (Nube primero; nunca sobrescribir diseños del usuario)
   useEffect(() => {
     const cargarPlano = async () => {
       setCargandoPlano(true);
+      const targetList = defaultLayoutData.elementos || [];
+      const targetWidth = DEFAULT_CANVAS_WIDTH;
+      const targetHeight = DEFAULT_CANVAS_HEIGHT;
+
       try {
-        const CURRENT_RESET_KEY = "mapa_v_sector_c_and_b_113_v1";
-        const targetList = defaultLayoutData.elementos || [];
-        const targetWidth = defaultLayoutData.width || 1950;
-        const targetHeight = defaultLayoutData.height || 1350;
-
-        // Si es la primera vez con la nueva versión unificada (113 elementos)
-        if (localStorage.getItem(CURRENT_RESET_KEY) !== "done") {
-          localStorage.removeItem("mapa_supermercado_diseno_local");
-          localStorage.setItem(CURRENT_RESET_KEY, "done");
-          setElementos(targetList);
-          setCanvasWidth(targetWidth);
-          setCanvasHeight(targetHeight);
-          pushHistory(targetList);
-
-          // Sincronizar inmediatamente a Firestore para que persista en la nube
-          try {
-            await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-              elementos: targetList,
-              width: targetWidth,
-              height: targetHeight,
-              updatedAt: serverTimestamp()
-            }, { merge: true });
-          } catch (e) {
-            console.warn("Error guardando layout unificado inicial en Firestore:", e);
-          }
-          return;
-        }
-
-        // 1. Intentar cargar desde Firestore
+        // 1. Cargar siempre desde Firestore primero
         const snap = await getDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"));
-        if (snap.exists() && snap.data()?.elementos && snap.data().elementos.length > 0) {
-          const data = snap.data();
-          // Si los elementos en Firestore son menores que el layout completo (p. ej. quedaron los 66 anteriores)
-          // actualizamos automáticamente a los 113 elementos completos
-          if (data.elementos.length < targetList.length) {
-            setElementos(targetList);
-            setCanvasWidth(targetWidth);
-            setCanvasHeight(targetHeight);
-            pushHistory(targetList);
-            try {
-              await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
-                elementos: targetList,
-                width: targetWidth,
-                height: targetHeight,
-                updatedAt: serverTimestamp()
-              }, { merge: true });
-            } catch (e) {
-              console.warn(e);
-            }
+        if (snap.exists()) {
+          const data = snap.data() || {};
+          if (data.templateVersion === TARGET_TEMPLATE_VERSION && Array.isArray(data.elementos)) {
+            const loadedWidth = data.width || targetWidth;
+            const loadedHeight = data.height || targetHeight;
+            setElementos(data.elementos);
+            setCanvasWidth(loadedWidth);
+            setCanvasHeight(loadedHeight);
+            pushHistory(data.elementos);
+            guardarBackupLocal(data.elementos, loadedWidth, loadedHeight);
             return;
           }
-
-          setElementos(data.elementos || []);
-          if (data.width) setCanvasWidth(data.width);
-          if (data.height) setCanvasHeight(data.height);
-          pushHistory(data.elementos || []);
-          return;
         }
 
-        // 2. Intentar cargar desde LocalStorage
-        const local = localStorage.getItem("mapa_supermercado_diseno_local");
-        if (local) {
-          try {
-            const parsed = JSON.parse(local);
-            if (Array.isArray(parsed) && parsed.length >= targetList.length) {
-              setElementos(parsed);
-              pushHistory(parsed);
-              return;
-            }
-          } catch (e) {
-            console.warn("Error leyendo localstorage", e);
-          }
-        }
-
-        // 3. Fallback: cargar plano unificado completo
+        // 2. Migrar una sola vez desde la plantilla base si Firestore aún no tiene esta templateVersion
         setElementos(targetList);
         setCanvasWidth(targetWidth);
         setCanvasHeight(targetHeight);
         pushHistory(targetList);
+        guardarBackupLocal(targetList, targetWidth, targetHeight);
+
+        try {
+          await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+            templateVersion: TARGET_TEMPLATE_VERSION,
+            elementos: targetList,
+            width: targetWidth,
+            height: targetHeight,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (e) {
+          console.warn("Error sincronizando plantilla base inicial en Firestore:", e);
+        }
       } catch (err) {
-        console.warn("Plano inicializado:", err);
-        const fallback = defaultLayoutData.elementos || [];
-        setElementos(fallback);
+        console.warn("No se pudo leer Firestore, usando respaldo local/base:", err);
+        try {
+          const local = localStorage.getItem("mapa_supermercado_diseno_local");
+          if (local) {
+            const parsed = JSON.parse(local);
+            const localElems = Array.isArray(parsed)
+              ? parsed
+              : (Array.isArray(parsed?.elementos) ? parsed.elementos : null);
+            if (Array.isArray(localElems) && localElems.length > 0) {
+              const localW = !Array.isArray(parsed) && parsed?.width ? parsed.width : targetWidth;
+              const localH = !Array.isArray(parsed) && parsed?.height ? parsed.height : targetHeight;
+              setElementos(localElems);
+              setCanvasWidth(localW);
+              setCanvasHeight(localH);
+              pushHistory(localElems);
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn("Error leyendo localStorage:", e);
+        }
+
+        setElementos(targetList);
+        setCanvasWidth(targetWidth);
+        setCanvasHeight(targetHeight);
+        pushHistory(targetList);
       } finally {
         setCargandoPlano(false);
       }
     };
 
     cargarPlano();
-  }, [pushHistory]);
+  }, [guardarBackupLocal, pushHistory]);
 
   // Convertir layout por defecto a elementos editables
   const cargarPlantillaInicial = async () => {
+    if (elementos.length > 0 && !window.confirm("¿Deseas cargar la plantilla base desde cero y reemplazar el plano actual?")) {
+      return;
+    }
     const list = defaultLayoutData.elementos || [];
-    const w = defaultLayoutData.width || 1950;
-    const h = defaultLayoutData.height || 1350;
+    const w = DEFAULT_CANVAS_WIDTH;
+    const h = DEFAULT_CANVAS_HEIGHT;
     setElementos(list);
     setCanvasWidth(w);
     setCanvasHeight(h);
+    setSeleccionIds([]);
     pushHistory(list);
+    guardarBackupLocal(list, w, h);
     try {
       await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+        templateVersion: TARGET_TEMPLATE_VERSION,
         elementos: list,
         width: w,
         height: h,
         updatedAt: serverTimestamp()
       }, { merge: true });
-      localStorage.setItem("mapa_supermercado_diseno_local", JSON.stringify(list));
     } catch (e) {
       console.warn("Error sync plantilla:", e);
     }
-    toast.success("Plano unificado del supermercado cargado");
+    toast.success("Plantilla base del supermercado cargada");
   };
 
   // Guardar plano en Firebase Firestore
@@ -499,19 +508,109 @@ export default function MapaSupermercadoLeaflet({
     const toastId = toast.loading("Guardando plano del supermercado...");
     try {
       await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+        templateVersion: TARGET_TEMPLATE_VERSION,
         width: canvasWidth,
         height: canvasHeight,
         elementos,
         updatedAt: serverTimestamp()
       }, { merge: true });
 
-      localStorage.setItem("mapa_supermercado_diseno_local", JSON.stringify(elementos));
+      guardarBackupLocal(elementos, canvasWidth, canvasHeight);
       toast.success("¡Plano guardado exitosamente en el servidor!", { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error("Error al guardar el plano en la nube", { id: toastId });
     } finally {
       setGuardandoPlano(false);
+    }
+  };
+
+  // Exportar respaldo JSON descargable del plano actual
+  const exportarPlanoJson = () => {
+    try {
+      const payload = {
+        templateVersion: TARGET_TEMPLATE_VERSION,
+        exportedAt: new Date().toISOString(),
+        width: canvasWidth,
+        height: canvasHeight,
+        elementos
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `plano-supermercado-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success(`Respaldo JSON exportado (${elementos.length} elementos)`);
+    } catch (err) {
+      console.error(err);
+      toast.error("No se pudo exportar el respaldo JSON");
+    }
+  };
+
+  // Importar respaldo JSON desde archivo local
+  const importarPlanoJson = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const rawElems = Array.isArray(parsed)
+        ? parsed
+        : (Array.isArray(parsed?.elementos) ? parsed.elementos : null);
+
+      if (!Array.isArray(rawElems) || rawElems.length === 0) {
+        toast.error("El archivo JSON no contiene elementos válidos de plano");
+        return;
+      }
+
+      const validElems = rawElems.filter(
+        (el) => el && typeof el === "object" && Number.isFinite(Number(el.x)) && Number.isFinite(Number(el.y))
+      ).map((el, idx) => ({
+        ...el,
+        id: el.id || `imp_${Date.now()}_${idx}`,
+        x: Number(el.x),
+        y: Number(el.y),
+        w: Math.max(8, Number(el.w) || 40),
+        h: Math.max(8, Number(el.h) || 20)
+      }));
+
+      if (validElems.length === 0) {
+        toast.error("Ningún elemento del JSON tiene coordenadas válidas");
+        return;
+      }
+
+      const nextW = !Array.isArray(parsed) && Number(parsed?.width) > 0 ? Number(parsed.width) : canvasWidth;
+      const nextH = !Array.isArray(parsed) && Number(parsed?.height) > 0 ? Number(parsed.height) : canvasHeight;
+
+      setElementos(validElems);
+      setCanvasWidth(nextW);
+      setCanvasHeight(nextH);
+      setSeleccionIds([]);
+      pushHistory(validElems);
+      guardarBackupLocal(validElems, nextW, nextH);
+
+      try {
+        await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+          templateVersion: TARGET_TEMPLATE_VERSION,
+          elementos: validElems,
+          width: nextW,
+          height: nextH,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.warn("Error guardando JSON importado en Firestore:", err);
+      }
+
+      toast.success(`Plano importado y guardado (${validElems.length} elementos)`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Archivo JSON inválido o dañado");
     }
   };
 
@@ -523,14 +622,15 @@ export default function MapaSupermercadoLeaflet({
     setPasilloDetalle(null);
     setSpotlightActivo(null);
     pushHistory([]);
+    guardarBackupLocal([], canvasWidth, canvasHeight);
     try {
       await setDoc(doc(db, "auditoria_sectores", "_diseno_mapa_"), {
+        templateVersion: TARGET_TEMPLATE_VERSION,
         elementos: [],
         width: canvasWidth,
         height: canvasHeight,
         updatedAt: serverTimestamp()
       }, { merge: true });
-      localStorage.removeItem("mapa_supermercado_diseno_local");
     } catch (e) {
       console.warn(e);
     }
@@ -1739,8 +1839,29 @@ export default function MapaSupermercadoLeaflet({
                 ))}
               </div>
 
-              {/* Botón Plantilla y Vaciar */}
+              {/* Botón Plantilla, Respaldo JSON y Vaciar */}
               <div className="flex items-center gap-1 shrink-0">
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={importarPlanoJson}
+                  className="hidden"
+                />
+                <button
+                  onClick={exportarPlanoJson}
+                  className={`p-1 rounded-lg sm:rounded-xl text-xs font-bold border ${t.border} ${t.bgInput} ${t.textSecondary} hover:text-white`}
+                  title="Descargar respaldo JSON del mapa actual"
+                >
+                  <span className="material-symbols-outlined text-[15px] sm:text-[17px]">download</span>
+                </button>
+                <button
+                  onClick={() => importInputRef.current?.click()}
+                  className={`p-1 rounded-lg sm:rounded-xl text-xs font-bold border ${t.border} ${t.bgInput} ${t.textSecondary} hover:text-white`}
+                  title="Importar respaldo JSON del mapa"
+                >
+                  <span className="material-symbols-outlined text-[15px] sm:text-[17px]">upload</span>
+                </button>
                 <button
                   onClick={cargarPlantillaInicial}
                   className={`px-2 py-1 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold border ${t.border} ${t.bgInput} ${t.textSecondary} hover:text-white`}
@@ -2008,8 +2129,8 @@ export default function MapaSupermercadoLeaflet({
                         y={elem.y}
                         width={elem.w}
                         height={elem.h}
-                        rx="4"
-                        ry="4"
+                        rx="1.5"
+                        ry="1.5"
                         fill={elem.color || "#1e293b"}
                         stroke={isSelected ? "#ec4899" : (elem.borde || "#3b82f6")}
                         strokeWidth={isSelected ? 3.5 : 1.2}
@@ -2057,8 +2178,8 @@ export default function MapaSupermercadoLeaflet({
                         y={elem.y}
                         width={elem.w}
                         height={elem.h}
-                        rx="3"
-                        ry="3"
+                        rx="1.5"
+                        ry="1.5"
                         fill={elem.color || "#38bdf8"}
                         stroke={isSelected ? "#ec4899" : (elem.borde || "#1e293b")}
                         strokeWidth={isSelected ? 3.5 : 1.2}
